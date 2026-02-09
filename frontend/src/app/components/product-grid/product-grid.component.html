@@ -1,0 +1,258 @@
+<div class="product-grid-container">
+
+  <!-- Compact Header Section -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-left">
+        <div class="title-section">
+          <h1 class="page-title">Point of Sale</h1>
+          <div class="status-indicator">
+            <span class="status-dot"></span>
+            <span class="status-text">Ready</span>
+          </div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary compact-btn" (click)="refreshData()" title="Refresh Products">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M1 4v6h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M23 20v-6h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" />
+            <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+        <button class="btn btn-primary cart-btn" (click)="toggleCartSidebar()">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6-5v6a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-6m8 0V9a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v4.01"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <span class="cart-text">Order Cart</span>
+          <span class="cart-count" *ngIf="cartItemCount > 0">{{ cartItemCount }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Compact Search & Filters Section -->
+  <div class="filters-section">
+    <div class="filters-content">
+      <div class="search-filters-row">
+        <div class="search-box">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2" />
+            <path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" />
+          </svg>
+          <input type="text" class="search-input" placeholder="Search products by name, category..."
+            (input)="onSearchInput($event)">
+        </div>
+
+        <div class="category-filters">
+          <button class="category-btn" [class.active]="selectedCategory === 'all'" (click)="selectCategory('all')">
+            All
+          </button>
+          <button *ngFor="let category of categories" class="category-btn"
+            [class.active]="selectedCategory === category" (click)="selectCategory(category)">
+            {{ category }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-container">
+    <div class="loading-spinner"></div>
+    <p class="loading-text">Loading products...</p>
+  </div>
+
+  <!-- Products Grid -->
+  <div *ngIf="!isLoading" class="products-grid">
+    <div *ngFor="let product of paginatedProducts; trackBy: trackByProduct" class="product-card">
+      <div class="product-image">
+        <img *ngIf="isImageUrl(product.image)" [src]="product.image" [alt]="product.name" class="product-img"
+          loading="lazy" (error)="onImageError($event)">
+        <div *ngIf="!isImageUrl(product.image)" class="image-placeholder">
+          <span class="placeholder-text">{{ product.image || '📦' }}</span>
+        </div>
+        <!-- Low Stock Badge -->
+        <div class="product-badge" *ngIf="isLowStock(product)">
+          <span class="badge badge-warning">Low Stock</span>
+        </div>
+        <!-- Out of Stock Badge -->
+        <div class="product-badge" *ngIf="isOutOfStock(product)">
+          <span class="badge badge-danger">Out of Stock</span>
+        </div>
+      </div>
+
+      <div class="product-content">
+        <div class="product-info">
+          <h3 class="product-name">{{ product.name }}</h3>
+          <p class="product-category">{{ product.category }}</p>
+          <div class="product-price">
+            <span class="price-amount">₱{{ product.price | number:'1.2-2' }}</span>
+            <span class="stock-info" [class.low-stock]="isLowStock(product)"
+              [class.out-of-stock]="isOutOfStock(product)">
+              Stock: {{ product.stock }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Circular Add to Cart Button -->
+        <button class="add-to-cart-btn circular-btn" [disabled]="product.stock === 0" (click)="addToCart(product)"
+          [title]="product.stock === 0 ? 'Out of Stock' : 'Add to Cart'">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Load More Button -->
+  <div *ngIf="!isLoading && hasMoreProducts()" class="load-more-container">
+    <button class="btn btn-primary load-more-btn" (click)="loadMoreProducts()">
+      <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round" />
+      </svg>
+      Load More Products
+    </button>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!isLoading && filteredProducts.length === 0" class="empty-state">
+    <div class="empty-icon">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </div>
+    <h3 class="empty-title">No products found</h3>
+    <p class="empty-description">
+      {{ searchTerm ? 'Try adjusting your search terms' : 'No products available in this category' }}
+    </p>
+    <button class="btn btn-primary" (click)="refreshData()">
+      Refresh Products
+    </button>
+  </div>
+
+  <!-- Cart Sidebar -->
+  <div class="cart-sidebar-overlay" [class.active]="isCartOpen" (click)="closeCartSidebar()"></div>
+
+  <div class="cart-sidebar" [class.open]="isCartOpen">
+    <div class="cart-header">
+      <h2 class="cart-title">Order Cart</h2>
+      <button class="close-btn" (click)="closeCartSidebar()">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="cart-content">
+      <!-- Empty Cart -->
+      <div *ngIf="cartItems.length === 0" class="empty-cart">
+        <div class="empty-cart-icon">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6-5v6a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-6m8 0V9a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v4.01"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </div>
+        <h3 class="empty-cart-title">Your cart is empty</h3>
+        <p class="empty-cart-description">Add some products to get started!</p>
+      </div>
+
+      <!-- Cart Items -->
+      <div *ngIf="cartItems.length > 0" class="cart-items" [class.scrollable]="cartItems.length > 10">
+        <div *ngFor="let item of cartItems; trackBy: trackByItem" class="cart-item">
+          <div class="item-image">
+            <img *ngIf="isImageUrl(item.image)" [src]="item.image" [alt]="item.name" (error)="onImageError($event)">
+            <div *ngIf="!isImageUrl(item.image)" class="image-placeholder">
+              <span class="placeholder-text">{{ item.image || '📦' }}</span>
+            </div>
+          </div>
+
+          <div class="item-details">
+            <h4 class="item-name">
+              {{ item.name }}
+              <span *ngIf="item.temperature" class="temperature-badge" [class.hot]="item.temperature === 'hot'"
+                [class.cold]="item.temperature === 'cold'">
+                <span *ngIf="item.temperature === 'hot'">🔥 hot</span>
+                <span *ngIf="item.temperature === 'cold'">❄️ Iced</span>
+              </span>
+            </h4>
+            <p class="item-category">{{ item.category }}</p>
+            <div class="item-addons" *ngIf="item.addOns && item.addOns.length > 0">
+              <span *ngFor="let addOn of item.addOns" class="addon-badge">
+                <span *ngIf="addOn.quantity && addOn.quantity > 1">{{ addOn.quantity }}x </span>{{ addOn.name }} (+₱{{
+                (addOn.price * (addOn.quantity || 1)) | number:'1.2-2' }})
+              </span>
+            </div>
+            <div class="item-price">₱{{ item.price | number:'1.2-2' }}</div>
+          </div>
+
+          <div class="item-actions">
+            <div class="item-quantity">
+              <div class="quantity-controls">
+                <button class="quantity-btn" (click)="decreaseQuantity(item)" [disabled]="item.quantity <= 1">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                      stroke-linejoin="round" />
+                  </svg>
+                </button>
+                <span class="quantity-display">{{ item.quantity }}</span>
+                <button class="quantity-btn" (click)="increaseQuantity(item)" [disabled]="item.quantity >= item.stock">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                      stroke-linejoin="round" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="item-total">
+              <span class="total-amount">₱{{ item.total | number:'1.2-2' }}</span>
+            </div>
+          </div>
+
+          <button class="remove-btn" (click)="removeFromCart(item)">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cart Summary -->
+    <div *ngIf="cartItems.length > 0" class="cart-summary">
+      <div class="summary-row total-row">
+        <span class="summary-label">Total:</span>
+        <span class="summary-value total-value">₱{{ total | number:'1.2-2' }}</span>
+      </div>
+
+      <div class="cart-actions">
+        <button *ngIf="openOrders.length === 0" class="btn btn-secondary" (click)="clearCart()">
+          Clear Cart
+        </button>
+        <button *ngIf="isOpenOrderActive" class="btn btn-secondary" (click)="saveOpenOrder()">
+          Save Open Order
+        </button>
+        <button class="btn btn-primary checkout-btn" (click)="proceedToCheckout()">
+          Proceed to Checkout
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Checkout Sidebar -->
+  <app-checkout-sidebar [isOpen]="isCheckoutOpen" (close)="closeCheckout()"
+    (transactionComplete)="onTransactionComplete($event)"></app-checkout-sidebar>
+</div>

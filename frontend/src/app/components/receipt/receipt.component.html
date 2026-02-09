@@ -1,0 +1,185 @@
+<div class="receipt-container">
+  <!-- Header -->
+  <div class="receipt-header">
+    <h1>QuickServe POS</h1>
+    <p class="receipt-subtitle">Transaction Receipt</p>
+  </div>
+
+  <!-- Transaction Info -->
+  <div class="transaction-info">
+    <div class="info-row">
+      <span class="label">Receipt #:</span>
+      <span class="value">{{ getReceiptNumber() }}</span>
+    </div>
+    <div class="info-row">
+      <span class="label">Date:</span>
+      <span class="value">{{ formatDate(transaction?.timestamp) }}</span>
+    </div>
+    <div class="info-row" *ngIf="transaction?.customerInfo?.name">
+      <span class="label">Customer:</span>
+      <span class="value">{{ transaction?.customerInfo?.name }}</span>
+    </div>
+    <div class="info-row" *ngIf="transaction?.customerInfo?.phone">
+      <span class="label">Phone:</span>
+      <span class="value">{{ transaction?.customerInfo?.phone }}</span>
+    </div>
+    <div class="info-row" *ngIf="transaction?.customerInfo?.email">
+      <span class="label">Email:</span>
+      <span class="value">{{ transaction?.customerInfo?.email }}</span>
+    </div>
+    <div class="info-row">
+      <span class="label">Payment Method:</span>
+      <span class="value">{{ getPaymentMethodDisplay(transaction?.paymentMethod) }}</span>
+    </div>
+    <div class="info-row" *ngIf="transaction?.serviceType">
+      <span class="label">Service Type:</span>
+      <span class="value">{{ transaction?.serviceType === 'dineIn' ? 'Dine-in' : 'Take-out' }}</span>
+    </div>
+  </div>
+
+  <!-- Items -->
+  <div class="items-section">
+    <h3>Items</h3>
+    <div class="items-list">
+      <div class="items-header">
+        <span class="header-item">Item</span>
+        <span class="header-qty">Qty</span>
+        <span class="header-price">Price</span>
+        <span class="header-total">Total</span>
+      </div>
+      <div *ngFor="let item of transaction?.items" class="item-row">
+        <div class="item-info">
+          <div class="item-name-row">
+            <span class="item-name">{{ item.name }}</span>
+            <span *ngIf="getTemperature(item)" class="temperature-badge" [class.hot]="isHot(item)"
+              [class.cold]="isCold(item)">
+              <span *ngIf="isHot(item)">🔥 hot</span>
+              <span *ngIf="isCold(item)">❄️ Iced</span>
+            </span>
+          </div>
+          <div class="item-addons" *ngIf="item.addOns && item.addOns.length > 0">
+            <span *ngFor="let addOn of item.addOns" class="addon-item">
+              <span *ngIf="addOn.quantity && addOn.quantity > 1">{{ addOn.quantity }}x </span>+ {{ addOn.name }} ({{
+              formatPrice(addOn.price * (addOn.quantity || 1)) }})
+            </span>
+          </div>
+        </div>
+        <span class="item-qty">{{ item.quantity }}</span>
+        <span class="item-price">{{ formatPrice(item.price) }}</span>
+        <span class="item-total">{{ formatPrice(item.price * item.quantity) }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Totals -->
+  <div class="totals-section">
+    <div class="total-row">
+      <span class="label">Subtotal:</span>
+      <span class="value">{{ formatPrice(getSubtotal()) }}</span>
+    </div>
+    <div class="total-row" *ngIf="getDiscountTotal() > 0">
+      <span class="label">Discount:</span>
+      <span class="value discount">-{{ formatPrice(getDiscountTotal()) }}</span>
+    </div>
+    <div class="total-row">
+      <span class="label">VAT (12%):</span>
+      <span class="value">{{ formatPrice(getVATAmount()) }}</span>
+    </div>
+    <div class="total-row" *ngIf="transaction?.serviceFee && transaction?.serviceFee > 0">
+      <span class="label">Service Fee ({{ transaction?.serviceType === 'dineIn' ? 'Dine-in (2%)' : 'Take-out'
+        }}):</span>
+      <span class="value">{{ formatPrice(transaction?.serviceFee) }}</span>
+    </div>
+    <div class="total-row final-total">
+      <span class="label">Total:</span>
+      <span class="value">{{ formatPrice(transaction?.total || 0) }}</span>
+    </div>
+  </div>
+
+  <!-- Payment Details (for cash payments) -->
+  <div *ngIf="transaction?.paymentMethod === 'cash' && transaction?.amountReceived" class="payment-details">
+    <div class="payment-row">
+      <span class="label">Amount Received:</span>
+      <span class="value">{{ formatPrice(transaction?.amountReceived) }}</span>
+    </div>
+    <div class="payment-row">
+      <span class="label">Change:</span>
+      <span class="value change-amount">{{ formatPrice(transaction?.change) }}</span>
+    </div>
+  </div>
+
+  <!-- Notes -->
+  <div *ngIf="transaction?.notes" class="notes-section">
+    <h4>Notes:</h4>
+    <p>{{ transaction?.notes }}</p>
+  </div>
+
+  <!-- Footer -->
+  <div class="receipt-footer">
+    <p>Thank you for your purchase!</p>
+    <p class="footer-note">Please keep this receipt for your records</p>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="action-buttons">
+    <!-- Thermal Printer Buttons -->
+    <button class="btn btn-thermal" (click)="printThermalReceipt(true)" [disabled]="isPrinting"
+      title="Print to thermal printer and open cash drawer">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" *ngIf="!isPrinting">
+        <rect x="2" y="6" width="20" height="12" rx="2" stroke="currentColor" stroke-width="2" />
+        <path d="M6 6V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" />
+        <rect x="6" y="14" width="12" height="6" fill="currentColor" opacity="0.3" />
+        <line x1="6" y1="10" x2="6.01" y2="10" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </svg>
+      <span *ngIf="isPrinting">Printing...</span>
+      <span *ngIf="!isPrinting">🖨️ Thermal Print</span>
+    </button>
+
+    <button class="btn btn-drawer" (click)="openDrawer()" title="Open cash drawer">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" stroke-width="2" />
+        <rect x="4" y="8" width="16" height="2" fill="currentColor" />
+        <circle cx="8" cy="14" r="1" fill="currentColor" />
+        <circle cx="12" cy="14" r="1" fill="currentColor" />
+        <circle cx="16" cy="14" r="1" fill="currentColor" />
+      </svg>
+      💰 Open Drawer
+    </button>
+
+    <!-- Standard Print Button - Now uses thermal printer -->
+    <button class="btn btn-primary" (click)="printReceipt()" [disabled]="isPrinting"
+      title="Print receipt to thermal printer">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" *ngIf="!isPrinting">
+        <path
+          d="M6 9V2a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7M6 9H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-2M6 9h12"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <span *ngIf="isPrinting">Printing...</span>
+      <span *ngIf="!isPrinting">🖨️ Print Receipt</span>
+    </button>
+
+    <button class="btn btn-secondary" (click)="goBackToPOS()">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round" />
+      </svg>
+      Back to POS
+    </button>
+
+    <button class="btn btn-outline" (click)="goToReports()">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" />
+        <polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round" />
+        <line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round" />
+        <line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round" />
+        <polyline points="10,9 9,9 8,9" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round" />
+      </svg>
+      View Reports
+    </button>
+  </div>
+</div>

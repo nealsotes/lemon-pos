@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720">
+  <!-- Background -->
+  <rect width="1280" height="720" fill="#f5f5f5"/>
+  
+  <!-- Header -->
+  <rect x="0" y="0" width="1280" height="80" fill="#1976d2"/>
+  <text x="640" y="50" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="24" font-weight="bold">QuickServe POS System</text>
+  
+  <!-- Navigation -->
+  <rect x="0" y="80" width="1280" height="60" fill="#ffffff" stroke="#e0e0e0"/>
+  <text x="100" y="115" fill="#1976d2" font-family="Arial, sans-serif" font-size="16" font-weight="bold">POS</text>
+  <text x="200" y="115" fill="#666666" font-family="Arial, sans-serif" font-size="16">Reports</text>
+  <text x="300" y="115" fill="#666666" font-family="Arial, sans-serif" font-size="16">Products</text>
+  
+  <!-- Main Content Area -->
+  <rect x="40" y="160" width="1200" height="520" fill="#ffffff" rx="8" ry="8" stroke="#e0e0e0"/>
+  
+  <!-- Product Grid -->
+  <rect x="60" y="180" width="280" height="200" fill="#f8f9fa" rx="4" ry="4" stroke="#e0e0e0"/>
+  <text x="200" y="200" text-anchor="middle" fill="#1976d2" font-family="Arial, sans-serif" font-size="14" font-weight="bold">Coffee</text>
+  <text x="200" y="220" text-anchor="middle" fill="#666666" font-family="Arial, sans-serif" font-size="12">$4.99</text>
+  
+  <rect x="360" y="180" width="280" height="200" fill="#f8f9fa" rx="4" ry="4" stroke="#e0e0e0"/>
+  <text x="500" y="200" text-anchor="middle" fill="#1976d2" font-family="Arial, sans-serif" font-size="14" font-weight="bold">Sandwich</text>
+  <text x="500" y="220" text-anchor="middle" fill="#666666" font-family="Arial, sans-serif" font-size="12">$8.99</text>
+  
+  <rect x="660" y="180" width="280" height="200" fill="#f8f9fa" rx="4" ry="4" stroke="#e0e0e0"/>
+  <text x="800" y="200" text-anchor="middle" fill="#1976d2" font-family="Arial, sans-serif" font-size="14" font-weight="bold">Cake</text>
+  <text x="800" y="220" text-anchor="middle" fill="#666666" font-family="Arial, sans-serif" font-size="12">$6.99</text>
+  
+  <rect x="960" y="180" width="280" height="200" fill="#f8f9fa" rx="4" ry="4" stroke="#e0e0e0"/>
+  <text x="1100" y="200" text-anchor="middle" fill="#1976d2" font-family="Arial, sans-serif" font-size="14" font-weight="bold">Tea</text>
+  <text x="1100" y="220" text-anchor="middle" fill="#666666" font-family="Arial, sans-serif" font-size="12">$3.99</text>
+  
+  <!-- Cart Section -->
+  <rect x="60" y="400" width="400" height="260" fill="#f8f9fa" rx="4" ry="4" stroke="#e0e0e0"/>
+  <text x="260" y="420" text-anchor="middle" fill="#1976d2" font-family="Arial, sans-serif" font-size="16" font-weight="bold">Shopping Cart</text>
+  
+  <!-- Cart Items -->
+  <rect x="80" y="440" width="360" height="40" fill="#ffffff" rx="2" ry="2"/>
+  <text x="100" y="460" fill="#333333" font-family="Arial, sans-serif" font-size="12">Coffee x2</text>
+  <text x="320" y="460" text-anchor="end" fill="#333333" font-family="Arial, sans-serif" font-size="12">$9.98</text>
+  
+  <rect x="80" y="490" width="360" height="40" fill="#ffffff" rx="2" ry="2"/>
+  <text x="100" y="510" fill="#333333" font-family="Arial, sans-serif" font-size="12">Sandwich x1</text>
+  <text x="320" y="510" text-anchor="end" fill="#333333" font-family="Arial, sans-serif" font-size="12">$8.99</text>
+  
+  <!-- Total -->
+  <rect x="80" y="580" width="360" height="60" fill="#4caf50" rx="4" ry="4"/>
+  <text x="260" y="610" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="18" font-weight="bold">Total: $18.97</text>
+  
+  <!-- Checkout Button -->
+  <rect x="500" y="580" width="120" height="60" fill="#1976d2" rx="4" ry="4"/>
+  <text x="560" y="615" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="14" font-weight="bold">Checkout</text>
+  
+  <!-- Status Bar -->
+  <rect x="0" y="700" width="1280" height="20" fill="#1976d2"/>
+  <text x="640" y="715" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="10">Ready for transactions</text>
+</svg> 

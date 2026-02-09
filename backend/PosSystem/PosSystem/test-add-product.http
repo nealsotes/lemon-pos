@@ -1,0 +1,28 @@
+### Test Add Product with Image
+POST http://localhost:5001/api/products
+Content-Type: application/json
+
+{
+  "name": "Test Coffee with Image",
+  "price": 4.99,
+  "category": "Beverages",
+  "stock": 25,
+  "image": "☕",
+  "isActive": true
+}
+
+### Test Get Products
+GET http://localhost:5001/api/products
+
+### Test Add Another Product
+POST http://localhost:5001/api/products
+Content-Type: application/json
+
+{
+  "name": "Test Pizza",
+  "price": 12.99,
+  "category": "Food",
+  "stock": 15,
+  "image": "🍕",
+  "isActive": true
+} 

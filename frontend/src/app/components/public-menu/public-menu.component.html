@@ -1,0 +1,107 @@
+<div class="public-menu-container">
+  <!-- Header -->
+  <header class="menu-header">
+    <div class="header-content">
+      <div class="logo-section">
+        <div class="logo-icon">
+          <div class="logo-bg">FB</div>
+        </div>
+        <h1 class="restaurant-name">finnbites</h1>
+        <p class="restaurant-tagline">Digital Menu</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- Search and Filters -->
+  <div class="menu-controls">
+    <div class="search-box">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
+        <path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <input 
+        type="text" 
+        class="search-input" 
+        placeholder="Search menu items..."
+        [(ngModel)]="searchQuery"
+        (input)="onSearchChange()"
+      />
+    </div>
+
+    <div class="category-filters">
+      <button 
+        class="category-btn" 
+        [class.active]="selectedCategory === null"
+        (click)="selectCategory(null)">
+        All
+      </button>
+      <button 
+        *ngFor="let category of categories" 
+        class="category-btn"
+        [class.active]="selectedCategory === category"
+        (click)="selectCategory(category)">
+        {{ category }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="loading-spinner"></div>
+    <p>Loading menu...</p>
+  </div>
+
+  <!-- Products Grid -->
+  <div *ngIf="!loading" class="menu-content">
+    <div *ngIf="filteredProducts.length === 0" class="no-products">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M9 2v6m6-6v6M3 8h18M5 12h14M7 16h10M9 20h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <p>No items found</p>
+    </div>
+
+    <div class="products-grid">
+      <div *ngFor="let product of filteredProducts" class="product-card">
+        <div class="product-image-container">
+          <img 
+            [src]="getImageUrl(product.image)" 
+            [alt]="product.name"
+            class="product-image"
+            (error)="$event.target.src='/assets/default-product.png'"
+          />
+          <div *ngIf="product.stock <= (product.lowQuantityThreshold || 5)" class="stock-badge low-stock">
+            Limited
+          </div>
+        </div>
+        
+        <div class="product-info">
+          <h3 class="product-name">{{ product.name }}</h3>
+          <p class="product-category">{{ product.category }}</p>
+          
+          <div class="product-pricing">
+            <div *ngIf="hasHotPrice(product) || hasColdPrice(product)" class="price-options">
+              <span *ngIf="hasHotPrice(product)" class="price-tag">
+                <span class="price-label">Hot:</span>
+                <span class="price-value">₱{{ product.hotPrice?.toFixed(2) }}</span>
+              </span>
+              <span *ngIf="hasColdPrice(product)" class="price-tag">
+                <span class="price-label">Cold:</span>
+                <span class="price-value">₱{{ product.coldPrice?.toFixed(2) }}</span>
+              </span>
+            </div>
+            <div *ngIf="!hasHotPrice(product) && !hasColdPrice(product)" class="price-tag">
+              <span class="price-value">₱{{ getPrice(product).toFixed(2) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="menu-footer">
+    <p>&copy; 2025 finnbites. All rights reserved.</p>
+    <p class="footer-note">Scan the QR code to view this menu anytime</p>
+  </footer>
+</div>
+

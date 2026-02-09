@@ -1,0 +1,32 @@
+{
+    "ConnectionStrings":  {
+                              "DefaultConnection":  "Server=localhost;Port=3307;Database=quickserve;Uid=YOUR_USERNAME;Pwd=YOUR_PASSWORD;"
+                          },
+    "BaseUrl":  "http://localhost:5001",
+    "Kestrel":  {
+                    "Endpoints":  {
+                                      "Http":  {
+                                                   "Url":  "http://0.0.0.0:5001"
+                                               }
+                                  }
+                },
+    "Logging":  {
+                    "LogLevel":  {
+                                     "Default":  "Information",
+                                     "Microsoft.AspNetCore":  "Warning"
+                                 }
+                },
+    "AllowedHosts":  "*",
+    "Printer":  {
+                    "Name":  ""
+                },
+    "Jwt":  {
+                "SecretKey":  "YourSuperSecretKeyThatShouldBeAtLeast32CharactersLongForSecurity!",
+                "Issuer":  "QuickServePOS",
+                "Audience":  "QuickServePOS"
+            }
+}
+
+
+
+

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Background -->
+  <rect width="512" height="512" fill="#1976d2" rx="64" ry="64"/>
+  
+  <!-- POS Terminal -->
+  <rect x="96" y="128" width="320" height="199.68" fill="#ffffff" rx="16" ry="16"/>
+  
+  <!-- Screen -->
+  <rect x="112" y="144" width="288" height="120" fill="#f5f5f5" rx="8" ry="8"/>
+  
+  <!-- Display Content -->
+  <rect x="128" y="160" width="80" height="16" fill="#1976d2" rx="4" ry="4"/>
+  <rect x="128" y="184" width="120" height="12" fill="#666666" rx="2" ry="2"/>
+  <rect x="128" y="200" width="100" height="12" fill="#666666" rx="2" ry="2"/>
+  <rect x="128" y="216" width="60" height="12" fill="#666666" rx="2" ry="2"/>
+  
+  <!-- Total Amount -->
+  <rect x="240" y="160" width="120" height="32" fill="#4caf50" rx="8" ry="8"/>
+  <text x="300" y="180" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="16" font-weight="bold">$24.99</text>
+  
+  <!-- Keypad -->
+  <circle cx="160" cy="300" r="12" fill="#e0e0e0"/>
+  <circle cx="200" cy="300" r="12" fill="#e0e0e0"/>
+  <circle cx="240" cy="300" r="12" fill="#e0e0e0"/>
+  <circle cx="280" cy="300" r="12" fill="#e0e0e0"/>
+  <circle cx="320" cy="300" r="12" fill="#e0e0e0"/>
+  <circle cx="360" cy="300" r="12" fill="#e0e0e0"/>
+  
+  <!-- Card Reader -->
+  <rect x="112" y="320" width="80" height="8" fill="#424242" rx="4" ry="4"/>
+  
+  <!-- Receipt Printer -->
+  <rect x="320" y="320" width="80" height="8" fill="#424242" rx="4" ry="4"/>
+  
+  <!-- Receipt Paper -->
+  <rect x="330" y="340" width="60" height="40" fill="#ffffff" rx="2" ry="2"/>
+  <rect x="340" y="350" width="40" height="2" fill="#666666"/>
+  <rect x="340" y="355" width="40" height="2" fill="#666666"/>
+  <rect x="340" y="360" width="40" height="2" fill="#666666"/>
+  <rect x="340" y="365" width="40" height="2" fill="#666666"/>
+  <rect x="340" y="370" width="40" height="2" fill="#666666"/>
+  
+  <!-- Shopping Cart Icon -->
+  <g transform="translate(400, 80)">
+    <circle cx="20" cy="20" r="16" fill="#ff9800"/>
+    <circle cx="40" cy="20" r="16" fill="#ff9800"/>
+    <rect x="8" y="28" width="44" height="8" fill="#ff9800" rx="2" ry="2"/>
+    <rect x="12" y="36" width="36" height="4" fill="#ff9800" rx="1" ry="1"/>
+    <rect x="16" y="40" width="28" height="4" fill="#ff9800" rx="1" ry="1"/>
+  </g>
+  
+  <!-- Dollar Sign -->
+  <text x="256" y="420" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="48" font-weight="bold">$</text>
+</svg>

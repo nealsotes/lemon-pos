@@ -1,0 +1,494 @@
+import { Component, Inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { Product } from '../../models/product.model';
+import { AddOn } from '../../models/cart-item.model';
+import { BEVERAGE_ADD_ONS } from './add-ons-config';
+
+export interface TemperatureDialogData {
+  product: Product;
+}
+
+export interface TemperatureDialogResult {
+  temperature: 'hot' | 'cold' | null;
+  addOns?: AddOn[];
+}
+
+@Component({
+  selector: 'app-temperature-select-dialog',
+  standalone: true,
+  imports: [CommonModule, MatDialogModule, FormsModule],
+  template: `
+    <div class="dialog-container">
+      <h2 class="dialog-title">{{ data.product.name }}</h2>
+      <p class="dialog-subtitle">Select temperature</p>
+      
+      <div class="temperature-options">
+        <button 
+          class="temperature-btn hot-btn"
+          [class.selected]="selectedTemperature === 'hot'"
+          (click)="selectTemperature('hot')"
+          *ngIf="hasHotPrice"
+        >
+          <div class="temperature-icon">🔥</div>
+          <div class="temperature-label">Hot</div>
+          <div class="temperature-price">
+            ₱{{ (data.product.hotPrice || data.product.price) | number:'1.2-2' }}
+          </div>
+        </button>
+        
+        <button 
+          class="temperature-btn cold-btn"
+          [class.selected]="selectedTemperature === 'cold'"
+          (click)="selectTemperature('cold')"
+          *ngIf="hasColdPrice"
+        >
+          <div class="temperature-icon">❄️</div>
+          <div class="temperature-label">Iced</div>
+          <div class="temperature-price">
+            ₱{{ (data.product.coldPrice || data.product.price) | number:'1.2-2' }}
+          </div>
+        </button>
+        
+        <!-- Only show standard option if both hot and cold prices are not available -->
+        <button 
+          class="temperature-btn default-btn"
+          [class.selected]="selectedTemperature === null"
+          (click)="selectTemperature(null)"
+          *ngIf="!hasHotPrice && !hasColdPrice"
+        >
+          <div class="temperature-icon">📦</div>
+          <div class="temperature-label">Standard</div>
+          <div class="temperature-price">
+            ₱{{ data.product.price | number:'1.2-2' }}
+          </div>
+        </button>
+      </div>
+      
+      <!-- Add-ons Section -->
+      <!-- Show add-ons only after temperature is selected (when both hot and cold are available), or if it's a standard product -->
+      <div class="addons-section" *ngIf="canShowAddOns()">
+        <p class="addons-title">Add-ons (Optional)</p>
+        <p class="addons-hint" *ngIf="!canSelectAddOns()">Please select a temperature first</p>
+        <div class="addons-list">
+          <div *ngFor="let addOn of availableAddOns" class="addon-option">
+            <div class="addon-info">
+              <span class="addon-name">{{ addOn.name }}</span>
+              <span class="addon-price">₱{{ addOn.price | number:'1.2-2' }} each</span>
+            </div>
+            <div class="addon-quantity-controls">
+              <button 
+                class="quantity-btn decrement-btn"
+                [disabled]="!canSelectAddOns() || getAddOnQuantity(addOn.name) === 0"
+                (click)="decrementAddOn(addOn)"
+                type="button"
+              >
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+              <span class="quantity-display">{{ getAddOnQuantity(addOn.name) }}</span>
+              <button 
+                class="quantity-btn increment-btn"
+                [disabled]="!canSelectAddOns()"
+                (click)="incrementAddOn(addOn)"
+                type="button"
+              >
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="addons-total" *ngIf="getSelectedAddOnsTotal() > 0">
+          <span>Add-ons Total:</span>
+          <span class="total-amount">+₱{{ getSelectedAddOnsTotal() | number:'1.2-2' }}</span>
+        </div>
+      </div>
+      
+      <div class="dialog-actions">
+        <button class="btn btn-secondary" (click)="cancel()">Cancel</button>
+        <button class="btn btn-primary" (click)="confirm()" [disabled]="!canConfirm()">Add to Cart</button>
+      </div>
+    </div>
+  `,
+  styles: [`
+    .dialog-container {
+      padding: 24px;
+      min-width: 320px;
+      max-height: none;
+      overflow-y: visible;
+    }
+    
+    .dialog-title {
+      margin: 0 0 8px 0;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #1e293b;
+    }
+    
+    .dialog-subtitle {
+      margin: 0 0 24px 0;
+      color: #64748b;
+      font-size: 0.95rem;
+    }
+    
+    .temperature-options {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    
+    .temperature-btn {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      background: #ffffff;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: left;
+    }
+    
+    .temperature-btn:hover {
+      border-color: #cbd5e1;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      transform: translateY(-2px);
+    }
+    
+    .temperature-btn.selected {
+      border-color: #C4A574;
+      background: #FAF8F3;
+      box-shadow: 0 4px 16px rgba(196, 165, 116, 0.2);
+    }
+    
+    .hot-btn.selected {
+      border-color: #ef4444;
+      background: #fef2f2;
+    }
+    
+    .cold-btn.selected {
+      border-color: #3b82f6;
+      background: #eff6ff;
+    }
+    
+    .temperature-icon {
+      font-size: 2rem;
+      flex-shrink: 0;
+    }
+    
+    .temperature-label {
+      flex: 1;
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: #1e293b;
+    }
+    
+    .temperature-price {
+      font-size: 1.125rem;
+      font-weight: 700;
+      color: #95C7BB;
+    }
+    
+    .dialog-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+    
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .btn-secondary {
+      background: #f1f5f9;
+      color: #475569;
+      border: 2px solid #e2e8f0;
+    }
+    
+    .btn-secondary:hover {
+      background: #e2e8f0;
+      color: #1e293b;
+    }
+    
+    .btn-primary {
+      background: #C4A574;
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(196, 165, 116, 0.25);
+    }
+    
+    .btn-primary:hover:not(:disabled) {
+      background: #B08D5B;
+      box-shadow: 0 6px 16px rgba(196, 165, 116, 0.35);
+    }
+    
+    .btn-primary:disabled {
+      background: #cbd5e1;
+      color: #94a3b8;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    
+    .addon-option input[type="checkbox"]:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+    
+    .addon-option:has(input[type="checkbox"]:disabled) {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .addons-section {
+      margin-top: 24px;
+      padding-top: 24px;
+      border-top: 1px solid #e2e8f0;
+    }
+
+    .addons-title {
+      margin: 0 0 8px 0;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #1e293b;
+    }
+    
+    .addons-hint {
+      margin: 0 0 12px 0;
+      font-size: 0.85rem;
+      color: #f59e0b;
+      font-style: italic;
+    }
+
+    .addons-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 12px;
+      max-height: 260px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .addon-option {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+      background: #ffffff;
+    }
+
+    .addon-option:hover {
+      background-color: #f8fafc;
+      border-color: #cbd5e1;
+    }
+
+    .addon-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .addon-name {
+      font-size: 0.9rem;
+      color: #1e293b;
+      font-weight: 600;
+    }
+
+    .addon-price {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: #64748b;
+    }
+
+    .addon-quantity-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .quantity-btn {
+      width: 32px;
+      height: 32px;
+      border: 2px solid #e2e8f0;
+      border-radius: 6px;
+      background: #ffffff;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+
+    .quantity-btn svg {
+      width: 16px;
+      height: 16px;
+      color: #475569;
+    }
+
+    .quantity-btn:hover:not(:disabled) {
+      background: #C4A574;
+      border-color: #C4A574;
+    }
+
+    .quantity-btn:hover:not(:disabled) svg {
+      color: #ffffff;
+    }
+
+    .quantity-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .quantity-display {
+      min-width: 32px;
+      text-align: center;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #1e293b;
+    }
+
+    .addons-total {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 10px;
+      background-color: #f8fafc;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #1e293b;
+    }
+
+    .total-amount {
+      color: #95C7BB;
+    }
+  `]
+})
+export class TemperatureSelectDialogComponent {
+  selectedTemperature: 'hot' | 'cold' | null = null;
+  selectedAddOns: AddOn[] = [];
+  availableAddOns = BEVERAGE_ADD_ONS;
+
+  constructor(
+    public dialogRef: MatDialogRef<TemperatureSelectDialogComponent>,
+    @Inject(MAT_DIALOG_DATA) public data: TemperatureDialogData
+  ) {
+    // Auto-select if only one option available
+    if (this.hasHotPrice && !this.hasColdPrice) {
+      this.selectedTemperature = 'hot';
+    } else if (this.hasColdPrice && !this.hasHotPrice) {
+      this.selectedTemperature = 'cold';
+    } else if (!this.hasHotPrice && !this.hasColdPrice) {
+      this.selectedTemperature = null;
+    }
+  }
+
+  get hasHotPrice(): boolean {
+    return this.data.product.hotPrice !== undefined && this.data.product.hotPrice !== null;
+  }
+
+  get hasColdPrice(): boolean {
+    return this.data.product.coldPrice !== undefined && this.data.product.coldPrice !== null;
+  }
+
+  selectTemperature(temperature: 'hot' | 'cold' | null): void {
+    this.selectedTemperature = temperature;
+  }
+
+  getAddOnQuantity(addOnName: string): number {
+    const addOn = this.selectedAddOns.find(a => a.name === addOnName);
+    return addOn?.quantity || 0;
+  }
+
+  incrementAddOn(addOn: AddOn): void {
+    const existingIndex = this.selectedAddOns.findIndex(a => a.name === addOn.name);
+    if (existingIndex > -1) {
+      // Increment existing addon quantity
+      this.selectedAddOns[existingIndex].quantity = (this.selectedAddOns[existingIndex].quantity || 1) + 1;
+    } else {
+      // Add new addon with quantity 1
+      this.selectedAddOns.push({ ...addOn, quantity: 1 });
+    }
+  }
+
+  decrementAddOn(addOn: AddOn): void {
+    const existingIndex = this.selectedAddOns.findIndex(a => a.name === addOn.name);
+    if (existingIndex > -1) {
+      const currentQuantity = this.selectedAddOns[existingIndex].quantity || 1;
+      if (currentQuantity > 1) {
+        // Decrease quantity
+        this.selectedAddOns[existingIndex].quantity = currentQuantity - 1;
+      } else {
+        // Remove addon if quantity would become 0
+        this.selectedAddOns.splice(existingIndex, 1);
+      }
+    }
+  }
+
+  getSelectedAddOnsTotal(): number {
+    return this.selectedAddOns.reduce((sum, addOn) => {
+      const quantity = addOn.quantity || 1;
+      return sum + (addOn.price * quantity);
+    }, 0);
+  }
+
+  // Check if add-ons section can be shown
+  canShowAddOns(): boolean {
+    // Always show add-ons section, but disable it until temperature is selected (when both hot and cold are available)
+    return true;
+  }
+
+  // Check if add-ons can be selected
+  canSelectAddOns(): boolean {
+    // If both hot and cold are available, require temperature selection first
+    if (this.hasHotPrice && this.hasColdPrice) {
+      return this.selectedTemperature !== null;
+    }
+    // Otherwise, allow selection
+    return true;
+  }
+
+  // Check if user can confirm (add to cart)
+  canConfirm(): boolean {
+    // If both hot and cold are available, temperature must be selected
+    if (this.hasHotPrice && this.hasColdPrice) {
+      return this.selectedTemperature !== null;
+    }
+    // Otherwise, allow confirmation (temperature is auto-selected or not needed)
+    return true;
+  }
+
+  confirm(): void {
+    if (!this.canConfirm()) {
+      return;
+    }
+
+    const result: TemperatureDialogResult = {
+      temperature: this.selectedTemperature,
+      addOns: this.selectedAddOns.length > 0 ? this.selectedAddOns : undefined
+    };
+    this.dialogRef.close(result);
+  }
+
+  cancel(): void {
+    this.dialogRef.close();
+  }
+}

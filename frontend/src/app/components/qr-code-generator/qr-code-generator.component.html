@@ -1,0 +1,53 @@
+<div class="qr-code-container">
+  <div class="qr-code-wrapper">
+    <div class="qr-code-display">
+      <qrcode 
+        [qrdata]="qrData" 
+        [width]="size" 
+        [errorCorrectionLevel]="'M'"
+        [elementType]="'canvas'">
+      </qrcode>
+    </div>
+    
+    <div *ngIf="showUrl" class="qr-url-section">
+      <p class="qr-label">Menu URL:</p>
+      <div class="url-display">
+        <input 
+          type="text" 
+          [value]="menuUrl" 
+          readonly 
+          class="url-input"
+          #urlInput
+        />
+        <button 
+          class="copy-btn" 
+          (click)="copyUrl()"
+          title="Copy URL">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" stroke="currentColor" stroke-width="2" fill="none"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div *ngIf="showDownload" class="qr-actions">
+      <button class="action-btn download-btn" (click)="downloadQrCode()">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline points="7 10 12 15 17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <span>Download QR Code</span>
+      </button>
+      <button class="action-btn print-btn" (click)="printQrCode()">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <polyline points="6 9 6 2 18 2 18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect x="6" y="14" width="12" height="8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Print</span>
+      </button>
+    </div>
+  </div>
+</div>
+

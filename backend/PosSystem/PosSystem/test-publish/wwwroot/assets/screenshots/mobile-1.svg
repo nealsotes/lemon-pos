@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" width="390" height="844">
+  <!-- Background -->
+  <rect width="390" height="844" fill="#f5f5f5"/>
+  
+  <!-- Header -->
+  <rect x="0" y="0" width="390" height="80" fill="#1976d2"/>
+  <text x="195" y="50" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="18" font-weight="bold">QuickServe POS</text>
+  
+  <!-- Navigation -->
+  <rect x="0" y="80" width="390" height="50" fill="#ffffff" stroke="#e0e0e0"/>
+  <text x="65" y="105" text-anchor="middle" fill="#1976d2" font-family="Arial, sans-serif" font-size="14" font-weight="bold">POS</text>
+  <text x="130" y="105" text-anchor="middle" fill="#666666" font-family="Arial, sans-serif" font-size="14">Reports</text>
+  <text x="195" y="105" text-anchor="middle" fill="#666666" font-family="Arial, sans-serif" font-size="14">Products</text>
+  <text x="260" y="105" text-anchor="middle" fill="#666666" font-family="Arial, sans-serif" font-size="14">Cart</text>
+  <text x="325" y="105" text-anchor="middle" fill="#666666" font-family="Arial, sans-serif" font-size="14">Menu</text>
+  
+  <!-- Product Grid -->
+  <rect x="20" y="150" width="170" height="200" fill="#f8f9fa" rx="8" ry="8" stroke="#e0e0e0"/>
+  <text x="105" y="170" text-anchor="middle" fill="#1976d2" font-family="Arial, sans-serif" font-size="12" font-weight="bold">Coffee</text>
+  <text x="105" y="185" text-anchor="middle" fill="#666666" font-family="Arial, sans-serif" font-size="10">$4.99</text>
+  
+  <rect x="200" y="150" width="170" height="200" fill="#f8f9fa" rx="8" ry="8" stroke="#e0e0e0"/>
+  <text x="285" y="170" text-anchor="middle" fill="#1976d2" font-family="Arial, sans-serif" font-size="12" font-weight="bold">Sandwich</text>
+  <text x="285" y="185" text-anchor="middle" fill="#666666" font-family="Arial, sans-serif" font-size="10">$8.99</text>
+  
+  <rect x="20" y="370" width="170" height="200" fill="#f8f9fa" rx="8" ry="8" stroke="#e0e0e0"/>
+  <text x="105" y="390" text-anchor="middle" fill="#1976d2" font-family="Arial, sans-serif" font-size="12" font-weight="bold">Cake</text>
+  <text x="105" y="405" text-anchor="middle" fill="#666666" font-family="Arial, sans-serif" font-size="10">$6.99</text>
+  
+  <rect x="200" y="370" width="170" height="200" fill="#f8f9fa" rx="8" ry="8" stroke="#e0e0e0"/>
+  <text x="285" y="390" text-anchor="middle" fill="#1976d2" font-family="Arial, sans-serif" font-size="12" font-weight="bold">Tea</text>
+  <text x="285" y="405" text-anchor="middle" fill="#666666" font-family="Arial, sans-serif" font-size="10">$3.99</text>
+  
+  <!-- Cart Summary -->
+  <rect x="20" y="590" width="350" height="120" fill="#f8f9fa" rx="8" ry="8" stroke="#e0e0e0"/>
+  <text x="195" y="610" text-anchor="middle" fill="#1976d2" font-family="Arial, sans-serif" font-size="14" font-weight="bold">Cart Summary</text>
+  
+  <text x="40" y="635" fill="#333333" font-family="Arial, sans-serif" font-size="12">Coffee x2</text>
+  <text x="330" y="635" text-anchor="end" fill="#333333" font-family="Arial, sans-serif" font-size="12">$9.98</text>
+  
+  <text x="40" y="655" fill="#333333" font-family="Arial, sans-serif" font-size="12">Sandwich x1</text>
+  <text x="330" y="655" text-anchor="end" fill="#333333" font-family="Arial, sans-serif" font-size="12">$8.99</text>
+  
+  <rect x="40" y="665" width="310" height="1" fill="#e0e0e0"/>
+  
+  <text x="40" y="685" fill="#333333" font-family="Arial, sans-serif" font-size="14" font-weight="bold">Total</text>
+  <text x="330" y="685" text-anchor="end" fill="#333333" font-family="Arial, sans-serif" font-size="14" font-weight="bold">$18.97</text>
+  
+  <!-- Checkout Button -->
+  <rect x="20" y="730" width="350" height="60" fill="#4caf50" rx="8" ry="8"/>
+  <text x="195" y="765" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="16" font-weight="bold">Checkout</text>
+  
+  <!-- Bottom Navigation -->
+  <rect x="0" y="810" width="390" height="34" fill="#ffffff" stroke="#e0e0e0"/>
+  <text x="65" y="830" text-anchor="middle" fill="#1976d2" font-family="Arial, sans-serif" font-size="10">Home</text>
+  <text x="130" y="830" text-anchor="middle" fill="#666666" font-family="Arial, sans-serif" font-size="10">Sales</text>
+  <text x="195" y="830" text-anchor="middle" fill="#666666" font-family="Arial, sans-serif" font-size="10">Reports</text>
+  <text x="260" y="830" text-anchor="middle" fill="#666666" font-family="Arial, sans-serif" font-size="10">Products</text>
+  <text x="325" y="830" text-anchor="middle" fill="#666666" font-family="Arial, sans-serif" font-size="10">Settings</text>
+</svg> 

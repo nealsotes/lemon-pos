@@ -1,0 +1,49 @@
+# Docker ignore file to ensure proper builds
+# This helps prevent unnecessary files from being copied
+
+# Node modules (will be installed fresh)
+node_modules/
+frontend/node_modules/
+
+# Build outputs (will be built fresh)
+frontend/dist/
+backend/PosSystem/PosSystem/bin/
+backend/PosSystem/PosSystem/obj/
+backend/PosSystem/PosSystem/publish/
+backend/PosSystem/PosSystem/test-publish/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Documentation (not needed in build)
+*.md
+!README.md
+
+# Test files
+test-*.ps1
+*.http
+
+# Temporary files
+tmp/
+temp/
+.cache/

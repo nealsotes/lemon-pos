@@ -1,0 +1,488 @@
+<div class="product-management-container">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-left">
+        <h1 class="page-title">Product Management</h1>
+        <p class="page-subtitle">Manage your product inventory and catalog</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-primary" (click)="openAddProductDialog()" *ngIf="!showForm">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Add Product
+        </button>
+        <button class="btn btn-secondary" (click)="refreshData()">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M1 4v6h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M23 20v-6h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Refresh
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters Section -->
+  <div class="filters-section" *ngIf="!showForm">
+    <div class="filters-content">
+      <div class="search-box">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
+          <path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <input 
+          type="text" 
+          class="search-input" 
+          placeholder="Search products..."
+          [(ngModel)]="searchTerm"
+          (input)="filterProducts()"
+        >
+      </div>
+      
+      <div class="filter-controls">
+        <div class="category-filters">
+          <button 
+            class="filter-btn" 
+            [class.active]="selectedCategory === ''"
+            (click)="selectedCategory = ''; filterProducts()"
+          >
+            All Categories
+          </button>
+          <button 
+            *ngFor="let category of categories"
+            class="filter-btn"
+            [class.active]="selectedCategory === category"
+            (click)="selectedCategory = category; filterProducts()"
+          >
+            {{ category }}
+          </button>
+        </div>
+        
+        <div class="sort-filters">
+          <button 
+            class="filter-btn"
+            [class.active]="sortBy === 'name'"
+            (click)="sortBy = 'name'; filterProducts()"
+          >
+            Sort by Name
+          </button>
+          <button 
+            class="filter-btn"
+            [class.active]="sortBy === 'price'"
+            (click)="sortBy = 'price'; filterProducts()"
+          >
+            Sort by Price
+          </button>
+          <button 
+            class="filter-btn"
+            [class.active]="sortBy === 'stock'"
+            (click)="sortBy = 'stock'; filterProducts()"
+          >
+            Sort by Stock
+          </button>
+          <button 
+            class="filter-btn"
+            [class.active]="sortBy === 'createdAt'"
+            (click)="sortBy = 'createdAt'; filterProducts()"
+          >
+            Sort by Date
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-container">
+    <div class="loading-spinner"></div>
+    <p class="loading-text">Loading products...</p>
+  </div>
+
+  <!-- Products Table -->
+  <div *ngIf="!isLoading && !showForm" class="table-container">
+    <div class="table-header">
+      <div class="table-info">
+        <span class="product-count">{{ filteredProducts.length }} product(s)</span>
+        <span class="table-subtitle">Showing {{ filteredProducts.length }} of {{ products.length }} total products</span>
+      </div>
+    </div>
+
+    <div class="table-wrapper">
+      <table class="products-table" style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Category</th>
+            <th>Price</th>
+            <th>Stock</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let product of filteredProducts; trackBy: trackByProduct" class="product-row clickable-row" (click)="editProduct(product)">
+            <td class="product-cell">
+              <div class="product-info">
+                <div class="product-image">
+                  <div class="image-container">
+                    <img *ngIf="isImageUrl(product.image)" [src]="product.image" [alt]="product.name" class="product-image-file">
+                    <span *ngIf="!isImageUrl(product.image)" class="product-emoji">{{ product.image || '📦' }}</span>
+                  </div>
+                </div>
+                <div class="product-details">
+                  <strong class="product-name">{{ product.name }}</strong>
+                  <span class="product-id">ID: {{ product.id }}</span>
+                </div>
+              </div>
+            </td>
+            <td class="category-cell">
+              <span class="category-badge">{{ product.category }}</span>
+            </td>
+            <td class="price-cell">
+              <span class="price-amount">₱{{ product.price | number:'1.2-2' }}</span>
+            </td>
+            <td class="stock-cell">
+              <div class="stock-info">
+                <span class="stock-amount">{{ product.stock }}</span>
+                <div class="stock-indicator" [class]="getStockStatus(product.stock, product.lowQuantityThreshold)">
+                  <div class="stock-bar" [style.width.%]="getStockPercentage(product.stock)"></div>
+                </div>
+                <span class="threshold-info" *ngIf="product.lowQuantityThreshold && product.lowQuantityThreshold !== 10" title="Low quantity threshold">
+                  (Threshold: {{ product.lowQuantityThreshold }})
+                </span>
+              </div>
+            </td>
+            <td class="status-cell">
+              <span class="status-badge" [class]="(product.isActive ?? true) ? 'status-active' : 'status-inactive'">
+                {{ (product.isActive ?? true) ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+            <td class="actions-cell">
+              <div class="action-buttons">
+                <button class="action-btn edit-btn" (click)="editProduct(product); $event.stopPropagation()" title="Edit Product">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+                <button class="action-btn delete-btn" (click)="deleteProduct(product); $event.stopPropagation()" title="Delete Product">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="filteredProducts.length === 0" class="empty-state">
+      <div class="empty-icon">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <h3 class="empty-title">No products found</h3>
+      <p class="empty-description">
+        {{ searchTerm ? 'Try adjusting your search terms' : 'Get started by adding your first product' }}
+      </p>
+      <button class="btn btn-primary" (click)="openAddProductDialog()">
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Add First Product
+      </button>
+    </div>
+  </div>
+
+  <!-- Add/Edit Product Form -->
+  <div class="form-section" *ngIf="showForm">
+    <div class="form-card">
+      <div class="form-header">
+        <h2>{{ editingProduct ? 'Edit Product' : 'Add New Product' }}</h2>
+        <button class="close-btn" (click)="toggleForm()">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+      
+      <form [formGroup]="productForm" (ngSubmit)="saveProduct()">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="name">Product Name *</label>
+            <input 
+              type="text" 
+              id="name" 
+              formControlName="name" 
+              class="form-control"
+              placeholder="Enter product name"
+            >
+            <div class="error-message" *ngIf="productForm.get('name')?.invalid && productForm.get('name')?.touched">
+              <span *ngIf="productForm.get('name')?.errors?.['required']">Product name is required</span>
+              <span *ngIf="productForm.get('name')?.errors?.['minlength']">Product name must be at least 2 characters</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="category">Category *</label>
+            <div class="category-input-wrapper">
+              <input 
+                *ngIf="useCustomCategory"
+                type="text" 
+                id="customCategory" 
+                formControlName="category" 
+                class="form-control"
+                placeholder="Enter new category name"
+                list="categoryOptions"
+              >
+              <datalist id="categoryOptions">
+                <option *ngFor="let category of categories" [value]="category">
+              </datalist>
+              <select 
+                *ngIf="!useCustomCategory"
+                id="category" 
+                formControlName="category" 
+                class="form-control"
+              >
+                <option value="">Select a category</option>
+                <option *ngFor="let category of categories" [value]="category">{{ category }}</option>
+              </select>
+              <button 
+                type="button" 
+                class="category-toggle-btn" 
+                (click)="toggleCategoryInput()"
+                [title]="useCustomCategory ? 'Select from existing categories' : 'Add new category'"
+              >
+                <svg *ngIf="!useCustomCategory" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <svg *ngIf="useCustomCategory" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+            <div class="error-message" *ngIf="productForm.get('category')?.invalid && productForm.get('category')?.touched">
+              <span *ngIf="productForm.get('category')?.errors?.['required']">Category is required</span>
+            </div>
+          </div>
+        </div>
+
+          <!-- Base Price (for all categories) -->
+          <div class="form-group">
+            <label for="price">Price *</label>
+            <input 
+              type="number" 
+              id="price" 
+              formControlName="price" 
+              class="form-control"
+              placeholder="0.00"
+              step="0.01"
+              min="0.01"
+            >
+            <small class="form-text">12% VAT will be added at checkout</small>
+            <div class="error-message" *ngIf="productForm.get('price')?.invalid && productForm.get('price')?.touched">
+              <span *ngIf="productForm.get('price')?.errors?.['required']">Price is required</span>
+              <span *ngIf="productForm.get('price')?.errors?.['min']">Price must be greater than 0</span>
+            </div>
+          </div>
+
+          <!-- Hot and Cold Prices (Optional for beverage categories) -->
+          <div class="form-group" *ngIf="isBeverageCategory(productForm.get('category')?.value)">
+            <label class="section-label">Temperature-Specific Prices (Optional)</label>
+            <div class="temperature-price-row">
+              <div class="temperature-price-group">
+                <label for="hotPrice">🔥 Hot Price</label>
+                <input 
+                  type="number" 
+                  id="hotPrice" 
+                  formControlName="hotPrice" 
+                  class="form-control"
+                  placeholder="0.00"
+                  step="0.01"
+                  min="0.01"
+                >
+                <small class="form-text">Leave empty to use base price</small>
+              </div>
+              <div class="temperature-price-group">
+                <label for="coldPrice">❄️ Iced Price</label>
+                <input 
+                  type="number" 
+                  id="coldPrice" 
+                  formControlName="coldPrice" 
+                  class="form-control"
+                  placeholder="0.00"
+                  step="0.01"
+                  min="0.01"
+                >
+                <small class="form-text">Leave empty to use base price</small>
+              </div>
+            </div>
+            <div class="error-message" *ngIf="(productForm.get('hotPrice')?.invalid || productForm.get('coldPrice')?.invalid) && (productForm.get('hotPrice')?.touched || productForm.get('coldPrice')?.touched)">
+              <span *ngIf="productForm.get('hotPrice')?.errors?.['min'] || productForm.get('coldPrice')?.errors?.['min']">Prices must be greater than 0</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="stock">Stock Quantity *</label>
+            <input 
+              type="number" 
+              id="stock" 
+              formControlName="stock" 
+              class="form-control"
+              placeholder="0"
+              min="0"
+            >
+            <div class="error-message" *ngIf="productForm.get('stock')?.invalid && productForm.get('stock')?.touched">
+              <span *ngIf="productForm.get('stock')?.errors?.['required']">Stock quantity is required</span>
+              <span *ngIf="productForm.get('stock')?.errors?.['min']">Stock quantity must be 0 or greater</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="lowQuantityThreshold">Low Quantity Threshold *</label>
+            <input 
+              type="number" 
+              id="lowQuantityThreshold" 
+              formControlName="lowQuantityThreshold" 
+              class="form-control"
+              placeholder="10"
+              min="0"
+            >
+            <small class="form-text">Stock will be marked as low when it reaches or falls below this value</small>
+            <div class="error-message" *ngIf="productForm.get('lowQuantityThreshold')?.invalid && productForm.get('lowQuantityThreshold')?.touched">
+              <span *ngIf="productForm.get('lowQuantityThreshold')?.errors?.['required']">Low quantity threshold is required</span>
+              <span *ngIf="productForm.get('lowQuantityThreshold')?.errors?.['min']">Threshold must be 0 or greater</span>
+            </div>
+          </div>
+
+        <div class="form-group" style="grid-column: 1 / -1;">
+          <label>Product Image *</label>
+          <div class="image-upload-section">
+            <!-- Image Type Selection -->
+            <div class="image-type-selector">
+              <label class="image-type-option">
+                <input 
+                  type="radio" 
+                  name="imageType" 
+                  value="emoji" 
+                  [(ngModel)]="imageType"
+                  [ngModelOptions]="{standalone: true}"
+                  (change)="onImageTypeChange()"
+                  class="image-type-radio"
+                >
+                <span class="image-type-label">Emoji Icon</span>
+              </label>
+              <label class="image-type-option">
+                <input 
+                  type="radio" 
+                  name="imageType" 
+                  value="file" 
+                  [(ngModel)]="imageType"
+                  [ngModelOptions]="{standalone: true}"
+                  (change)="onImageTypeChange()"
+                  class="image-type-radio"
+                >
+                <span class="image-type-label">Upload Image</span>
+              </label>
+            </div>
+
+            <!-- Emoji Selector -->
+            <div *ngIf="imageType === 'emoji'" class="emoji-selector">
+              <div class="emoji-grid">
+                <button 
+                  type="button"
+                  *ngFor="let emoji of productEmojis" 
+                  class="emoji-btn"
+                  [class.selected]="productForm.get('image')?.value === emoji"
+                  (click)="selectEmoji(emoji)"
+                  [title]="emoji"
+                >
+                  {{ emoji }}
+                </button>
+              </div>
+              <div class="current-emoji">
+                <span class="emoji-label">Selected:</span>
+                <span class="emoji-display">{{ productForm.get('image')?.value || '📦' }}</span>
+              </div>
+            </div>
+
+            <!-- File Upload -->
+            <div *ngIf="imageType === 'file'" class="file-upload-section">
+                                   <div class="file-upload-area" 
+                          (click)="fileInput.click()"
+                          (dragover)="onDragOver($event)"
+                          (dragleave)="onDragLeave($event)"
+                          (drop)="onDrop($event)"
+                          [class.dragover]="isDragOver"
+                          [class.has-file]="selectedFile"
+                          [class.processing]="isProcessingImage">
+                <div class="upload-content">
+                  <svg *ngIf="!selectedFile" class="upload-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <polyline points="7,10 12,15 17,10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                                         <div *ngIf="!selectedFile && !isProcessingImage" class="upload-text">
+                         <p class="upload-title">Click to upload or drag and drop</p>
+                         <p class="upload-subtitle">PNG, JPG, JPEG up to 10MB (auto-compressed)</p>
+                       </div>
+                       <div *ngIf="isProcessingImage" class="upload-text">
+                         <p class="upload-title">Processing image...</p>
+                         <p class="upload-subtitle">Compressing and resizing for optimal performance</p>
+                       </div>
+                  <div *ngIf="selectedFile" class="file-preview">
+                    <img [src]="imagePreview" alt="Preview" class="preview-image">
+                    <div class="file-info">
+                      <p class="file-name">{{ selectedFile.name }}</p>
+                      <p class="file-size">{{ formatFileSize(selectedFile.size) }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <input 
+                #fileInput
+                type="file" 
+                accept="image/*" 
+                (change)="onFileSelected($event)"
+                class="file-input"
+                style="display: none;"
+              >
+              <div class="upload-actions" *ngIf="selectedFile">
+                <button type="button" class="btn btn-secondary btn-sm" (click)="removeFile()">
+                  Remove
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group" style="grid-column: 1 / -1;">
+          <label>
+            <input 
+              type="checkbox" 
+              formControlName="isActive" 
+              class="form-checkbox"
+            >
+            <span>Active Product</span>
+          </label>
+          <small class="form-text">Inactive products won't appear in the main catalog</small>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="toggleForm()">Cancel</button>
+          <button type="submit" class="btn btn-primary" [disabled]="productForm.invalid">
+            {{ editingProduct ? 'Update' : 'Add' }} Product
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+

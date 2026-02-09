@@ -1,0 +1,8 @@
+### Test Static File Serving
+GET http://localhost:5001/uploads/test.jpg
+
+### Test API Endpoint
+GET http://localhost:5001/api/products
+
+### Test Root
+GET http://localhost:5001/ 

@@ -1,0 +1,224 @@
+<div class="printer-settings-container">
+  <div class="settings-header">
+    <h1>🖨️ Thermal Printer Settings</h1>
+    <p class="subtitle">Configure your thermal printer and cash drawer</p>
+  </div>
+
+  <!-- QZ Tray Status -->
+  <div class="status-card" [ngClass]="{
+    'status-checking': qzTrayStatus === 'checking',
+    'status-connected': qzTrayStatus === 'connected',
+    'status-disconnected': qzTrayStatus === 'disconnected'
+  }">
+    <div class="status-icon">
+      <span *ngIf="qzTrayStatus === 'checking'">⏳</span>
+      <span *ngIf="qzTrayStatus === 'connected'">✅</span>
+      <span *ngIf="qzTrayStatus === 'disconnected'">❌</span>
+    </div>
+    <div class="status-info">
+      <h3>QZ Tray Status</h3>
+      <p *ngIf="qzTrayStatus === 'checking'">Checking connection...</p>
+      <p *ngIf="qzTrayStatus === 'connected'">Connected (Version: {{ qzTrayVersion }})</p>
+      <p *ngIf="qzTrayStatus === 'disconnected'">Not connected</p>
+    </div>
+    <button class="btn btn-small" (click)="checkQZTrayStatus()">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Refresh
+    </button>
+  </div>
+
+  <!-- QZ Tray Not Running Message -->
+  <div class="alert alert-warning" *ngIf="qzTrayStatus === 'disconnected'">
+    <h4>⚠️ Printer Not Connected</h4>
+    
+    <!-- Bluetooth Option for Android -->
+    <div *ngIf="isBluetoothAvailable">
+      <p><strong>📱 Bluetooth Option (Recommended for Android):</strong></p>
+      <p>Connect directly to your thermal printer via Bluetooth</p>
+      <p class="help-text">💡 <strong>Tip:</strong> If your printer doesn't appear, the app will show all nearby Bluetooth devices. Select your printer from the list.</p>
+      <button class="btn btn-primary" (click)="connectBluetooth()" [disabled]="isLoading">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M6 9l6 6 6-6M21 15H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Connect Bluetooth Printer
+      </button>
+      <p class="help-text" style="margin-top: 10px; font-size: 0.9em; color: #666;">
+        ⚠️ <strong>Note:</strong> If your printer uses Bluetooth Classic (not BLE), it may not work with Web Bluetooth. 
+        In that case, use QZ Tray on a desktop computer with USB connection instead.
+      </p>
+    </div>
+
+    <!-- Android with Bluetooth Not Available -->
+    <div *ngIf="!isBluetoothAvailable && thermalPrinter.isAndroid">
+      <p><strong>📱 Android Device Detected:</strong></p>
+      <p>Bluetooth printing requires Chrome browser with Web Bluetooth support. Common issues:</p>
+      <ol>
+        <li><strong>HTTPS Required:</strong> Web Bluetooth only works over HTTPS. Ensure you're accessing via https://</li>
+        <li><strong>Chrome Version:</strong> Update to latest Chrome browser</li>
+        <li><strong>Printer Type:</strong> Ensure your printer supports Bluetooth Low Energy (BLE), not just Bluetooth Classic</li>
+        <li><strong>Location Permission:</strong> Allow location permission (required by Android for Bluetooth scanning)</li>
+      </ol>
+      <p><strong>Alternative:</strong> If your printer doesn't support BLE, use the desktop QZ Tray setup with USB connection to a Windows/Mac/Linux computer.</p>
+    </div>
+
+    <!-- QZ Tray Option for Desktop -->
+    <div *ngIf="!isBluetoothAvailable && !thermalPrinter.isAndroid">
+      <p>To use thermal printing features, you need to install and run QZ Tray.</p>
+      <ol>
+        <li>Download QZ Tray from the official website</li>
+        <li>Install QZ Tray on your computer</li>
+        <li>Start QZ Tray application</li>
+        <li>Click the "Refresh" button above</li>
+      </ol>
+      <button class="btn btn-primary" (click)="openQZTrayDownload()">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Download QZ Tray
+      </button>
+    </div>
+  </div>
+
+  <!-- Error/Success Messages -->
+  <div class="alert alert-error" *ngIf="errorMessage">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+      <path d="M15 9l-6 6M9 9l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    {{ errorMessage }}
+  </div>
+
+  <div class="alert alert-success" *ngIf="successMessage">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <polyline points="22 4 12 14.01 9 11.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    {{ successMessage }}
+  </div>
+
+  <!-- Printer Selection -->
+  <div class="section-card" *ngIf="qzTrayStatus === 'connected'">
+    <h2>Select Printer</h2>
+    
+    <div class="loading" *ngIf="isLoading">
+      <div class="spinner"></div>
+      <p>Loading printers...</p>
+    </div>
+
+    <div class="printers-list" *ngIf="!isLoading">
+      <div class="empty-state" *ngIf="printers.length === 0">
+        <p>No printers found</p>
+        <button class="btn btn-secondary" (click)="loadPrinters()">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Refresh Printers
+        </button>
+      </div>
+
+      <div class="printer-item" 
+           *ngFor="let printer of printers"
+           [class.selected]="printer === selectedPrinter"
+           (click)="selectPrinter(printer)">
+        <div class="printer-icon">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="6" width="20" height="12" rx="2" stroke="currentColor" stroke-width="2"/>
+            <path d="M6 6V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2"/>
+            <rect x="6" y="14" width="12" height="6" fill="currentColor" opacity="0.3"/>
+          </svg>
+        </div>
+        <div class="printer-name">{{ printer }}</div>
+        <div class="selected-badge" *ngIf="printer === selectedPrinter">✓</div>
+      </div>
+    </div>
+
+    <button class="btn btn-secondary btn-full" (click)="loadPrinters()" *ngIf="printers.length > 0">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Refresh Printer List
+    </button>
+  </div>
+
+  <!-- Test Controls -->
+  <div class="section-card" *ngIf="selectedPrinter && qzTrayStatus === 'connected'">
+    <h2>Test Printer</h2>
+    <p class="section-description">Test your thermal printer and cash drawer before using in production</p>
+
+    <div class="test-buttons">
+      <button class="btn btn-thermal" (click)="testPrint()" [disabled]="isLoading">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="6" width="20" height="12" rx="2" stroke="currentColor" stroke-width="2"/>
+          <path d="M6 6V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2"/>
+          <rect x="6" y="14" width="12" height="6" fill="currentColor" opacity="0.3"/>
+        </svg>
+        Print Test Receipt
+      </button>
+
+      <button class="btn btn-drawer" (click)="testDrawer()" [disabled]="isLoading">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" stroke-width="2"/>
+          <rect x="4" y="8" width="16" height="2" fill="currentColor"/>
+          <circle cx="8" cy="14" r="1" fill="currentColor"/>
+          <circle cx="12" cy="14" r="1" fill="currentColor"/>
+          <circle cx="16" cy="14" r="1" fill="currentColor"/>
+        </svg>
+        Test Cash Drawer
+      </button>
+    </div>
+  </div>
+
+  <!-- QR Code Menu Generator -->
+  <div class="section-card">
+    <h2>📱 QR Code Menu</h2>
+    <p class="section-description">Generate a QR code for customers to scan and view your digital menu</p>
+    
+    <app-qr-code-generator 
+      [menuUrl]="getMenuUrl()"
+      [size]="250"
+      [showDownload]="true"
+      [showUrl]="true">
+    </app-qr-code-generator>
+    
+    <div class="qr-info">
+      <p><strong>💡 How to use:</strong></p>
+      <ol>
+        <li>Download or print the QR code</li>
+        <li>Display it on tables, counters, or entry points</li>
+        <li>Customers scan with their phone camera</li>
+        <li>They'll be taken to your digital menu</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- Information Card -->
+  <div class="info-card">
+    <h3>📋 Setup Instructions</h3>
+    <ol>
+      <li><strong>Install QZ Tray:</strong> Download and install from <a href="https://qz.io/download/" target="_blank">qz.io/download</a></li>
+      <li><strong>Start QZ Tray:</strong> Launch the QZ Tray application on your computer</li>
+      <li><strong>Connect Printer:</strong> Ensure your thermal printer is connected and powered on</li>
+      <li><strong>Select Printer:</strong> Choose your printer from the list above</li>
+      <li><strong>Test:</strong> Use the test buttons to verify everything works correctly</li>
+    </ol>
+
+    <h3>⚙️ Printer Requirements</h3>
+    <ul>
+      <li>ESC/POS compatible thermal printer (58mm or 80mm)</li>
+      <li>Cash drawer connected to printer's RJ12 port (optional)</li>
+      <li>USB or Network connection to computer</li>
+      <li>Printer drivers installed on your system</li>
+    </ul>
+
+    <h3>🔧 Troubleshooting</h3>
+    <ul>
+      <li>If QZ Tray won't connect, ensure it's running and not blocked by firewall</li>
+      <li>If no printers appear, check printer connections and drivers</li>
+      <li>If cash drawer won't open, verify it's connected to printer's drawer port</li>
+      <li>Some printers require specific drawer kick codes - consult your printer manual</li>
+    </ul>
+  </div>
+</div>
+

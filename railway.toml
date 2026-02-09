@@ -1,0 +1,20 @@
+[build]
+# Railway is locked to Railpack
+builder = "RAILPACK"
+# Build frontend first - check current directory and find frontend
+# Railway Railpack runs from /app, so we need to find where files are
+buildCommand = "pwd && ls -la && if [ -d frontend ]; then echo 'Found frontend in current dir'; cd frontend; elif [ -d /app/frontend ]; then echo 'Found frontend in /app'; cd /app/frontend; else echo 'ERROR: frontend directory not found'; exit 1; fi && (command -v node >/dev/null 2>&1 || (curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && apt-get install -y nodejs)) && npm ci --no-audit && npm run build && if [ -d /app/backend/PosSystem/PosSystem ]; then mkdir -p /app/backend/PosSystem/PosSystem/wwwroot && rm -rf /app/backend/PosSystem/PosSystem/wwwroot/* && cp -r dist/* /app/backend/PosSystem/PosSystem/wwwroot/; elif [ -d backend/PosSystem/PosSystem ]; then mkdir -p backend/PosSystem/PosSystem/wwwroot && rm -rf backend/PosSystem/PosSystem/wwwroot/* && cp -r dist/* backend/PosSystem/PosSystem/wwwroot/; else echo 'ERROR: backend directory not found'; exit 1; fi && echo '✅ Frontend built and copied' && cd /app/backend/PosSystem/PosSystem && dotnet restore && dotnet publish -c Release -o /app/out"
+
+# Alternative: Use NIXPACKS with explicit wwwroot copy
+# builder = "NIXPACKS"
+# buildCommand = "cd backend/PosSystem/PosSystem && dotnet restore && dotnet publish -c Release -o /app/publish && (test -d wwwroot && cp -r wwwroot /app/publish/ && echo 'wwwroot copied to publish' || echo 'wwwroot not found in source') && ls -la /app/publish/wwwroot 2>/dev/null | head -10 || echo 'wwwroot not in publish after copy'"
+
+[deploy]
+startCommand = "cd /app/out && dotnet PosSystem.dll"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+
+[env]
+ASPNETCORE_ENVIRONMENT = "Production"
+# PORT is automatically set by Railway - don't override it
+

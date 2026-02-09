@@ -1,0 +1,59 @@
+<div class="settings-container">
+  <div class="settings-header">
+    <h1>⚙️ Settings</h1>
+    <p class="subtitle">Manage page visibility and application settings</p>
+  </div>
+
+  <!-- Success Message -->
+  <div class="alert alert-success" *ngIf="successMessage">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <polyline points="22 4 12 14.01 9 11.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    {{ successMessage }}
+  </div>
+
+  <!-- Page Visibility Settings -->
+  <div class="settings-section">
+    <div class="section-header">
+      <h2>📄 Page Visibility</h2>
+      <p class="section-description">Turn pages on or off to customize your navigation menu</p>
+    </div>
+
+    <div class="page-list">
+      <div class="page-item" *ngFor="let page of pageSettings" [class.hidden]="!isPageVisible(page)">
+        <div class="page-info">
+          <div class="page-name">
+            <strong>{{ page.name }}</strong>
+            <span class="page-path">{{ page.path }}</span>
+          </div>
+          <div class="page-badge" *ngIf="page.requiresOwner">
+            <span class="badge badge-owner">Owner Only</span>
+          </div>
+        </div>
+        <label class="toggle-switch">
+          <input 
+            type="checkbox" 
+            [checked]="page.enabled" 
+            (change)="togglePage(page.path)"
+            [disabled]="!isPageVisible(page)"
+          >
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="settings-actions">
+    <button class="btn btn-secondary" (click)="resetToDefaults()">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M21 3v5h-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M3 21v-5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Reset to Defaults
+    </button>
+  </div>
+</div>

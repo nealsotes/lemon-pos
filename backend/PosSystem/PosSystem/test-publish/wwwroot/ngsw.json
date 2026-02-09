@@ -1,0 +1,132 @@
+{
+  "configVersion": 1,
+  "timestamp": 1765250784916,
+  "index": "/index.html",
+  "assetGroups": [
+    {
+      "name": "app",
+      "installMode": "prefetch",
+      "updateMode": "prefetch",
+      "cacheQueryOptions": {
+        "ignoreVary": true
+      },
+      "urls": [
+        "/index.html",
+        "/main.eb6e936f86c4575b.js",
+        "/manifest.json",
+        "/polyfills.7e185adfc400113c.js",
+        "/runtime.b0e5cef92ae4ef8a.js",
+        "/styles.dae8651b9933606e.css"
+      ],
+      "patterns": []
+    },
+    {
+      "name": "assets",
+      "installMode": "lazy",
+      "updateMode": "prefetch",
+      "cacheQueryOptions": {
+        "ignoreVary": true
+      },
+      "urls": [
+        "/assets/icons/README.md",
+        "/assets/icons/icon-128x128.svg",
+        "/assets/icons/icon-144x144.svg",
+        "/assets/icons/icon-152x152.svg",
+        "/assets/icons/icon-192x192.svg",
+        "/assets/icons/icon-384x384.svg",
+        "/assets/icons/icon-512x512.svg",
+        "/assets/icons/icon-72x72.svg",
+        "/assets/icons/icon-96x96.svg",
+        "/assets/images/finn-bites-logo.png",
+        "/assets/screenshots/desktop-1.svg",
+        "/assets/screenshots/mobile-1.svg"
+      ],
+      "patterns": []
+    }
+  ],
+  "dataGroups": [
+    {
+      "name": "api-cache",
+      "patterns": [
+        "\\/api\\/.*"
+      ],
+      "strategy": "freshness",
+      "maxSize": 100,
+      "maxAge": 3600000,
+      "timeoutMs": 30000,
+      "cacheQueryOptions": {
+        "ignoreVary": true
+      },
+      "version": 1
+    },
+    {
+      "name": "api-performance",
+      "patterns": [
+        "\\/api\\/products",
+        "\\/api\\/categories",
+        "\\/api\\/transactions"
+      ],
+      "strategy": "performance",
+      "maxSize": 50,
+      "maxAge": 21600000,
+      "cacheQueryOptions": {
+        "ignoreVary": true
+      },
+      "version": 1
+    },
+    {
+      "name": "api-offline",
+      "patterns": [
+        "\\/api\\/products",
+        "\\/api\\/categories"
+      ],
+      "strategy": "freshness",
+      "maxSize": 100,
+      "maxAge": 86400000,
+      "timeoutMs": 10000,
+      "cacheQueryOptions": {
+        "ignoreVary": true
+      },
+      "version": 1
+    }
+  ],
+  "hashTable": {
+    "/assets/icons/README.md": "45f997af66def35bb22f35aef55486b2c0dd9bed",
+    "/assets/icons/icon-128x128.svg": "149cd2164caf7ee5c5042d12d5b3c7aba04aa40b",
+    "/assets/icons/icon-144x144.svg": "f5bb76c3ba967cab6e63f998c49c36a9342adc79",
+    "/assets/icons/icon-152x152.svg": "8ed31f9a75ae69010fde9bb3dff9f65c590ba49b",
+    "/assets/icons/icon-192x192.svg": "d707199dc8ef46158699b8e225703347000644c6",
+    "/assets/icons/icon-384x384.svg": "9a37b68af65ec5e0256ced50a264ebf08db0da6f",
+    "/assets/icons/icon-512x512.svg": "a9b72ed8a7013d39079f23996b1731b713654a41",
+    "/assets/icons/icon-72x72.svg": "4235a88cae6c68edb0317238dc93c58937d52cec",
+    "/assets/icons/icon-96x96.svg": "6c8f769f2c87fbe85e5c1d719f23659c1a005bed",
+    "/assets/images/finn-bites-logo.png": "11fc99aef23ab327be92ffdd408ebc9a82b3bd4e",
+    "/assets/screenshots/desktop-1.svg": "9fc806b5890b5d8eb3242f290873d68a47d7774c",
+    "/assets/screenshots/mobile-1.svg": "5ace8f29b026cca553a7cae3c414b41d2a17a26f",
+    "/index.html": "51150969eecd39cd4494a5d2ff195b815c9220a8",
+    "/main.eb6e936f86c4575b.js": "446986dbad67c3b31d9c7ca14ad07153e0f8224d",
+    "/manifest.json": "9253066a245eebb07bd19b5a6a6a48935bc78be4",
+    "/polyfills.7e185adfc400113c.js": "c6b568522a98f15d77f9dbefe416d638f9958f89",
+    "/runtime.b0e5cef92ae4ef8a.js": "4d7074f68ef69f3245cf266de2cdbe71480aec5d",
+    "/styles.dae8651b9933606e.css": "43d7b5b5d3c8b35abdbef16660538fbb9070c879"
+  },
+  "navigationUrls": [
+    {
+      "positive": true,
+      "regex": "^\\/.*$"
+    },
+    {
+      "positive": false,
+      "regex": "^\\/(?:.+\\/)?[^/]*\\.[^/]*$"
+    },
+    {
+      "positive": false,
+      "regex": "^\\/(?:.+\\/)?[^/]*__[^/]*$"
+    },
+    {
+      "positive": false,
+      "regex": "^\\/(?:.+\\/)?[^/]*__[^/]*\\/.*$"
+    }
+  ],
+  "navigationRequestStrategy": "performance"
+}

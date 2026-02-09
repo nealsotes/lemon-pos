@@ -1,0 +1,715 @@
+<div class="checkout-container">
+  <!-- Checkout Header -->
+  <div class="checkout-header">
+    <div class="header-content">
+      <div class="header-left">
+        <div class="title-section">
+          <h2 class="checkout-title">
+            <svg class="checkout-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            Checkout
+          </h2>
+          <div class="checkout-status">
+            <span class="status-dot"></span>
+            <span class="status-text">Processing Order</span>
+          </div>
+        </div>
+        <p class="checkout-subtitle">Complete your transaction securely</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary" routerLink="/cart">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" />
+          </svg>
+          Back to Cart
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Checkout Content -->
+  <div class="checkout-content">
+    <!-- Customer Information -->
+    <div class="checkout-section">
+      <div class="section-header">
+        <h3 class="section-title">
+          <svg class="section-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round" />
+            <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" />
+          </svg>
+          Customer Information
+        </h3>
+      </div>
+
+      <div class="section-content">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label" for="customerName">Full Name</label>
+            <input type="text" id="customerName" class="form-control" [(ngModel)]="customerInfo.name"
+              placeholder="Enter customer name">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="customerEmail">Email</label>
+            <input type="email" id="customerEmail" class="form-control" [(ngModel)]="customerInfo.email"
+              placeholder="Enter email address">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="customerPhone">Phone</label>
+            <input type="tel" id="customerPhone" class="form-control" [(ngModel)]="customerInfo.phone"
+              placeholder="Enter phone number">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payment Method -->
+    <div class="checkout-section">
+      <div class="section-header">
+        <h3 class="section-title">
+          <svg class="section-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="1" y="4" width="22" height="16" rx="2" ry="2" stroke="currentColor" stroke-width="2" />
+            <line x1="1" y1="10" x2="23" y2="10" stroke="currentColor" stroke-width="2" />
+          </svg>
+          Payment Method
+        </h3>
+      </div>
+
+      <div class="section-content">
+        <div class="payment-methods">
+          <div class="payment-option" [class.selected]="paymentMethod === 'cash'">
+            <input type="radio" id="cash" name="paymentMethod" value="cash" [(ngModel)]="paymentMethod">
+            <label for="cash" class="payment-label">
+              <div class="payment-icon">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none" />
+                  <text x="12" y="17" font-size="14" font-weight="bold" text-anchor="middle" fill="currentColor"
+                    font-family="Arial, sans-serif">₱</text>
+                </svg>
+              </div>
+              <div class="payment-details">
+                <span class="payment-name">Cash</span>
+                <span class="payment-description">Pay with cash</span>
+              </div>
+            </label>
+          </div>
+
+          <div class="payment-option" [class.selected]="paymentMethod === 'card'">
+            <input type="radio" id="card" name="paymentMethod" value="card" [(ngModel)]="paymentMethod">
+            <label for="card" class="payment-label">
+              <div class="payment-icon">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="1" y="4" width="22" height="16" rx="2" ry="2" stroke="currentColor" stroke-width="2" />
+                  <line x1="1" y1="10" x2="23" y2="10" stroke="currentColor" stroke-width="2" />
+                </svg>
+              </div>
+              <div class="payment-details">
+                <span class="payment-name">Card</span>
+                <span class="payment-description">Credit or debit card</span>
+              </div>
+            </label>
+          </div>
+
+          <div class="payment-option" [class.selected]="paymentMethod === 'mobile'">
+            <input type="radio" id="mobile" name="paymentMethod" value="mobile" [(ngModel)]="paymentMethod">
+            <label for="mobile" class="payment-label">
+              <div class="payment-icon">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="5" y="2" width="14" height="20" rx="2" ry="2" stroke="currentColor" stroke-width="2" />
+                  <line x1="12" y1="18" x2="12.01" y2="18" stroke="currentColor" stroke-width="2" />
+                </svg>
+              </div>
+              <div class="payment-details">
+                <span class="payment-name">Mobile Payment</span>
+                <span class="payment-description">Apple Pay, Google Pay</span>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cash Payment (shown only for cash) -->
+    <div class="checkout-section" *ngIf="paymentMethod === 'cash'">
+      <div class="section-header">
+        <h3 class="section-title">
+          <svg class="section-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          Cash Payment
+        </h3>
+      </div>
+
+      <div class="section-content">
+        <div class="form-group">
+          <label class="form-label" for="amountReceived">Amount Received</label>
+          <input type="number" id="amountReceived" class="form-control" [(ngModel)]="amountReceived"
+            (ngModelChange)="onAmountReceivedChange()" placeholder="Enter amount received" min="0" step="0.01">
+
+          <!-- Quick Amount Buttons -->
+          <div class="quick-amount-buttons">
+            <button type="button" class="quick-amount-btn" *ngFor="let amount of quickAmounts"
+              (click)="setQuickAmount(amount)" [class.active]="amountReceived === amount">
+              ₱{{ amount | number:'1.0-0' }}
+            </button>
+          </div>
+
+          <!-- Change Display -->
+          <div class="change-display" *ngIf="amountReceived > 0">
+            <div class="change-row">
+              <span>Change:</span>
+              <span class="change-amount">₱{{ getChange() | number:'1.2-2' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Order Summary -->
+    <div class="checkout-section">
+      <div class="section-header">
+        <h3 class="section-title">
+          <svg class="section-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 22a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" fill="currentColor" />
+            <path d="M20 22a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" fill="currentColor" />
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          Order Summary
+        </h3>
+      </div>
+
+      <div class="section-content">
+        <div class="order-items">
+          <div *ngFor="let item of cartItems" class="order-item">
+            <div class="item-info">
+              <div class="item-name-row">
+                <span class="item-name">{{ item.name }}</span>
+                <span *ngIf="item.temperature" class="temperature-badge" [class.hot]="item.temperature === 'hot'"
+                  [class.cold]="item.temperature === 'cold'">
+                  <span *ngIf="item.temperature === 'hot'">🔥 hot</span>
+                  <span *ngIf="item.temperature === 'cold'">❄️ Iced</span>
+                </span>
+              </div>
+              <div class="item-addons" *ngIf="item.addOns && item.addOns.length > 0">
+                <span *ngFor="let addOn of item.addOns" class="addon-item">
+                  <span *ngIf="addOn.quantity && addOn.quantity > 1">{{ addOn.quantity }}x </span>+ {{ addOn.name }}
+                  (+₱{{ (addOn.price * (addOn.quantity || 1)) | number:'1.2-2' }})
+                </span>
+              </div>
+              <span class="item-quantity">x{{ item.quantity }}</span>
+            </div>
+            <span class="item-price">₱{{ item.total | number:'1.2-2' }}</span>
+          </div>
+        </div>
+
+        <div class="order-totals">
+          <!-- Subtotal -->
+          <div class="total-row">
+            <span class="total-label">Subtotal:</span>
+            <span class="total-value">₱{{ subtotal | number:'1.2-2' }}</span>
+          </div>
+
+          <!-- Discount (if any) -->
+          <div class="total-row" *ngIf="getDiscountTotal() > 0">
+            <span class="total-label">Discount:</span>
+            <span class="total-value">-₱{{ getDiscountTotal() | number:'1.2-2' }}</span>
+          </div>
+
+          <!-- VAT -->
+          <div class="total-row">
+            <span class="total-label">VAT (12%):</span>
+            <span class="total-value">₱{{ tax | number:'1.2-2' }}</span>
+          </div>
+
+          <!-- Total -->
+          <div class="total-row final-total">
+            <span class="total-label">Total</span>
+            <span class="total-value">₱{{ total | number:'1.2-2' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Additional Notes -->
+    <div class="checkout-section">
+      <div class="section-header">
+        <h3 class="section-title">
+          <svg class="section-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round" />
+            <polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" />
+            <line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" />
+            <line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" />
+            <polyline points="10,9 9,9 8,9" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" />
+          </svg>
+          Additional Notes
+        </h3>
+      </div>
+
+      <div class="section-content">
+        <div class="form-group">
+          <label class="form-label" for="notes">Order Notes</label>
+          <textarea id="notes" class="form-control" [(ngModel)]="notes"
+            placeholder="Add any special instructions or notes..." rows="3"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Checkout Actions -->
+    <div class="checkout-actions">
+      <div class="actions-content">
+        <button class="btn btn-secondary" routerLink="/cart">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" />
+          </svg>
+          Back to Cart
+        </button>
+
+        <button class="btn btn-primary btn-lg" (click)="processTransaction()"
+          [disabled]="!customerInfo.name || !paymentMethod">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M9 12l2 2 4-4M21 12c-1 0-2-1-2-2s1-2 2-2 2 1 2 2-1 2-2 2zM3 12c1 0 2-1 2-2s-1-2-2-2-2 1-2 2 1 2 2 2z"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          Complete Transaction
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .checkout-container {
+    min-height: 100vh;
+    background-color: var(--background-secondary);
+    padding: var(--spacing-xl) 0;
+  }
+
+  /* Checkout Header */
+  .checkout-header {
+    background-color: var(--surface-color);
+    border-bottom: 1px solid var(--border-color);
+    padding: var(--spacing-xl) 0;
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .header-content {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 var(--spacing-lg);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+  }
+
+  .title-section {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+  }
+
+  .checkout-title {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+  }
+
+  .checkout-icon {
+    width: 28px;
+    height: 28px;
+    color: var(--primary-color);
+  }
+
+  .checkout-status {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    background-color: var(--success-color);
+    border-radius: 50%;
+  }
+
+  .checkout-subtitle {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    margin: 0;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: var(--spacing-md);
+  }
+
+  /* Checkout Content */
+  .checkout-content {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 var(--spacing-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xl);
+  }
+
+  /* Checkout Section */
+  .checkout-section {
+    background-color: var(--surface-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+  }
+
+  .section-header {
+    padding: var(--spacing-lg);
+    background-color: var(--background-secondary);
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+  }
+
+  .section-icon {
+    width: 24px;
+    height: 24px;
+    color: var(--primary-color);
+  }
+
+  .section-content {
+    padding: var(--spacing-lg);
+  }
+
+  /* Form Grid */
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--spacing-lg);
+  }
+
+  /* Payment Methods */
+  .payment-methods {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .payment-option {
+    position: relative;
+  }
+
+  .payment-option input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .payment-label {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    background-color: var(--background-primary);
+  }
+
+  .payment-option input[type="radio"]:checked+.payment-label {
+    border-color: var(--primary-color);
+    background-color: rgb(37 99 235 / 0.05);
+  }
+
+  .payment-option:hover .payment-label {
+    border-color: var(--primary-color);
+  }
+
+  .payment-icon {
+    width: 48px;
+    height: 48px;
+    background-color: var(--background-secondary);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-color);
+  }
+
+  .payment-icon svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .payment-details {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+
+  .payment-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 1rem;
+  }
+
+  .payment-description {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+  }
+
+  /* Order Items */
+  .order-items {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .order-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    background-color: var(--background-secondary);
+    border-radius: var(--radius-md);
+  }
+
+  .item-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+
+  .item-name {
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+
+  .item-quantity {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+  }
+
+  .item-price {
+    font-weight: 600;
+    color: var(--primary-color);
+  }
+
+  /* Order Totals */
+  .order-totals {
+    border-top: 1px solid var(--border-color);
+    padding-top: var(--spacing-lg);
+  }
+
+  .total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .total-label {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+  }
+
+  .total-value {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .total-divider {
+    height: 1px;
+    background-color: var(--border-color);
+    margin: var(--spacing-md) 0;
+  }
+
+  .final-total {
+    margin-bottom: 0;
+  }
+
+  .final-total .total-label {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .final-total .total-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+  }
+
+  /* Checkout Actions */
+  .checkout-actions {
+    background-color: var(--surface-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border-color);
+    padding: var(--spacing-lg);
+    position: sticky;
+    bottom: var(--spacing-lg);
+  }
+
+  .actions-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--spacing-lg);
+  }
+
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .checkout-container {
+      padding: var(--spacing-lg) 0;
+    }
+
+    .header-content {
+      flex-direction: column;
+      gap: var(--spacing-lg);
+      text-align: center;
+    }
+
+    .checkout-title {
+      font-size: 1.5rem;
+    }
+
+    .checkout-content {
+      padding: 0 var(--spacing-md);
+    }
+
+    .form-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .actions-content {
+      flex-direction: column;
+    }
+
+    .actions-content .btn {
+      width: 100%;
+    }
+  }
+
+  /* Quick Amount Buttons */
+  .quick-amount-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .quick-amount-btn {
+    flex: 1;
+    min-width: calc(33.333% - 6px);
+    padding: 10px 12px;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #495057;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+  }
+
+  .quick-amount-btn:hover {
+    background: #e9ecef;
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+  }
+
+  .quick-amount-btn.active {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+  }
+
+  .quick-amount-btn:active {
+    transform: translateY(0);
+  }
+
+  /* Change Display */
+  .change-display {
+    margin-top: 16px;
+    padding: 12px;
+    background-color: var(--background-secondary);
+    border-radius: var(--radius-md);
+  }
+
+  .change-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.95rem;
+  }
+
+  .change-amount {
+    font-weight: 700;
+    color: var(--success-color);
+    font-size: 1.1rem;
+  }
+
+  @media (max-width: 480px) {
+    .section-content {
+      padding: var(--spacing-md);
+    }
+
+    .payment-label {
+      flex-direction: column;
+      text-align: center;
+      gap: var(--spacing-sm);
+    }
+
+    .payment-icon {
+      width: 40px;
+      height: 40px;
+    }
+
+    .payment-icon svg {
+      width: 20px;
+      height: 20px;
+    }
+  }
+</style>
