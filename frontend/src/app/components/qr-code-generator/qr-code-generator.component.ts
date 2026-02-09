@@ -71,3 +71,6 @@ export class QrCodeGeneratorComponent implements OnInit {
 }
 
 
+
+
+

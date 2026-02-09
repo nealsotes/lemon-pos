@@ -200,7 +200,7 @@
 
 .form-control.error {
   border-color: #e74c3c;
-  background: #fff5f5;
+  background: var(--surface-color)5f5;
 }
 
 .form-control.error:focus {
@@ -208,7 +208,7 @@
 }
 
 .form-control.valid {
-  border-color: #10b981;
+  border-color: var(--success-color);
   background: #f0fdf4;
 }
 
@@ -255,7 +255,7 @@
 .check-icon {
   width: 18px;
   height: 18px;
-  color: #10b981;
+  color: var(--success-color);
   animation: checkIn 0.3s ease;
 }
 
@@ -584,4 +584,7 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+
+
 

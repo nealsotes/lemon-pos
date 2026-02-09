@@ -56,6 +56,39 @@
   --transition-slow: 350ms ease-in-out;
 }
 
+/* Night mode overrides */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --primary-color: #60A5FA;
+  --primary-dark: #2563EB;
+  --primary-light: #93C5FD;
+  --secondary-color: #34D399;
+  --accent-color: #34D399;
+  --accent-dark: #059669;
+
+  --background-primary: #0F172A;
+  --background-secondary: #0B1220;
+  --background-tertiary: #111827;
+  --surface-color: #111827;
+  --border-color: #1F2937;
+  --border-light: #273244;
+
+  --text-primary: #F8FAFC;
+  --text-secondary: #CBD5E1;
+  --text-muted: #94A3B8;
+  --text-inverse: #0F172A;
+
+  --success-color: #22C55E;
+  --warning-color: #F59E0B;
+  --error-color: #F87171;
+  --info-color: #60A5FA;
+
+  --shadow-sm: 0 1px 2px 0 rgb(15 23 42 / 0.4);
+  --shadow-md: 0 4px 6px -1px rgb(2 6 23 / 0.5), 0 2px 4px -2px rgb(2 6 23 / 0.5);
+  --shadow-lg: 0 10px 15px -3px rgb(2 6 23 / 0.55), 0 4px 6px -4px rgb(2 6 23 / 0.55);
+  --shadow-xl: 0 20px 25px -5px rgb(2 6 23 / 0.6), 0 8px 10px -6px rgb(2 6 23 / 0.6);
+}
+
 * {
   margin: 0;
   padding: 0;

@@ -238,7 +238,7 @@ import { ThermalPrinterService } from '../../services/thermal-printer.service';
       align-items: center;
       padding: 20px;
       border-bottom: 1px solid #e5e7eb;
-      background-color: #f8fafc;
+      background-color: var(--background-secondary);
     }
 
     .receipt-header h2 {
@@ -362,15 +362,15 @@ import { ThermalPrinterService } from '../../services/thermal-printer.service';
       border-radius: 0.375rem;
       font-size: 0.75rem;
       font-weight: 600;
-      background: #f1f5f9;
-      border: 1px solid #e2e8f0;
+      background: var(--background-tertiary);
+      border: 1px solid var(--border-color);
       flex-shrink: 0;
     }
 
     .temperature-badge.hot {
       background: #fef2f2;
       border-color: #fecaca;
-      color: #dc2626;
+      color: var(--error-color);
     }
 
     .temperature-badge.cold {
@@ -386,12 +386,12 @@ import { ThermalPrinterService } from '../../services/thermal-printer.service';
       margin-top: 2px;
       margin-left: 4px;
       font-size: 0.75rem;
-      color: #64748b;
+      color: var(--text-secondary);
     }
 
     .addon-item {
       font-size: 0.7rem;
-      color: #64748b;
+      color: var(--text-secondary);
       font-style: italic;
     }
 
@@ -433,7 +433,7 @@ import { ThermalPrinterService } from '../../services/thermal-printer.service';
     }
 
     .change-amount {
-      color: #10b981;
+      color: var(--success-color);
       font-weight: 600;
     }
 
@@ -483,7 +483,7 @@ import { ThermalPrinterService } from '../../services/thermal-printer.service';
       gap: 10px;
       padding: 20px;
       border-top: 1px solid #e5e7eb;
-      background-color: #f8fafc;
+      background-color: var(--background-secondary);
     }
 
     .btn {
@@ -536,12 +536,12 @@ import { ThermalPrinterService } from '../../services/thermal-printer.service';
     }
 
     .btn-drawer {
-      background-color: #10b981;
+      background-color: var(--success-color);
       color: white;
     }
 
     .btn-drawer:hover:not(:disabled) {
-      background-color: #059669;
+      background-color: var(--success-color);
     }
 
     .btn-drawer:disabled {
@@ -815,7 +815,7 @@ export class ReceiptSidebarComponent implements OnInit, OnChanges {
                 .grand-total { font-weight: bold; font-size: 1.1rem; border-top: 1px solid #666; padding-top: 8px; margin-top: 8px; }
                 .cash-payment-section { margin-top: 12px; padding-top: 12px; border-top: 1px dashed #666; }
                 .cash-payment-section .total-row { font-size: 0.95rem; }
-                .change-amount { color: #10b981; font-weight: 600; }
+                .change-amount { color: var(--success-color); font-weight: 600; }
                 .payment-details { margin-top: 12px; padding-top: 12px; border-top: 1px dashed #666; }
                 .notes-section { margin-bottom: 16px; padding: 12px; background: #f9f9f9; border-radius: 4px; }
                 .notes-section h4 { margin: 0 0 8px 0; font-size: 0.9rem; }
@@ -1009,3 +1009,6 @@ export class ReceiptSidebarComponent implements OnInit, OnChanges {
     return '';
   }
 } 
+
+
+

@@ -456,3 +456,6 @@ export class ProductGridComponent implements OnInit, OnDestroy {
   }
 }
 
+
+
+

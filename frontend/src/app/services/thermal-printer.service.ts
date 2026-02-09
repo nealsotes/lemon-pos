@@ -1486,3 +1486,6 @@ export class ThermalPrinterService {
 }
 
 
+
+
+

@@ -474,12 +474,12 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
       right: -500px;
       width: 500px;
       height: 100vh;
-      background: #ffffff;
+      background: var(--surface-color);
       box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
       transition: right 0.2s ease; /* Simplified transition */
       display: flex;
       flex-direction: column;
-      border-left: 1px solid #e2e8f0;
+      border-left: 1px solid var(--border-color);
       will-change: right; /* Optimize for animations */
       contain: layout style paint; /* CSS containment */
     }
@@ -493,8 +493,8 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
       justify-content: space-between;
       align-items: center;
       padding: 1.5rem;
-      border-bottom: 1px solid #e2e8f0;
-      background: #f8fafc;
+      border-bottom: 1px solid var(--border-color);
+      background: var(--background-secondary);
       flex-shrink: 0;
     }
 
@@ -533,19 +533,19 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
       width: 36px;
       height: 36px;
       border: none;
-      background: #f1f5f9;
+      background: var(--background-tertiary);
       border-radius: 0.5rem;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       transition: all 0.2s ease;
-      color: #64748b;
+      color: var(--text-secondary);
     }
 
     .clear-btn:hover {
-      background: #e2e8f0;
-      color: #475569;
+      background: var(--border-color);
+      color: var(--text-secondary);
       transform: scale(1.05);
     }
 
@@ -558,19 +558,19 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
       width: 36px;
       height: 36px;
       border: none;
-      background: #dcfce7;
+      background: color-mix(in srgb, var(--success-color) 15%, transparent);
       border-radius: 0.5rem;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       transition: all 0.2s ease;
-      color: #16a34a;
+      color: var(--success-color);
     }
 
     .restore-btn:hover {
-      background: #bbf7d0;
-      color: #15803d;
+      background: color-mix(in srgb, var(--success-color) 25%, transparent);
+      color: var(--success-color);
       transform: scale(1.05);
     }
 
@@ -583,9 +583,9 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
       margin: 0;
       font-size: 1.5rem;
       font-weight: 700;
-      color: #1e293b;
+      color: var(--text-primary);
       /* Simplify text gradient for better performance */
-      /* background: linear-gradient(135deg, #1e293b 0%, #475569 100%);
+      /* background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text; */
@@ -595,9 +595,9 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
       width: 40px;
       height: 40px;
       border: none;
-      background: #f1f5f9;
+      background: var(--background-tertiary);
       /* Simplify background for better performance */
-      /* background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); */
+      /* background: linear-gradient(135deg, var(--background-tertiary) 0%, var(--border-color) 100%); */
       border-radius: 0.75rem;
       cursor: pointer;
       display: flex;
@@ -610,9 +610,9 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
     }
 
     .close-btn:hover {
-      background: #e2e8f0;
+      background: var(--border-color);
       /* Simplify background for better performance */
-      /* background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%); */
+      /* background: linear-gradient(135deg, var(--border-color) 0%, var(--border-light) 100%); */
       transform: scale(1.05);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
@@ -620,7 +620,7 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
     .close-btn svg {
       width: 20px;
       height: 20px;
-      color: #64748b;
+      color: var(--text-secondary);
     }
 
     /* Message Container */
@@ -634,18 +634,18 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
     }
 
     .message-container.success {
-      background: #dcfce7;
+      background: color-mix(in srgb, var(--success-color) 15%, transparent);
       /* Simplify background for better performance */
-      /* background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); */
-      color: #15803d;
-      border: 1px solid #86efac;
+      /* background: linear-gradient(135deg, color-mix(in srgb, var(--success-color) 15%, transparent) 0%, color-mix(in srgb, var(--success-color) 25%, transparent) 100%); */
+      color: var(--success-color);
+      border: 1px solid color-mix(in srgb, var(--success-color) 45%, transparent);
     }
 
     .message-container.error {
-      background: #fee2e2;
+      background: color-mix(in srgb, var(--error-color) 20%, transparent);
       /* Simplify background for better performance */
-      /* background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); */
-      color: #dc2626;
+      /* background: linear-gradient(135deg, color-mix(in srgb, var(--error-color) 18%, transparent) 0%, color-mix(in srgb, var(--error-color) 28%, transparent) 100%); */
+      color: var(--error-color);
       border: 1px solid #fca5a5;
     }
 
@@ -692,12 +692,12 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
 
     .section {
       margin-bottom: 2rem;
-      background: #ffffff;
+      background: var(--surface-color);
       /* Simplify background for better performance */
-      /* background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%); */
+      /* background: linear-gradient(135deg, var(--surface-color) 0%, var(--background-secondary) 100%); */
       border-radius: 1rem;
       padding: 1.5rem;
-      border: 1px solid #f1f5f9;
+      border: 1px solid var(--background-tertiary);
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
       transition: all 0.2s ease;
       /* Simplify transition for better performance */
@@ -713,9 +713,9 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
       margin: 0 0 1.25rem 0;
       font-size: 1.125rem;
       font-weight: 700;
-      color: #1e293b;
+      color: var(--text-primary);
       /* Simplify text gradient for better performance */
-      /* background: linear-gradient(135deg, #1e293b 0%, #475569 100%);
+      /* background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text; */
@@ -737,10 +737,10 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
     .open-order-name-row input {
       width: 100%;
       padding: 0.75rem 0.9rem;
-      border: 2px solid #e2e8f0;
+      border: 2px solid var(--border-color);
       border-radius: 0.75rem;
       font-size: 0.9rem;
-      background-color: #ffffff;
+      background-color: var(--surface-color);
       transition: all 0.2s ease;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
       font-weight: 500;
@@ -756,9 +756,9 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
     .open-order-save-btn {
       padding: 0.5rem 0.75rem;
       border-radius: 0.5rem;
-      border: 1px solid #e2e8f0;
-      background: #f1f5f9;
-      color: #475569;
+      border: 1px solid var(--border-color);
+      background: var(--background-tertiary);
+      color: var(--text-secondary);
       font-size: 0.85rem;
       font-weight: 600;
       cursor: pointer;
@@ -766,8 +766,8 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
     }
 
     .open-order-save-btn:hover:not(:disabled) {
-      background: #e2e8f0;
-      color: #1e293b;
+      background: var(--border-color);
+      color: var(--text-primary);
     }
 
     .open-order-save-btn:disabled {
@@ -784,7 +784,7 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
       display: block;
       margin-bottom: 0.5rem;
       font-weight: 600;
-      color: #374151;
+      color: var(--text-primary);
       font-size: 0.95rem;
     }
 
@@ -793,10 +793,10 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
     .form-select {
       width: 100%;
       padding: 0.875rem 1rem;
-      border: 2px solid #e2e8f0;
+      border: 2px solid var(--border-color);
       border-radius: 0.875rem;
       font-size: 1rem;
-      background-color: #ffffff;
+      background-color: var(--surface-color);
       transition: all 0.2s ease;
       /* Simplify transition for better performance */
       /* transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); */
@@ -814,12 +814,12 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
     }
 
     .form-group input.error {
-      border-color: #ef4444;
+      border-color: var(--error-color);
       box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
     }
 
     .error-message {
-      color: #ef4444;
+      color: var(--error-color);
       font-size: 0.8rem;
       margin-top: 0.5rem;
       font-weight: 500;
@@ -848,11 +848,11 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
       align-items: center;
       gap: 0.75rem;
       padding: 1rem 1.25rem;
-      border: 2px solid #e2e8f0;
+      border: 2px solid var(--border-color);
       border-radius: 0.875rem;
-      background: #ffffff;
+      background: var(--surface-color);
       /* Simplify background for better performance */
-      /* background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%); */
+      /* background: linear-gradient(135deg, var(--surface-color) 0%, var(--background-secondary) 100%); */
       transition: all 0.2s ease;
       /* Simplify transition for better performance */
       /* transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); */
@@ -870,7 +870,7 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
     }
 
     .payment-option:hover .payment-label {
-      border-color: #cbd5e1;
+      border-color: var(--border-light);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     }
 
@@ -883,7 +883,7 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
 
     .service-fee-hint {
       font-size: 0.75rem;
-      color: #64748b;
+      color: var(--text-secondary);
       font-weight: 500;
       margin-left: auto;
       padding-left: 0.5rem;
@@ -919,7 +919,7 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
       left: 0;
       right: 0;
       bottom: 0;
-      background-color: #cbd5e1;
+      background-color: var(--border-light);
       transition: .3s;
       border-radius: 34px;
     }
@@ -952,15 +952,15 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
     .toggle-label {
       font-size: 1rem;
       font-weight: 600;
-      color: #374151;
+      color: var(--text-primary);
       cursor: pointer;
       user-select: none;
     }
 
     /* Discount Details Styles */
     .discount-details-container {
-      background-color: #f8fafc;
-      border: 1px solid #e2e8f0;
+      background-color: var(--background-secondary);
+      border: 1px solid var(--border-color);
       border-radius: 0.75rem;
       padding: 1rem;
       margin-bottom: 1.25rem;
@@ -994,7 +994,7 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
     .percentage-symbol {
       position: absolute;
       right: 10px;
-      color: #64748b;
+      color: var(--text-secondary);
       font-weight: 500;
     }
 
@@ -1035,10 +1035,10 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
     }
     
     .change-display {
-      background: #f8fafc;
+      background: var(--background-secondary);
       /* Simplify background for better performance */
-      /* background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); */
-      border: 1px solid #e2e8f0;
+      /* background: linear-gradient(135deg, var(--background-secondary) 0%, var(--background-tertiary) 100%); */
+      border: 1px solid var(--border-color);
       border-radius: 0.875rem;
       padding: 1.25rem;
       margin-top: 1rem;
@@ -1059,7 +1059,7 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
 
     .change-amount {
       padding-top: 0.75rem;
-      border-top: 1px solid #e2e8f0;
+      border-top: 1px solid var(--border-color);
       margin-top: 0.75rem;
       font-weight: 700;
       color: var(--accent-color);
@@ -1120,11 +1120,11 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
       justify-content: space-between;
       align-items: center;
       padding: 1rem 1.25rem;
-      background: #ffffff;
+      background: var(--surface-color);
       /* Simplify background for better performance */
-      /* background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%); */
+      /* background: linear-gradient(135deg, var(--surface-color) 0%, var(--background-secondary) 100%); */
       border-radius: 0.875rem;
-      border: 1px solid #f1f5f9;
+      border: 1px solid var(--background-tertiary);
       transition: all 0.2s ease;
       /* Simplify transition for better performance */
       /* transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); */
@@ -1134,7 +1134,7 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
     .order-item:hover {
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
       transform: translateY(-1px);
-      border-color: #e2e8f0;
+      border-color: var(--border-color);
     }
 
     .item-info {
@@ -1153,7 +1153,7 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
     .item-name {
       font-size: 0.95rem;
       font-weight: 600;
-      color: #1e293b;
+      color: var(--text-primary);
       margin: 0;
     }
 
@@ -1165,15 +1165,15 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
       border-radius: 0.25rem;
       font-size: 0.7rem;
       font-weight: 600;
-      background: #f1f5f9;
-      border: 1px solid #e2e8f0;
+      background: var(--background-tertiary);
+      border: 1px solid var(--border-color);
       flex-shrink: 0;
     }
 
     .temperature-badge.hot {
       background: #fef2f2;
       border-color: #fecaca;
-      color: #dc2626;
+      color: var(--error-color);
     }
 
     .temperature-badge.cold {
@@ -1189,20 +1189,20 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
       margin-top: 2px;
       margin-left: 0.5rem;
       font-size: 0.6rem;
-      color: #64748b;
+      color: var(--text-secondary);
       max-width: 100%;
     }
 
     .addon-item {
       font-size: 0.6rem;
-      color: #64748b;
+      color: var(--text-secondary);
       font-style: italic;
       line-height: 1.2;
     }
 
     .item-qty {
       font-size: 0.8rem;
-      color: #64748b;
+      color: var(--text-secondary);
       font-weight: 500;
     }
 
@@ -1216,12 +1216,12 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
 
     /* Order Totals */
     .order-totals {
-      background: #f8fafc;
+      background: var(--background-secondary);
       /* Simplify background for better performance */
-      /* background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); */
+      /* background: linear-gradient(135deg, var(--background-secondary) 0%, var(--background-tertiary) 100%); */
       border-radius: 0.875rem;
       padding: 1.5rem;
-      border: 1px solid #e2e8f0;
+      border: 1px solid var(--border-color);
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
     }
 
@@ -1238,13 +1238,13 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
     }
 
     .discount-value {
-      color: #ef4444;
+      color: var(--error-color);
       font-weight: 600;
     }
 
     .final-total {
       padding-top: 1rem;
-      border-top: 2px solid #e2e8f0;
+      border-top: 2px solid var(--border-color);
       margin-top: 1rem;
       font-size: 1.125rem;
       font-weight: 700;
@@ -1254,10 +1254,10 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
     /* Footer */
     .checkout-footer {
       padding: 1.5rem;
-      border-top: 1px solid #e2e8f0;
-      background: #ffffff;
+      border-top: 1px solid var(--border-color);
+      background: var(--surface-color);
       /* Simplify background for better performance */
-      /* background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); */
+      /* background: linear-gradient(135deg, var(--surface-color) 0%, var(--background-secondary) 100%); */
       flex-shrink: 0;
       display: flex;
       gap: 1rem;
@@ -1289,7 +1289,7 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
       background: var(--primary-color);
       /* Simplify background for better performance */
       /* background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); */
-      color: #ffffff;
+      color: var(--surface-color);
       box-shadow: 0 6px 20px rgba(196, 165, 116, 0.25);
     }
 
@@ -1302,27 +1302,27 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
     }
 
     .btn-primary:disabled {
-      background: #94a3b8;
+      background: var(--text-muted);
       /* Simplify background for better performance */
-      /* background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%); */
+      /* background: linear-gradient(135deg, var(--text-muted) 0%, var(--text-secondary) 100%); */
       cursor: not-allowed;
       transform: none;
       box-shadow: 0 2px 8px rgba(148, 163, 184, 0.3);
     }
 
     .btn-secondary {
-      background: #f1f5f9;
+      background: var(--background-tertiary);
       /* Simplify background for better performance */
-      /* background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); */
-      color: #475569;
-      border: 2px solid #e2e8f0;
+      /* background: linear-gradient(135deg, var(--background-tertiary) 0%, var(--border-color) 100%); */
+      color: var(--text-secondary);
+      border: 2px solid var(--border-color);
     }
 
     .btn-secondary:hover {
-      background: #e2e8f0;
+      background: var(--border-color);
       /* Simplify background for better performance */
-      /* background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%); */
-      color: #1e293b;
+      /* background: linear-gradient(135deg, var(--border-color) 0%, var(--border-light) 100%); */
+      color: var(--text-primary);
       transform: translateY(-1px);
       box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
     }
@@ -2132,3 +2132,6 @@ export class CheckoutSidebarComponent implements OnInit {
     this.loadSavedFormData();
   }
 } 
+
+
+

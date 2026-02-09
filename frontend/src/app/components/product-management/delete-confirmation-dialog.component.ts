@@ -79,7 +79,7 @@ export interface DeleteConfirmationResult {
     }
     
     .warning-icon {
-      color: #dc2626;
+      color: var(--error-color);
       font-size: 28px;
       width: 28px;
       height: 28px;
@@ -100,7 +100,7 @@ export interface DeleteConfirmationResult {
     
     .message {
       margin: 0 0 16px 0;
-      color: #374151;
+      color: var(--text-primary);
       font-size: 15px;
       line-height: 1.6;
       font-weight: 400;
@@ -140,7 +140,7 @@ export interface DeleteConfirmationResult {
       font-size: 18px;
       width: 18px;
       height: 18px;
-      color: #dc2626;
+      color: var(--error-color);
       flex-shrink: 0;
       margin-top: 1px;
     }
@@ -163,12 +163,12 @@ export interface DeleteConfirmationResult {
     .cancel-btn:hover:not(:disabled) {
       background: #f9fafb;
       border-color: #9ca3af;
-      color: #374151;
+      color: var(--text-primary);
     }
     
     .delete-btn {
       min-width: 110px;
-      background: #dc2626;
+      background: var(--error-color);
       color: white;
       font-weight: 500;
       box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -242,4 +242,7 @@ export class DeleteConfirmationDialogComponent {
     this.dialogRef.close(true);
   }
 }
+
+
+
 

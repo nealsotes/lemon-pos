@@ -26,6 +26,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   cartItemCount = 0;
   isOnline = true;
   mobileMenuOpen = false;
+  isDarkMode = false;
   currentUser: User | null = null;
   isOwner = false;
   isAdmin = false;
@@ -43,6 +44,8 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   ) {}
 
   ngOnInit() {
+    this.initTheme();
+
     // Check for service worker updates immediately and handle updates
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistration().then(registration => {
@@ -167,6 +170,11 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     this.authService.logout();
   }
 
+  toggleTheme(): void {
+    const nextTheme = this.isDarkMode ? 'light' : 'dark';
+    this.applyTheme(nextTheme);
+  }
+
   ngAfterViewInit() {
     // Hide loading screen when app is ready
     setTimeout(() => {
@@ -197,5 +205,32 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     const page = this.pageSettings.find(s => s.path === path);
     return page ? page.enabled : true; // Default to enabled if not found
   }
+
+  private initTheme(): void {
+    const storedTheme = localStorage.getItem('theme');
+    if (storedTheme === 'light' || storedTheme === 'dark') {
+      this.applyTheme(storedTheme);
+      return;
+    }
+
+    const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+    this.applyTheme(prefersDark ? 'dark' : 'light');
+  }
+
+  private applyTheme(theme: 'light' | 'dark'): void {
+    this.isDarkMode = theme === 'dark';
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+    this.updateThemeColor(theme);
+  }
+
+  private updateThemeColor(theme: 'light' | 'dark'): void {
+    const metaTheme = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null;
+    if (!metaTheme) return;
+    metaTheme.content = theme === 'dark' ? 'var(--text-primary)' : '#3B82F6';
+  }
 }
+
+
+
 

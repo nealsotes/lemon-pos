@@ -126,12 +126,12 @@ export interface TemperatureDialogResult {
       margin: 0 0 8px 0;
       font-size: 1.5rem;
       font-weight: 700;
-      color: #1e293b;
+      color: var(--text-primary);
     }
     
     .dialog-subtitle {
       margin: 0 0 24px 0;
-      color: #64748b;
+      color: var(--text-secondary);
       font-size: 0.95rem;
     }
     
@@ -147,16 +147,16 @@ export interface TemperatureDialogResult {
       align-items: center;
       gap: 16px;
       padding: 16px;
-      border: 2px solid #e2e8f0;
+      border: 2px solid var(--border-color);
       border-radius: 12px;
-      background: #ffffff;
+      background: var(--surface-color);
       cursor: pointer;
       transition: all 0.2s ease;
       text-align: left;
     }
     
     .temperature-btn:hover {
-      border-color: #cbd5e1;
+      border-color: var(--border-light);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
       transform: translateY(-2px);
     }
@@ -168,7 +168,7 @@ export interface TemperatureDialogResult {
     }
     
     .hot-btn.selected {
-      border-color: #ef4444;
+      border-color: var(--error-color);
       background: #fef2f2;
     }
     
@@ -186,7 +186,7 @@ export interface TemperatureDialogResult {
       flex: 1;
       font-size: 1.125rem;
       font-weight: 600;
-      color: #1e293b;
+      color: var(--text-primary);
     }
     
     .temperature-price {
@@ -212,19 +212,19 @@ export interface TemperatureDialogResult {
     }
     
     .btn-secondary {
-      background: #f1f5f9;
-      color: #475569;
-      border: 2px solid #e2e8f0;
+      background: var(--background-tertiary);
+      color: var(--text-secondary);
+      border: 2px solid var(--border-color);
     }
     
     .btn-secondary:hover {
-      background: #e2e8f0;
-      color: #1e293b;
+      background: var(--border-color);
+      color: var(--text-primary);
     }
     
     .btn-primary {
       background: var(--primary-color);
-      color: #ffffff;
+      color: var(--surface-color);
       box-shadow: 0 4px 12px rgba(196, 165, 116, 0.25);
     }
     
@@ -234,8 +234,8 @@ export interface TemperatureDialogResult {
     }
     
     .btn-primary:disabled {
-      background: #cbd5e1;
-      color: #94a3b8;
+      background: var(--border-light);
+      color: var(--text-muted);
       cursor: not-allowed;
       box-shadow: none;
     }
@@ -253,20 +253,20 @@ export interface TemperatureDialogResult {
     .addons-section {
       margin-top: 24px;
       padding-top: 24px;
-      border-top: 1px solid #e2e8f0;
+      border-top: 1px solid var(--border-color);
     }
 
     .addons-title {
       margin: 0 0 8px 0;
       font-size: 0.95rem;
       font-weight: 600;
-      color: #1e293b;
+      color: var(--text-primary);
     }
     
     .addons-hint {
       margin: 0 0 12px 0;
       font-size: 0.85rem;
-      color: #f59e0b;
+      color: var(--warning-color);
       font-style: italic;
     }
 
@@ -286,15 +286,15 @@ export interface TemperatureDialogResult {
       justify-content: space-between;
       gap: 12px;
       padding: 12px;
-      border: 1px solid #e2e8f0;
+      border: 1px solid var(--border-color);
       border-radius: 8px;
       transition: all 0.2s ease;
-      background: #ffffff;
+      background: var(--surface-color);
     }
 
     .addon-option:hover {
-      background-color: #f8fafc;
-      border-color: #cbd5e1;
+      background-color: var(--background-secondary);
+      border-color: var(--border-light);
     }
 
     .addon-info {
@@ -307,14 +307,14 @@ export interface TemperatureDialogResult {
 
     .addon-name {
       font-size: 0.9rem;
-      color: #1e293b;
+      color: var(--text-primary);
       font-weight: 600;
     }
 
     .addon-price {
       font-size: 0.8rem;
       font-weight: 500;
-      color: #64748b;
+      color: var(--text-secondary);
     }
 
     .addon-quantity-controls {
@@ -327,9 +327,9 @@ export interface TemperatureDialogResult {
     .quantity-btn {
       width: 32px;
       height: 32px;
-      border: 2px solid #e2e8f0;
+      border: 2px solid var(--border-color);
       border-radius: 6px;
-      background: #ffffff;
+      background: var(--surface-color);
       cursor: pointer;
       transition: all 0.2s ease;
       display: flex;
@@ -341,7 +341,7 @@ export interface TemperatureDialogResult {
     .quantity-btn svg {
       width: 16px;
       height: 16px;
-      color: #475569;
+      color: var(--text-secondary);
     }
 
     .quantity-btn:hover:not(:disabled) {
@@ -350,7 +350,7 @@ export interface TemperatureDialogResult {
     }
 
     .quantity-btn:hover:not(:disabled) svg {
-      color: #ffffff;
+      color: var(--surface-color);
     }
 
     .quantity-btn:disabled {
@@ -363,18 +363,18 @@ export interface TemperatureDialogResult {
       text-align: center;
       font-size: 0.95rem;
       font-weight: 600;
-      color: #1e293b;
+      color: var(--text-primary);
     }
 
     .addons-total {
       display: flex;
       justify-content: space-between;
       padding: 8px 10px;
-      background-color: #f8fafc;
+      background-color: var(--background-secondary);
       border-radius: 6px;
       font-size: 0.9rem;
       font-weight: 600;
-      color: #1e293b;
+      color: var(--text-primary);
     }
 
     .total-amount {
@@ -492,4 +492,7 @@ export class TemperatureSelectDialogComponent {
     this.dialogRef.close();
   }
 }
+
+
+
 
