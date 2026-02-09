@@ -76,3 +76,4 @@ export class OfflineService {
     return 'Backend connected. Synchronizing data...';
   }
 }
+

@@ -14,8 +14,8 @@
   margin: 0;
   font-size: 2.5rem;
   font-weight: 800;
-  color: #4A4A4A;
-  background: linear-gradient(135deg, #C4A574 0%, #B08D5B 100%);
+  color: var(--text-primary);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -47,7 +47,7 @@
 
 .status-connected {
   background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-  border-color: #95C7BB;
+  border-color: var(--accent-color);
 }
 
 .status-disconnected {
@@ -122,7 +122,7 @@
 
 .alert-success {
   background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-  border-color: #95C7BB;
+  border-color: var(--accent-color);
   color: #065f46;
 }
 
@@ -172,7 +172,7 @@
   width: 48px;
   height: 48px;
   border: 4px solid #e2e8f0;
-  border-top-color: #C4A574;
+  border-top-color: var(--primary-color);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 1rem;
@@ -215,14 +215,14 @@
 
 .printer-item:hover {
   background: linear-gradient(135deg, #e0e7ff 0%, #dbeafe 100%);
-  border-color: #C4A574;
+  border-color: var(--primary-color);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
 }
 
 .printer-item.selected {
   background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-  border-color: #C4A574;
+  border-color: var(--primary-color);
   border-width: 3px;
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
 }
@@ -238,7 +238,7 @@
 }
 
 .printer-item.selected .printer-icon svg {
-  color: #C4A574;
+  color: var(--primary-color);
 }
 
 .printer-name {
@@ -251,7 +251,7 @@
 .selected-badge {
   width: 32px;
   height: 32px;
-  background: linear-gradient(135deg, #C4A574 0%, #B08D5B 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
   color: white;
   border-radius: 50%;
   display: flex;
@@ -315,13 +315,13 @@
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #C4A574 0%, #B08D5B 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
   color: #ffffff;
   box-shadow: 0 6px 20px rgba(59, 130, 246, 0.25);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #B08D5B 0%, #9A7A4D 100%);
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-dark) 100%);
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(59, 130, 246, 0.35);
 }
@@ -340,7 +340,7 @@
 }
 
 .btn-thermal {
-  background: linear-gradient(135deg, #95C7BB 0%, #7EB3A6 100%);
+  background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-dark) 100%);
   color: #ffffff;
   box-shadow: 0 6px 20px rgba(5, 150, 105, 0.25);
 }
@@ -397,7 +397,7 @@
 }
 
 .info-card a {
-  color: #C4A574;
+  color: var(--primary-color);
   font-weight: 600;
   text-decoration: underline;
 }
@@ -460,4 +460,5 @@
     padding: 1.5rem;
   }
 }
+
 

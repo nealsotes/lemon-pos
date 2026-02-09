@@ -242,3 +242,4 @@ export class DeleteConfirmationDialogComponent {
     this.dialogRef.close(true);
   }
 }
+

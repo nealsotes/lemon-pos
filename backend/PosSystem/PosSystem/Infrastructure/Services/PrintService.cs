@@ -193,7 +193,7 @@ public class PrintService : IPrintService
         
         // Store name (large text)
         bytes.Add(0x1B); bytes.Add((byte)'!'); bytes.Add(0x10); // Double height only (reduced from double height and width)
-        AddString(bytes, "finnbites POS\n");
+        AddString(bytes, "Lemon POS Advance\n");
         bytes.Add(0x1B); bytes.Add((byte)'!'); bytes.Add(0x00); // Reset text size
         
         AddString(bytes, "Point of Sale Terminal\n");
@@ -342,7 +342,7 @@ public class PrintService : IPrintService
 
         // Store name (large text)
         sb.Append(ESC + "!" + "\x30"); // Double height and width
-        sb.Append("finnbites POS\n");
+        sb.Append("Lemon POS Advance\n");
         sb.Append(ESC + "!" + "\x00"); // Reset text size
 
         sb.Append("Transaction Receipt\n");
@@ -565,7 +565,7 @@ public class PrintService : IPrintService
                     // Create document info with RAW datatype to bypass driver processing
                     var docInfo = new DOC_INFO_1
                     {
-                        pDocName = "finnbites Receipt",
+                        pDocName = "Lemon POS Advance Receipt",
                         pOutputFile = null,
                         pDatatype = "RAW"  // RAW mode bypasses driver formatting
                     };

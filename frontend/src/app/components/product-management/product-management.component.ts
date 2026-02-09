@@ -592,3 +592,4 @@ export class ProductManagementComponent implements OnInit {
     this.loadCategories();
   }
 }
+

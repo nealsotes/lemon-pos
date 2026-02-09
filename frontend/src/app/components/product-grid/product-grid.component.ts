@@ -455,3 +455,4 @@ export class ProductGridComponent implements OnInit, OnDestroy {
     this.cdr.markForCheck();
   }
 }
+

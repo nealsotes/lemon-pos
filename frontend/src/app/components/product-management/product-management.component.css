@@ -1,12 +1,12 @@
 .product-management-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #FAF8F3 0%, #F5F2ED 100%);
+  background: linear-gradient(135deg, var(--background-secondary) 0%, var(--background-tertiary) 100%);
 }
 
 /* Page Header */
 .page-header {
-  background: linear-gradient(135deg, #ffffff 0%, #FAF8F3 100%);
-  border-bottom: 1px solid #E8E3DC;
+  background: linear-gradient(135deg, #ffffff 0%, var(--background-secondary) 100%);
+  border-bottom: 1px solid var(--border-color);
   padding: 1.5rem 0;
   margin-bottom: 2rem;
   box-shadow: 0 2px 12px rgba(196, 165, 116, 0.06);
@@ -28,9 +28,9 @@
 .page-title {
   font-size: 2rem;
   font-weight: 800;
-  color: #4A4A4A;
+  color: var(--text-primary);
   margin-bottom: 0.5rem;
-  background: linear-gradient(135deg, #C4A574 0%, #B08D5B 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -97,7 +97,7 @@
 
 .search-input:focus {
   outline: none;
-  border-color: #C4A574;
+  border-color: var(--primary-color);
   box-shadow: 0 0 0 3px rgba(196, 165, 116, 0.12), 0 4px 16px rgba(0, 0, 0, 0.06);
   transform: translateY(-1px);
 }
@@ -131,16 +131,16 @@
 }
 
 .filter-btn:hover {
-  border-color: #C4A574;
-  color: #C4A574;
+  border-color: var(--primary-color);
+  color: var(--primary-color);
   background-color: #fefbf5;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(196, 165, 116, 0.15);
 }
 
 .filter-btn.active {
-  background: linear-gradient(135deg, #C4A574 0%, #B08D5B 100%);
-  border-color: #C4A574;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  border-color: var(--primary-color);
   color: #ffffff;
   box-shadow: 0 4px 16px rgba(196, 165, 116, 0.3);
   font-weight: 600;
@@ -159,7 +159,7 @@
 
 .filter-controls .form-control:focus {
   outline: none;
-  border-color: #C4A574;
+  border-color: var(--primary-color);
   box-shadow: 0 0 0 3px rgba(196, 165, 116, 0.12), 0 4px 16px rgba(0, 0, 0, 0.06);
   transform: translateY(-1px);
 }
@@ -232,7 +232,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #C4A574 0%, #B08D5B 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
 }
 
 .table-subtitle {
@@ -499,7 +499,7 @@
 }
 
 .edit-btn {
-  color: #C4A574;
+  color: var(--primary-color);
 }
 
 .edit-btn:hover {
@@ -564,13 +564,13 @@
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #C4A574 0%, #B08D5B 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
   color: #ffffff;
   box-shadow: 0 6px 20px rgba(196, 165, 116, 0.25);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #B08D5B 0%, #9A7A4D 100%);
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-dark) 100%);
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(196, 165, 116, 0.35);
 }
@@ -625,16 +625,16 @@
   justify-content: center;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  color: #C4A574;
+  color: var(--primary-color);
   padding: 0;
   flex-shrink: 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .category-toggle-btn:hover {
-  background: linear-gradient(135deg, #C4A574 0%, #B08D5B 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
   color: #ffffff;
-  border-color: #C4A574;
+  border-color: var(--primary-color);
   transform: scale(1.05);
   box-shadow: 0 6px 20px rgba(196, 165, 116, 0.3);
 }
@@ -825,7 +825,7 @@
 
 .form-control:focus {
   outline: none;
-  border-color: #C4A574;
+  border-color: var(--primary-color);
   box-shadow: 0 0 0 3px rgba(196, 165, 116, 0.12), 0 4px 16px rgba(0, 0, 0, 0.06);
   transform: translateY(-1px);
 }
@@ -868,7 +868,7 @@
 
 .section-label {
   font-weight: 600;
-  color: #4A4A4A;
+  color: var(--text-primary);
   margin-bottom: 0.75rem;
   font-size: 0.95rem;
 }
@@ -906,7 +906,7 @@
 .price-note::before {
   content: "ℹ";
   font-size: 0.875rem;
-  color: #C4A574;
+  color: var(--primary-color);
   font-weight: 700;
 }
 
@@ -965,14 +965,14 @@
 
 .emoji-btn:hover {
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border-color: #C4A574;
+  border-color: var(--primary-color);
   transform: scale(1.1);
   box-shadow: 0 4px 12px rgba(196, 165, 116, 0.2);
 }
 
 .emoji-btn.selected {
-  background: linear-gradient(135deg, #C4A574 0%, #B08D5B 100%);
-  border-color: #C4A574;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  border-color: var(--primary-color);
   transform: scale(1.05);
   box-shadow: 0 6px 20px rgba(196, 165, 116, 0.3);
 }
@@ -983,9 +983,9 @@
   justify-content: center;
   gap: 0.75rem;
   padding: 1rem 1.25rem;
-  background: linear-gradient(135deg, #C4A574 0%, #B08D5B 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
   border-radius: 1rem;
-  border: 2px solid #C4A574;
+  border: 2px solid var(--primary-color);
   box-shadow: 0 6px 20px rgba(196, 165, 116, 0.25);
 }
 
@@ -1011,7 +1011,7 @@
 .form-checkbox {
   width: 20px;
   height: 20px;
-  accent-color: #C4A574;
+  accent-color: var(--primary-color);
   cursor: pointer;
 }
 
@@ -1107,8 +1107,8 @@
 }
 
 .image-type-option:has(input:checked) {
-  background: linear-gradient(135deg, #C4A574 0%, #B08D5B 100%);
-  border-color: #C4A574;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  border-color: var(--primary-color);
   box-shadow: 0 6px 20px rgba(196, 165, 116, 0.25);
 }
 
@@ -1148,14 +1148,14 @@
 }
 
 .file-upload-area:hover {
-  border-color: #C4A574;
+  border-color: var(--primary-color);
   background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
   transform: scale(1.01);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
 .file-upload-area.dragover {
-  border-color: #C4A574;
+  border-color: var(--primary-color);
   background: linear-gradient(135deg, #fef3c7 0%, #fde68a 30%, #ffffff 100%);
   border-style: solid;
   box-shadow: 0 0 0 4px rgba(196, 165, 116, 0.12);
@@ -1169,7 +1169,7 @@
 
 .file-upload-area.processing {
   border-style: solid;
-  border-color: #C4A574;
+  border-color: var(--primary-color);
   background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 30%, #ffffff 100%);
   cursor: wait;
 }
@@ -1325,3 +1325,4 @@
     transform: scale(1) translateY(0);
   }
 }
+

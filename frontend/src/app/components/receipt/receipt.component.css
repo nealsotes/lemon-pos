@@ -21,8 +21,8 @@
   margin: 0;
   font-size: 2rem;
   font-weight: 800;
-  color: #4A4A4A;
-  background: linear-gradient(135deg, #C4A574 0%, #B08D5B 100%);
+  color: var(--text-primary);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -219,7 +219,7 @@
 .item-total {
   font-size: 1rem;
   font-weight: 700;
-  color: #95C7BB;
+  color: var(--accent-color);
   text-shadow: 0 1px 2px rgba(149, 199, 187, 0.1);
 }
 
@@ -266,7 +266,7 @@
   font-weight: 800;
   padding: 1.25rem 0;
   margin-top: 0.75rem;
-  border-top: 3px solid #C4A574;
+  border-top: 3px solid var(--primary-color);
   border-bottom: none;
 }
 
@@ -277,7 +277,7 @@
 
 .final-total .value {
   font-size: 1.5rem;
-  color: #C4A574;
+  color: var(--primary-color);
   font-weight: 800;
 }
 
@@ -313,7 +313,7 @@
 
 .change-amount {
   font-weight: 600;
-  color: #95C7BB;
+  color: var(--accent-color);
 }
 
 /* Notes Section */
@@ -396,13 +396,13 @@
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #C4A574 0%, #B08D5B 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
   color: #ffffff;
   box-shadow: 0 6px 20px rgba(196, 165, 116, 0.25);
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, #B08D5B 0%, #9A7A4D 100%);
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-dark) 100%);
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(196, 165, 116, 0.3);
 }
@@ -528,3 +528,4 @@
     font-size: 0.85rem;
   }
 }
+

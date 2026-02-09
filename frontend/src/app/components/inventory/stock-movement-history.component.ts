@@ -302,3 +302,4 @@ export class StockMovementHistoryComponent implements OnInit {
   }
 }
 
+

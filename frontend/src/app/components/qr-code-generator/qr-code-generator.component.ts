@@ -48,7 +48,7 @@ export class QrCodeGeneratorComponent implements OnInit {
           const url = URL.createObjectURL(blob);
           const link = document.createElement('a');
           link.href = url;
-          link.download = 'finnbites-menu-qr-code.png';
+          link.download = 'lemon-pos-advance-menu-qr-code.png';
           link.click();
           URL.revokeObjectURL(url);
         }
@@ -69,4 +69,5 @@ export class QrCodeGeneratorComponent implements OnInit {
     window.print();
   }
 }
+
 

@@ -2,39 +2,39 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
-  /* finnbites Professional Color Palette */
-  --primary-color: #C4A574;        /* Soft Caramel - Headers, primary buttons, logo */
-  --primary-dark: #B08D5B;         /* Darker caramel for hover states */
-  --primary-light: #D4B896;        /* Lighter caramel for variants */
-  --secondary-color: #95C7BB;      /* Soft Sage - Secondary buttons, links, icons */
-  --accent-color: #95C7BB;         /* Soft Sage - Call-to-action, progress indicators */
-  --accent-dark: #7EB3A6;          /* Darker sage for hover */
+  /* Lemon POS Advance Professional Color Palette */
+  --primary-color: #3B82F6;        /* Blue - Headers, primary buttons, logo */
+  --primary-dark: #1D4ED8;         /* Darker blue for hover states */
+  --primary-light: #60A5FA;        /* Lighter blue for variants */
+  --secondary-color: #10B981;      /* Green - Secondary buttons, links, icons */
+  --accent-color: #10B981;         /* Green - Call-to-action, progress indicators */
+  --accent-dark: #059669;          /* Darker green for hover */
   
   /* Neutral Colors */
   --background-primary: #FFFFFF;   /* Pure White - Page background, modals */
-  --background-secondary: #FAF8F3; /* Warm Cream - Content areas, light cards */
-  --background-tertiary: #F5F2ED;  /* Soft beige for depth */
+  --background-secondary: #F8FAFC; /* Slate tint - Content areas, light cards */
+  --background-tertiary: #F1F5F9;  /* Slightly deeper slate for depth */
   --surface-color: #FFFFFF;        /* Pure White - Card surfaces */
-  --border-color: #E8E3DC;         /* Soft warm border */
-  --border-light: #F0EDE8;         /* Very light border */
+  --border-color: #E2E8F0;         /* Soft cool border */
+  --border-light: #EDF2F7;         /* Very light border */
   
   /* Text Colors */
-  --text-primary: #4A4A4A;         /* Warm Charcoal - Body text, paragraphs, labels */
-  --text-secondary: #6B6B6B;       /* Medium gray for secondary text */
-  --text-muted: #9B9B9B;           /* Light gray for muted text */
+  --text-primary: #0F172A;         /* Slate 900 - Body text, paragraphs, labels */
+  --text-secondary: #475569;       /* Slate 600 for secondary text */
+  --text-muted: #94A3B8;           /* Slate 400 for muted text */
   --text-inverse: #FFFFFF;         /* White text for dark backgrounds */
   
   /* Status Colors */
-  --success-color: #95C7BB;        /* Using soft sage for success */
-  --warning-color: #E8B673;        /* Soft amber */
-  --error-color: #E88B8B;          /* Soft coral */
-  --info-color: #95C7BB;           /* Using soft sage for info */
+  --success-color: #10B981;        /* Green for success */
+  --warning-color: #F59E0B;        /* Amber for warnings */
+  --error-color: #EF4444;          /* Red for errors */
+  --info-color: #3B82F6;           /* Blue for info */
   
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.04);
-  --shadow-md: 0 4px 6px -1px rgb(196 165 116 / 0.08), 0 2px 4px -2px rgb(196 165 116 / 0.08);
-  --shadow-lg: 0 10px 15px -3px rgb(196 165 116 / 0.08), 0 4px 6px -4px rgb(196 165 116 / 0.08);
-  --shadow-xl: 0 20px 25px -5px rgb(196 165 116 / 0.1), 0 8px 10px -6px rgb(196 165 116 / 0.1);
+  --shadow-md: 0 4px 6px -1px rgb(59 130 246 / 0.08), 0 2px 4px -2px rgb(59 130 246 / 0.08);
+  --shadow-lg: 0 10px 15px -3px rgb(59 130 246 / 0.08), 0 4px 6px -4px rgb(59 130 246 / 0.08);
+  --shadow-xl: 0 20px 25px -5px rgb(59 130 246 / 0.1), 0 8px 10px -6px rgb(59 130 246 / 0.1);
   
   /* Spacing */
   --spacing-xs: 0.25rem;
@@ -69,7 +69,7 @@ body, html {
 
 /* Touch improvements for mobile */
 button, a, input, select, textarea {
-  -webkit-tap-highlight-color: rgba(196, 165, 116, 0.2);
+  -webkit-tap-highlight-color: rgba(59, 130, 246, 0.2);
 }
 
 /* Improve touch targets on mobile */

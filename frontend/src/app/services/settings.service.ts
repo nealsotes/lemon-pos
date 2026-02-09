@@ -123,3 +123,4 @@ export class SettingsService {
     this.loadSettings();
   }
 }
+

@@ -42,3 +42,4 @@ export interface Transaction {
   amountReceived?: number;
   change?: number;
 }
+

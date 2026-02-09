@@ -253,3 +253,4 @@ export class PwaInstallComponent implements OnInit, OnDestroy {
     alert(message);
   }
 }
+

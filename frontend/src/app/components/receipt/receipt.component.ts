@@ -191,3 +191,4 @@ export class ReceiptComponent implements OnInit {
     this.router.navigate(['/reports']);
   }
 }
+

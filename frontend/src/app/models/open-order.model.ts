@@ -6,3 +6,4 @@ export interface OpenOrder {
   items: CartItem[];
   createdAt: string;
 }
+

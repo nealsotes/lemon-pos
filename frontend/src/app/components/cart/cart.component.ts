@@ -151,3 +151,4 @@ export class CartComponent implements OnInit {
     this.activeOpenOrderName = activeOrder?.name || '';
   }
 }
+

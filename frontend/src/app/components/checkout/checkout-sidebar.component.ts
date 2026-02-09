@@ -515,7 +515,7 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
       align-items: center;
       gap: 0.5rem;
       font-size: 0.875rem;
-      color: #C4A574;
+      color: var(--primary-color);
       font-weight: 500;
     }
 
@@ -748,7 +748,7 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
 
     .open-order-name-row input:focus {
       outline: none;
-      border-color: #C4A574;
+      border-color: var(--primary-color);
       box-shadow: 0 0 0 3px rgba(196, 165, 116, 0.12), 0 4px 16px rgba(0, 0, 0, 0.08);
       transform: translateY(-1px);
     }
@@ -808,7 +808,7 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
     .form-group textarea:focus,
     .form-select:focus {
       outline: none;
-      border-color: #C4A574;
+      border-color: var(--primary-color);
       box-shadow: 0 0 0 3px rgba(196, 165, 116, 0.12), 0 4px 16px rgba(0, 0, 0, 0.08);
       transform: translateY(-1px);
     }
@@ -861,10 +861,10 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
     }
 
     .payment-option.selected .payment-label {
-      border-color: #C4A574;
-      background: #FAF8F3;
+      border-color: var(--primary-color);
+      background: var(--background-secondary);
       /* Simplify background for better performance */
-      /* background: linear-gradient(135deg, #FAF8F3 0%, #F5F2ED 100%); */
+      /* background: linear-gradient(135deg, var(--background-secondary) 0%, var(--background-tertiary) 100%); */
       box-shadow: 0 4px 16px rgba(196, 165, 116, 0.15);
       transform: translateY(-2px);
     }
@@ -877,7 +877,7 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
     .payment-label svg {
       width: 24px;
       height: 24px;
-      color: #C4A574;
+      color: var(--primary-color);
       flex-shrink: 0;
     }
 
@@ -938,11 +938,11 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
     }
 
     input:checked + .slider {
-      background-color: #C4A574;
+      background-color: var(--primary-color);
     }
 
     input:focus + .slider {
-      box-shadow: 0 0 1px #C4A574;
+      box-shadow: 0 0 1px var(--primary-color);
     }
 
     input:checked + .slider:before {
@@ -1062,7 +1062,7 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
       border-top: 1px solid #e2e8f0;
       margin-top: 0.75rem;
       font-weight: 700;
-      color: #95C7BB;
+      color: var(--accent-color);
     }
 
     /* Quick Amount Buttons */
@@ -1090,15 +1090,15 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
     
     .quick-amount-btn:hover {
       background: #e9ecef;
-      border-color: #C4A574;
-      color: #C4A574;
+      border-color: var(--primary-color);
+      color: var(--primary-color);
       transform: translateY(-1px);
       box-shadow: 0 2px 8px rgba(196, 165, 116, 0.2);
     }
     
     .quick-amount-btn.active {
-      background: #C4A574;
-      border-color: #C4A574;
+      background: var(--primary-color);
+      border-color: var(--primary-color);
       color: white;
       box-shadow: 0 2px 8px rgba(196, 165, 116, 0.3);
     }
@@ -1209,7 +1209,7 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
     .item-price {
       font-size: 0.95rem;
       font-weight: 700;
-      color: #95C7BB;
+      color: var(--accent-color);
       /* Remove text-shadow for better performance */
       /* text-shadow: 0 1px 2px rgba(149, 199, 187, 0.1); */
     }
@@ -1248,7 +1248,7 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
       margin-top: 1rem;
       font-size: 1.125rem;
       font-weight: 700;
-      color: #95C7BB;
+      color: var(--accent-color);
     }
 
     /* Footer */
@@ -1286,17 +1286,17 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
     }
 
     .btn-primary {
-      background: #C4A574;
+      background: var(--primary-color);
       /* Simplify background for better performance */
-      /* background: linear-gradient(135deg, #C4A574 0%, #B08D5B 100%); */
+      /* background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); */
       color: #ffffff;
       box-shadow: 0 6px 20px rgba(196, 165, 116, 0.25);
     }
 
     .btn-primary:hover:not(:disabled) {
-      background: #B08D5B;
+      background: var(--primary-dark);
       /* Simplify background for better performance */
-      /* background: linear-gradient(135deg, #B08D5B 0%, #9A7A4D 100%); */
+      /* background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-dark) 100%); */
       transform: translateY(-2px);
       box-shadow: 0 8px 24px rgba(196, 165, 116, 0.35);
     }

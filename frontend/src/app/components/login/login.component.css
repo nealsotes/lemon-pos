@@ -4,7 +4,7 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #FAF8F3 0%, #F5F2ED 50%, #E8E3DC 100%);
+  background: linear-gradient(135deg, var(--background-secondary) 0%, var(--background-tertiary) 50%, var(--border-color) 100%);
   padding: 20px;
   position: relative;
   overflow: hidden;
@@ -94,7 +94,7 @@
 .logo-bg {
   width: 56px;
   height: 56px;
-  background: linear-gradient(135deg, #C4A574 0%, #95C7BB 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -162,7 +162,7 @@
   left: 16px;
   width: 20px;
   height: 20px;
-  color: #95C7BB;
+  color: var(--accent-color);
   z-index: 1;
   pointer-events: none;
   transition: color 0.3s ease;
@@ -187,7 +187,7 @@
 
 .form-control:focus {
   outline: none;
-  border-color: #C4A574;
+  border-color: var(--primary-color);
   background: white;
   box-shadow: 0 0 0 4px rgba(196, 165, 116, 0.1);
   transform: scale(1.01);
@@ -195,7 +195,7 @@
 
 .form-control:focus + .input-icon,
 .form-control:focus ~ .input-icon {
-  color: #C4A574;
+  color: var(--primary-color);
 }
 
 .form-control.error {
@@ -233,7 +233,7 @@
 }
 
 .password-toggle:hover {
-  color: #C4A574;
+  color: var(--primary-color);
 }
 
 .password-toggle svg {
@@ -348,8 +348,8 @@
 }
 
 .checkbox-input:checked + .checkbox-custom {
-  background: linear-gradient(135deg, #C4A574 0%, #95C7BB 100%);
-  border-color: #C4A574;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+  border-color: var(--primary-color);
 }
 
 .checkbox-input:checked + .checkbox-custom::after {
@@ -382,7 +382,7 @@
   font-weight: 600;
   border: none;
   border-radius: 12px;
-  background: linear-gradient(135deg, #C4A574 0%, #95C7BB 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
   color: white;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -443,7 +443,7 @@
 .login-footer {
   text-align: center;
   padding-top: 28px;
-  border-top: 1px solid #e8e3dc;
+  border-top: 1px solid var(--border-color);
 }
 
 .credentials-toggle {
@@ -464,7 +464,7 @@
 }
 
 .credentials-toggle:hover {
-  color: #C4A574;
+  color: var(--primary-color);
   background: rgba(196, 165, 116, 0.1);
 }
 
@@ -511,7 +511,7 @@
 }
 
 .credential-item code {
-  background: linear-gradient(135deg, #f5f5f5 0%, #e8e3dc 100%);
+  background: linear-gradient(135deg, #f5f5f5 0%, var(--border-color) 100%);
   padding: 4px 10px;
   border-radius: 6px;
   font-family: 'Courier New', monospace;
@@ -570,7 +570,7 @@
 .form-control:focus-visible,
 .checkbox-input:focus-visible + .checkbox-custom,
 .password-toggle:focus-visible {
-  outline: 2px solid #C4A574;
+  outline: 2px solid var(--primary-color);
   outline-offset: 2px;
 }
 
@@ -584,3 +584,4 @@
     transition-duration: 0.01ms !important;
   }
 }
+

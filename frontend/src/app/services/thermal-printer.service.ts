@@ -1088,7 +1088,7 @@ export class ThermalPrinterService {
 
     // Store name (large text)
     commands.push(ESC + '!' + '\x10'); // Double height only (reduced from double height and width)
-    commands.push('finnbites POS\n');
+    commands.push('Lemon POS Advance\n');
     commands.push(ESC + '!' + '\x00'); // Reset text size
 
     // Subtitle and date (matching receipt sidebar)
@@ -1484,4 +1484,5 @@ export class ThermalPrinterService {
     return encoder.encode(str);
   }
 }
+
 

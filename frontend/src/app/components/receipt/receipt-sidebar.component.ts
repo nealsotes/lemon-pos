@@ -33,7 +33,7 @@ import { ThermalPrinterService } from '../../services/thermal-printer.service';
           </div>
           <!-- Store Header -->
           <div class="store-header">
-            <h3>finnbites POS</h3>
+            <h3>Lemon POS Advance</h3>
             <p>Point of Sale Terminal</p>
             <p>{{ formatDate(transaction?.timestamp) }}</p>
           </div>
@@ -507,12 +507,12 @@ import { ThermalPrinterService } from '../../services/thermal-printer.service';
     }
 
     .btn-primary {
-      background-color: #C4A574;
+      background-color: var(--primary-color);
       color: white;
     }
 
     .btn-primary:hover {
-      background-color: #B08D5B;
+      background-color: var(--primary-dark);
     }
 
     .btn-secondary {
@@ -526,12 +526,12 @@ import { ThermalPrinterService } from '../../services/thermal-printer.service';
 
     .btn-outline {
       background-color: transparent;
-      color: #C4A574;
-      border: 2px solid #C4A574;
+      color: var(--primary-color);
+      border: 2px solid var(--primary-color);
     }
 
     .btn-outline:hover {
-      background-color: #C4A574;
+      background-color: var(--primary-color);
       color: white;
     }
 

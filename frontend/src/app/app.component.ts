@@ -22,7 +22,7 @@ import { Subject, takeUntil, filter } from 'rxjs';
   styleUrls: ['./app.component.css']
 })
 export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
-  title = 'finnbites POS';
+  title = 'Lemon POS Advance';
   cartItemCount = 0;
   isOnline = true;
   mobileMenuOpen = false;
@@ -198,3 +198,4 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     return page ? page.enabled : true; // Default to enabled if not found
   }
 }
+

@@ -10,3 +10,4 @@ export interface Product {
   image: string;
   isActive?: boolean;
 }
+

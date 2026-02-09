@@ -61,3 +61,4 @@ export class SettingsComponent implements OnInit {
     }, 3000);
   }
 }
+

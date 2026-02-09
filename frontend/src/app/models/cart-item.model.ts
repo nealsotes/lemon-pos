@@ -22,3 +22,4 @@ export interface CartItem {
     amount: number;
   };
 }
+

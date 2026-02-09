@@ -3,7 +3,7 @@
   flex-direction: column;
   align-items: center;
   padding: 2rem;
-  background: linear-gradient(135deg, #ffffff 0%, #faf8f3 100%);
+  background: linear-gradient(135deg, #ffffff 0%, var(--background-secondary) 100%);
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(196, 165, 116, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
   border: 1px solid rgba(196, 165, 116, 0.2);
@@ -18,7 +18,7 @@
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, #C4A574 0%, #95C7BB 50%, #C4A574 100%);
+  background: linear-gradient(90deg, var(--primary-color) 0%, var(--accent-color) 50%, var(--primary-color) 100%);
   background-size: 200% 100%;
   animation: shimmer 3s ease-in-out infinite;
 }
@@ -43,8 +43,8 @@
   justify-content: center;
   align-items: center;
   padding: 1.5rem;
-  background: linear-gradient(135deg, #ffffff 0%, #f5f2ed 100%);
-  border: 3px solid #E8E3DC;
+  background: linear-gradient(135deg, #ffffff 0%, var(--background-tertiary) 100%);
+  border: 3px solid var(--border-color);
   border-radius: 16px;
   box-shadow: 
     0 4px 16px rgba(196, 165, 116, 0.1),
@@ -59,7 +59,7 @@
   inset: -2px;
   border-radius: 18px;
   padding: 2px;
-  background: linear-gradient(135deg, #C4A574, #95C7BB, #C4A574);
+  background: linear-gradient(135deg, var(--primary-color), var(--accent-color), var(--primary-color));
   background-size: 200% 200%;
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
@@ -89,7 +89,7 @@
 .qr-label {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #4A4A4A;
+  color: var(--text-primary);
   margin: 0 0 0.75rem 0;
   display: flex;
   align-items: center;
@@ -110,11 +110,11 @@
 .url-input {
   flex: 1;
   padding: 0.875rem 1rem;
-  border: 2px solid #E8E3DC;
+  border: 2px solid var(--border-color);
   border-radius: 10px;
   font-size: 0.875rem;
-  background: linear-gradient(135deg, #ffffff 0%, #faf8f3 100%);
-  color: #4A4A4A;
+  background: linear-gradient(135deg, #ffffff 0%, var(--background-secondary) 100%);
+  color: var(--text-primary);
   font-family: 'Courier New', monospace;
   transition: all 0.3s ease;
   box-shadow: 0 2px 8px rgba(196, 165, 116, 0.08);
@@ -122,16 +122,16 @@
 
 .url-input:focus {
   outline: none;
-  border-color: #C4A574;
+  border-color: var(--primary-color);
   box-shadow: 0 4px 12px rgba(196, 165, 116, 0.15);
   background: #ffffff;
 }
 
 .copy-btn {
   padding: 0.875rem 1rem;
-  border: 2px solid #C4A574;
+  border: 2px solid var(--primary-color);
   border-radius: 10px;
-  background: linear-gradient(135deg, #C4A574 0%, #B08D5B 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
   color: white;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -144,7 +144,7 @@
 }
 
 .copy-btn:hover {
-  background: linear-gradient(135deg, #B08D5B 0%, #9A7A4D 100%);
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-dark) 100%);
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(196, 165, 116, 0.35);
 }
@@ -218,7 +218,7 @@
 }
 
 .download-btn {
-  background: linear-gradient(135deg, #C4A574 0%, #B08D5B 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
   color: white;
   box-shadow: 0 4px 16px rgba(196, 165, 116, 0.3);
 }
@@ -226,7 +226,7 @@
 .download-btn:hover {
   transform: translateY(-3px);
   box-shadow: 0 8px 24px rgba(196, 165, 116, 0.4);
-  background: linear-gradient(135deg, #B08D5B 0%, #9A7A4D 100%);
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-dark) 100%);
 }
 
 .download-btn:active {
@@ -234,18 +234,18 @@
 }
 
 .print-btn {
-  background: linear-gradient(135deg, #ffffff 0%, #faf8f3 100%);
-  color: #4A4A4A;
-  border: 2px solid #E8E3DC;
+  background: linear-gradient(135deg, #ffffff 0%, var(--background-secondary) 100%);
+  color: var(--text-primary);
+  border: 2px solid var(--border-color);
   box-shadow: 0 2px 8px rgba(196, 165, 116, 0.1);
 }
 
 .print-btn:hover {
-  background: linear-gradient(135deg, #f5f2ed 0%, #f0ede8 100%);
-  border-color: #C4A574;
+  background: linear-gradient(135deg, var(--background-tertiary) 0%, #f0ede8 100%);
+  border-color: var(--primary-color);
   transform: translateY(-3px);
   box-shadow: 0 6px 16px rgba(196, 165, 116, 0.2);
-  color: #B08D5B;
+  color: var(--primary-dark);
 }
 
 .print-btn:active {
@@ -266,4 +266,5 @@
     padding: 0;
   }
 }
+
 

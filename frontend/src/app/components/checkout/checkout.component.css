@@ -7,7 +7,7 @@
 }
 
 ::ng-deep .success-snackbar {
-  background: linear-gradient(135deg, #95C7BB 0%, #7EB3A6 100%) !important;
+  background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-dark) 100%) !important;
   color: white !important;
   border-radius: 0.75rem !important;
   box-shadow: 0 8px 24px rgba(149, 199, 187, 0.3) !important;
@@ -16,14 +16,14 @@
 /* Checkout Container */
 .checkout-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #FAF8F3 0%, #F5F2ED 100%);
+  background: linear-gradient(135deg, var(--background-secondary) 0%, var(--background-tertiary) 100%);
   padding: 2rem 0;
 }
 
 /* Checkout Header */
 .checkout-header {
-  background: linear-gradient(135deg, #ffffff 0%, #FAF8F3 100%);
-  border-bottom: 1px solid #E8E3DC;
+  background: linear-gradient(135deg, #ffffff 0%, var(--background-secondary) 100%);
+  border-bottom: 1px solid var(--border-color);
   padding: 1.5rem 0;
   margin-bottom: 2rem;
   box-shadow: 0 2px 12px rgba(196, 165, 116, 0.06);
@@ -55,9 +55,9 @@
   gap: 0.75rem;
   font-size: 2rem;
   font-weight: 800;
-  color: #4A4A4A;
+  color: var(--text-primary);
   margin: 0;
-  background: linear-gradient(135deg, #C4A574 0%, #B08D5B 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -67,7 +67,7 @@
 .checkout-icon {
   width: 32px;
   height: 32px;
-  color: #C4A574;
+  color: var(--primary-color);
   filter: drop-shadow(0 2px 4px rgba(196, 165, 116, 0.2));
 }
 
@@ -201,7 +201,7 @@
 
 .form-control:focus {
   outline: none;
-  border-color: #C4A574;
+  border-color: var(--primary-color);
   box-shadow: 0 0 0 3px rgba(196, 165, 116, 0.12), 0 4px 16px rgba(0, 0, 0, 0.06);
   transform: translateY(-1px);
 }
@@ -237,8 +237,8 @@
 }
 
 .payment-option input[type="radio"]:checked + .payment-label {
-  border-color: #C4A574;
-  background: linear-gradient(135deg, #FAF8F3 0%, #F5F2ED 100%);
+  border-color: var(--primary-color);
+  background: linear-gradient(135deg, var(--background-secondary) 0%, var(--background-tertiary) 100%);
   box-shadow: 0 4px 16px rgba(196, 165, 116, 0.15);
   transform: translateY(-2px);
 }
@@ -263,7 +263,7 @@
 .payment-icon svg {
   width: 24px;
   height: 24px;
-  color: #C4A574;
+  color: var(--primary-color);
 }
 
 .payment-details {
@@ -382,7 +382,7 @@
 .item-price {
   font-size: 1rem;
   font-weight: 700;
-  color: #95C7BB;
+  color: var(--accent-color);
   text-shadow: 0 1px 2px rgba(149, 199, 187, 0.1);
 }
 
@@ -432,7 +432,7 @@
 .final-total .total-value {
   font-size: 1.5rem;
   font-weight: 800;
-  color: #95C7BB;
+  color: var(--accent-color);
   text-shadow: 0 1px 2px rgba(149, 199, 187, 0.1);
 }
 
@@ -481,13 +481,13 @@
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #C4A574 0%, #B08D5B 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
   color: #ffffff;
   box-shadow: 0 6px 20px rgba(196, 165, 116, 0.25);
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, #B08D5B 0%, #9A7A4D 100%);
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-dark) 100%);
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(196, 165, 116, 0.3);
 }
@@ -634,15 +634,15 @@
 
 .quick-amount-btn:hover {
   background: #e9ecef;
-  border-color: #C4A574;
-  color: #C4A574;
+  border-color: var(--primary-color);
+  color: var(--primary-color);
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(196, 165, 116, 0.2);
 }
 
 .quick-amount-btn.active {
-  background: #C4A574;
-  border-color: #C4A574;
+  background: var(--primary-color);
+  border-color: var(--primary-color);
   color: white;
   box-shadow: 0 2px 8px rgba(196, 165, 116, 0.3);
 }
@@ -670,6 +670,7 @@
 
 .change-amount {
   font-weight: 700;
-  color: #95C7BB;
+  color: var(--accent-color);
   font-size: 1.1rem;
 }
+
