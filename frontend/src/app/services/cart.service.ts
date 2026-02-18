@@ -215,24 +215,56 @@ export class CartService {
   }
 
   // Discount methods
-  applyDiscountToCart(discountType: 'senior' | 'pwd' | 'manual', discountPercentage: number = 20): void {
+  applyDiscountToCart(discountType: 'senior' | 'pwd' | 'manual', discountValue: number = 20, isAmount: boolean = false): void {
     const currentItems = this.cartItemsSubject.value;
-    const updatedItems = currentItems.map(item => {
-      const discountAmount = (item.price * item.quantity * discountPercentage) / 100;
-      const discountedTotal = (item.price * item.quantity) - discountAmount;
+    if (currentItems.length === 0) return;
 
-      return {
-        ...item,
-        total: discountedTotal,
-        discount: {
-          type: discountType,
-          percentage: discountPercentage,
-          amount: discountAmount
-        }
-      };
-    });
+    if (isAmount) {
+      // Distribute a flat amount across items proportionally based on their price
+      const subtotalBeforeDiscount = currentItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-    this.cartItemsSubject.next(updatedItems);
+      if (subtotalBeforeDiscount === 0) return;
+
+      const updatedItems = currentItems.map(item => {
+        const itemSubtotal = item.price * item.quantity;
+        // Proportion of the discount for this item
+        const itemDiscountAmount = (itemSubtotal / subtotalBeforeDiscount) * discountValue;
+        const discountedTotal = itemSubtotal - itemDiscountAmount;
+        // Calculate equivalent percentage for historical/reporting purposes
+        const equivalentPercentage = (itemDiscountAmount / itemSubtotal) * 100;
+
+        return {
+          ...item,
+          total: discountedTotal,
+          discount: {
+            type: discountType,
+            percentage: equivalentPercentage,
+            amount: itemDiscountAmount
+          }
+        };
+      });
+
+      this.cartItemsSubject.next(updatedItems);
+    } else {
+      // Traditional percentage-based discount
+      const updatedItems = currentItems.map(item => {
+        const discountAmount = (item.price * item.quantity * discountValue) / 100;
+        const discountedTotal = (item.price * item.quantity) - discountAmount;
+
+        return {
+          ...item,
+          total: discountedTotal,
+          discount: {
+            type: discountType,
+            percentage: discountValue,
+            amount: discountAmount
+          }
+        };
+      });
+
+      this.cartItemsSubject.next(updatedItems);
+    }
+
     this.recalculateTotals(); // Recalculate after discount changes
     this.debouncedSaveCart();
   }

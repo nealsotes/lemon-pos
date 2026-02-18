@@ -85,11 +85,6 @@
       <span class="label">VAT (12%):</span>
       <span class="value">{{ formatPrice(getVATAmount()) }}</span>
     </div>
-    <div class="total-row" *ngIf="transaction?.serviceFee && transaction?.serviceFee > 0">
-      <span class="label">Service Fee ({{ transaction?.serviceType === 'dineIn' ? 'Dine-in (2%)' : 'Take-out'
-        }}):</span>
-      <span class="value">{{ formatPrice(transaction?.serviceFee) }}</span>
-    </div>
     <div class="total-row final-total">
       <span class="label">Total:</span>
       <span class="value">{{ formatPrice(transaction?.total || 0) }}</span>

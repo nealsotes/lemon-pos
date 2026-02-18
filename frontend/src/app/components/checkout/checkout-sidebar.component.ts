@@ -155,19 +155,22 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
                   </select>
                 </div>
 
-                <!-- Discount Percentage -->
-                <div class="form-group percentage-group">
-                  <label>Percentage</label>
+                <!-- Discount Value (Amount) -->
+                <div class="form-group percentage-group amount-group">
+                  <label>Amount</label>
                   <div class="percentage-input-wrapper">
                     <input 
                       type="number" 
-                      [(ngModel)]="manualDiscountPercentage"
+                      [(ngModel)]="manualDiscountAmount"
                       (ngModelChange)="onManualDiscountChange()"
                       class="form-input"
                       min="0"
-                      max="100"
+                      placeholder="0.00"
                     >
-                    <span class="percentage-symbol">%</span>
+                    <span class="percentage-symbol">₱</span>
+                  </div>
+                  <div *ngIf="showDiscountAmountError" class="error-message">
+                    Discount cannot exceed ₱{{ subtotalBeforeDiscount | number:'1.2-2' }}
                   </div>
                 </div>
               </div>
@@ -267,7 +270,6 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
                     <polyline points="9 22 9 12 15 12 15 22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                   Dine-in
-                  <span class="service-fee-hint" *ngIf="serviceType === 'dineIn'">(2% service charge)</span>
                 </span>
               </label>
               
@@ -320,12 +322,8 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
                 <span>₱{{ subtotalBeforeDiscount | number:'1.2-2' }}</span>
               </div>
               <div class="total-row" *ngIf="hasDiscount && discountTotal > 0">
-                <span>Discount ({{ customerInfo.discountType === 'senior' ? 'Senior' : 'PWD' }}):</span>
+                <span>Discount ({{ customerInfo.discountType === 'senior' ? 'Senior' : customerInfo.discountType === 'pwd' ? 'PWD' : 'Other' }}):</span>
                 <span class="discount-value">-₱{{ discountTotal | number:'1.2-2' }}</span>
-              </div>
-              <div class="total-row" *ngIf="serviceFee > 0">
-                <span>Service Fee ({{ serviceType === 'dineIn' ? 'Dine-in' : 'Take-out' }}):</span>
-                <span>₱{{ serviceFee | number:'1.2-2' }}</span>
               </div>
               <div class="total-row final-total">
                 <span>Total</span>
@@ -375,12 +373,6 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
               <div class="breakdown-row" *ngIf="getDiscount() > 0 || discountTotal > 0">
                 <span>Discount:</span>
                 <span class="discount-value">-₱{{ (getDiscount() || discountTotal || 0) | number:'1.2-2' }}</span>
-              </div>
-              
-              <!-- Service Fee (if any) -->
-              <div class="breakdown-row" *ngIf="serviceFee > 0">
-                <span>Service Fee ({{ serviceType === 'dineIn' ? 'Dine-in' : 'Take-out' }}):</span>
-                <span>₱{{ serviceFee | number:'1.2-2' }}</span>
               </div>
               
               <div class="breakdown-row total-row">
@@ -980,6 +972,10 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
       width: 100px;
     }
 
+    .amount-group {
+      width: 130px;
+    }
+
     .percentage-input-wrapper {
       position: relative;
       display: flex;
@@ -1394,6 +1390,7 @@ export class CheckoutSidebarComponent implements OnInit {
     discountId: ''
   };
   manualDiscountPercentage = 0;
+  manualDiscountAmount = 0;
   paymentMethod = 'cash';
   serviceType: 'dineIn' | 'takeOut' = 'dineIn';
   serviceFee = 0;
@@ -1415,6 +1412,7 @@ export class CheckoutSidebarComponent implements OnInit {
   showNameError = false; // Kept for backward compatibility but no longer used
   showPaymentError = false;
   showAmountError = false;
+  showDiscountAmountError = false;
 
   // UI states
   isProcessing = false;
@@ -1496,14 +1494,13 @@ export class CheckoutSidebarComponent implements OnInit {
     // Store subtotal (sum of item prices after discount)
     this.subtotal = subtotalAfterDiscount;
 
+    this.serviceFee = 0;
+
     // No VAT calculation - set to 0
     this.tax = 0;
 
-    // Calculate service fee based on service type (on subtotal after discount)
-    this.calculateServiceFee(subtotalAfterDiscount);
-
     // Total = subtotal + service fee (no VAT)
-    this.total = subtotalAfterDiscount + this.serviceFee;
+    this.total = subtotalAfterDiscount;
 
     // Cache the results
     this._cachedTotals = {
@@ -1517,13 +1514,7 @@ export class CheckoutSidebarComponent implements OnInit {
   }
 
   private calculateServiceFee(subtotal: number): void {
-    // Dine-in: 2% service charge (on subtotal)
-    // Take-out: no service fee
-    if (this.serviceType === 'dineIn') {
-      this.serviceFee = subtotal * 0.02; // 2% service charge
-    } else {
-      this.serviceFee = 0;
-    }
+    this.serviceFee = 0;
   }
 
   onServiceTypeChange(): void {
@@ -1585,8 +1576,10 @@ export class CheckoutSidebarComponent implements OnInit {
     this.showNameError = false;
     this.showPaymentError = false;
     this.showAmountError = false;
+    this.showDiscountAmountError = false;
     this.isProcessing = false;
     this.manualDiscountPercentage = 0;
+    this.manualDiscountAmount = 0;
   }
 
   validateForm(): boolean {
@@ -1595,10 +1588,17 @@ export class CheckoutSidebarComponent implements OnInit {
     // Clear previous errors
     this.showPaymentError = false;
     this.showAmountError = false;
+    this.showDiscountAmountError = false;
 
     // Validate discount ID if discount is selected (Only for Senior/PWD)
     // isDiscountIdRequired getter handles the logic: (Senior OR PWD) AND ID is empty
     if (this.isDiscountIdRequired) {
+      isValid = false;
+    }
+
+    // Validate discount amount
+    if (this.isDiscountEnabled && this.manualDiscountAmount > this.subtotalBeforeDiscount) {
+      this.showDiscountAmountError = true;
       isValid = false;
     }
 
@@ -1634,8 +1634,8 @@ export class CheckoutSidebarComponent implements OnInit {
     // Discount should already be applied when discount type was selected
     // Just ensure it's still applied (in case cart was cleared or modified)
     if (this.hasDiscount && this.customerInfo.discountType !== 'none') {
-      // Always use the manualDiscountPercentage value, as the user may have edited it
-      this.cartService.applyDiscountToCart(this.customerInfo.discountType, this.manualDiscountPercentage);
+      // Always apply as amount-based discount
+      this.cartService.applyDiscountToCart(this.customerInfo.discountType, this.manualDiscountAmount, true);
       // Wait a moment for cart to update, then recalculate
       setTimeout(() => this.calculateTotals(), 100);
     }
@@ -1919,12 +1919,14 @@ export class CheckoutSidebarComponent implements OnInit {
         // Default to 'manual' (Other) with 0% when enabling
         this.customerInfo.discountType = 'manual';
         this.manualDiscountPercentage = 0;
+        this.manualDiscountAmount = 0;
       }
     } else {
       // Disable discount
       this.customerInfo.discountType = 'none';
       this.customerInfo.discountId = '';
       this.manualDiscountPercentage = 0;
+      this.manualDiscountAmount = 0;
       this.cartService.removeDiscountFromCart();
     }
     this.markFormDirty();
@@ -1934,18 +1936,18 @@ export class CheckoutSidebarComponent implements OnInit {
   onDiscountCategoryChange(category: string): void {
     this.customerInfo.discountType = category as any;
 
-    // Set default percentages based on category
+    // Set default values based on category
     if (category === 'senior' || category === 'pwd') {
-      this.manualDiscountPercentage = 20;
+      // Calculate 20% of current subtotal as default amount
+      this.manualDiscountAmount = this.subtotalBeforeDiscount * 0.20;
     } else if (category === 'manual') {
-      // Reset to 0 for 'Other' if it was set to standard 20%
-      if (this.manualDiscountPercentage === 20) {
-        this.manualDiscountPercentage = 0;
-      }
+      // Default to 0 for 'Other'
+      this.manualDiscountAmount = 0;
     }
 
     // Apply the new discount
     this.applyCurrentDiscount();
+    this.calculateTotals(); // Ensure totals are updated immediately
     this.markFormDirty();
   }
 
@@ -1953,11 +1955,14 @@ export class CheckoutSidebarComponent implements OnInit {
   applyCurrentDiscount(): void {
     if (this.customerInfo.discountType === 'none') return;
 
-    if (this.manualDiscountPercentage >= 0) {
-      this.cartService.applyDiscountToCart(this.customerInfo.discountType, this.manualDiscountPercentage);
+    if (this.manualDiscountAmount >= 0) {
+      this.cartService.applyDiscountToCart(this.customerInfo.discountType, this.manualDiscountAmount, true);
     } else {
       this.cartService.removeDiscountFromCart();
     }
+
+    // Recalculate totals after applying discount
+    this.calculateTotals();
   }
 
   onDiscountTypeChange(): void {
@@ -1967,7 +1972,14 @@ export class CheckoutSidebarComponent implements OnInit {
 
   onManualDiscountChange(): void {
     if (this.isDiscountEnabled) {
-      this.applyCurrentDiscount();
+      if (this.manualDiscountAmount > this.subtotalBeforeDiscount) {
+        this.showDiscountAmountError = true;
+        this.cartService.removeDiscountFromCart();
+        this.calculateTotals();
+      } else {
+        this.showDiscountAmountError = false;
+        this.applyCurrentDiscount();
+      }
     }
     this.markFormDirty();
   }
@@ -1980,6 +1992,7 @@ export class CheckoutSidebarComponent implements OnInit {
         const formData = JSON.parse(savedData);
         this.customerInfo = { ...this.customerInfo, ...formData.customerInfo };
         this.manualDiscountPercentage = formData.manualDiscountPercentage || 0;
+        this.manualDiscountAmount = formData.manualDiscountAmount || 0;
         this.paymentMethod = formData.paymentMethod || 'cash';
         this.serviceType = formData.serviceType || 'dineIn';
         this.notes = formData.notes || '';
@@ -2000,6 +2013,7 @@ export class CheckoutSidebarComponent implements OnInit {
       const formData = {
         customerInfo: this.customerInfo,
         manualDiscountPercentage: this.manualDiscountPercentage,
+        manualDiscountAmount: this.manualDiscountAmount,
         paymentMethod: this.paymentMethod,
         serviceType: this.serviceType,
         notes: this.notes,
@@ -2131,7 +2145,7 @@ export class CheckoutSidebarComponent implements OnInit {
   restoreSavedData(): void {
     this.loadSavedFormData();
   }
-} 
+}
 
 
 

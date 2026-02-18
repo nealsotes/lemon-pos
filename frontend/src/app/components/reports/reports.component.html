@@ -169,20 +169,22 @@
         <div class="compact-title-group">
           <h3 class="compact-title">
             <svg class="compact-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor"
-                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" />
             </svg>
             All-Time Leaderboard
           </h3>
           <p class="compact-subtitle">Lifetime product performance</p>
         </div>
-        
+
         <div class="compact-controls">
           <div class="compact-search">
             <svg class="compact-search-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" />
             </svg>
-            <input type="text" [(ngModel)]="allTimeSearchQuery" placeholder="Quick search..." class="compact-search-input">
+            <input type="text" [(ngModel)]="allTimeSearchQuery" placeholder="Quick search..."
+              class="compact-search-input">
           </div>
           <div class="compact-sort">
             <select [(ngModel)]="allTimeSortBy" class="compact-sort-select">
@@ -208,22 +210,24 @@
       <div class="compact-grid-container">
         <div *ngIf="filteredAllTimeSales.length === 0" class="compact-empty">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="24" height="24">
-            <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round" />
           </svg>
           No products found
         </div>
-        
-        <div *ngFor="let product of filteredAllTimeSales; let i = index" class="compact-item" [title]="product.name + ' - Last sold: ' + (product.lastSoldDate ? formatDate(product.lastSoldDate) : 'Never')">
+
+        <div *ngFor="let product of filteredAllTimeSales; let i = index" class="compact-item"
+          [title]="product.name + ' - Last sold: ' + (product.lastSoldDate ? formatDate(product.lastSoldDate) : 'Never')">
           <div class="compact-rank-badge" [class.rank-top]="i < 3">
             {{ i + 1 }}
           </div>
-          
+
           <div class="compact-content">
             <div class="compact-name-row">
               <span class="compact-name">{{ product.name }}</span>
               <span class="compact-cat-tag">{{ product.category }}</span>
             </div>
-            
+
             <div class="compact-data-row">
               <div class="compact-metric">
                 <span class="metric-label">Revenue</span>
@@ -235,7 +239,7 @@
                 <span class="metric-value units">{{ product.quantity }}</span>
               </div>
             </div>
-            
+
             <div class="compact-mini-progress">
               <div class="progress-fill sales" [style.width.%]="(product.sales / getMaxAllTimeSales()) * 100"></div>
             </div>
@@ -508,7 +512,8 @@
 
 
           <!-- Trend Data Status -->
-          <div class="trend-status" style="margin-top: 1rem; text-align: center; font-size: 0.875rem; color: var(--text-secondary);">
+          <div class="trend-status"
+            style="margin-top: 1rem; text-align: center; font-size: 0.875rem; color: var(--text-secondary);">
             <span *ngIf="chartData.length > 0">Showing {{ trendPeriod }} trend data</span>
             <span *ngIf="chartData.length === 0">No trend data available for {{ trendPeriod }} period</span>
           </div>
@@ -608,13 +613,6 @@
           <div class="total-row" *ngIf="getDiscountTotal(selectedTransaction) > 0">
             <span>Discount:</span>
             <span>-{{ formatPrice(getDiscountTotal(selectedTransaction)) }}</span>
-          </div>
-
-          <!-- Service Fee -->
-          <div class="total-row" *ngIf="(selectedTransaction.serviceFee || 0) > 0">
-            <span>Service Fee ({{ selectedTransaction.serviceType === 'dineIn' ? 'Dine-in (2%)' : 'Take-out'
-              }}):</span>
-            <span>{{ formatPrice(selectedTransaction.serviceFee || 0) }}</span>
           </div>
 
           <!-- Total -->

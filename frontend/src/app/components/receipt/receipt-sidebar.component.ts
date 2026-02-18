@@ -117,11 +117,6 @@ import { ThermalPrinterService } from '../../services/thermal-printer.service';
                 <span>-{{ formatPrice(getDiscountTotal()) }}</span>
               </div>
               
-              <!-- Service Fee (if any) -->
-              <div class="total-row" *ngIf="transaction?.serviceFee && transaction?.serviceFee > 0">
-                <span>Service Fee ({{ transaction?.serviceType === 'dineIn' ? 'Dine-in (2%)' : 'Take-out' }}):</span>
-                <span>{{ formatPrice(transaction?.serviceFee) }}</span>
-              </div>
             </ng-container>
             
             <!-- Total -->
@@ -1008,7 +1003,7 @@ export class ReceiptSidebarComponent implements OnInit, OnChanges {
     if (type === 'manual') return 'Custom';
     return '';
   }
-} 
+}
 
 
 
