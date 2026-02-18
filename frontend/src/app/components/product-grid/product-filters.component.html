@@ -1,0 +1,27 @@
+<div class="filters-section">
+    <div class="filters-content">
+        <div class="search-filters-row">
+            <div class="search-box">
+                <input type="text" [(ngModel)]="searchTerm" (ngModelChange)="onSearchInput($event)"
+                    placeholder="Search products..." class="search-input">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+            </div>
+
+            <div class="category-filters-container">
+                <div class="category-filters">
+                    <button class="category-btn" [class.active]="selectedCategory === 'all'"
+                        (click)="selectCategory('all')">
+                        All Items
+                    </button>
+                    <button *ngFor="let category of categories" class="category-btn"
+                        [class.active]="selectedCategory === category" (click)="selectCategory(category)">
+                        {{ category }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

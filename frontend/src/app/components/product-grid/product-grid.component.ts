@@ -9,8 +9,12 @@ import { OpenOrder } from '../../models/open-order.model';
 import { ProductService } from '../../services/product.service';
 import { CartService } from '../../services/cart.service';
 import { CheckoutSidebarComponent } from '../checkout/checkout-sidebar.component';
+import { POSCartSidebarComponent } from '../cart/pos-cart-sidebar.component';
+import { ProductCardComponent } from './product-card.component';
+import { ProductFiltersComponent } from './product-filters.component';
+import { POSHeaderComponent } from './pos-header.component';
 import { TemperatureSelectDialogComponent, TemperatureDialogResult } from './temperature-select-dialog.component';
-import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
+import { Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-product-grid',
@@ -19,7 +23,11 @@ import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
     CommonModule,
     FormsModule,
     RouterModule,
-    CheckoutSidebarComponent
+    CheckoutSidebarComponent,
+    POSCartSidebarComponent,
+    ProductCardComponent,
+    ProductFiltersComponent,
+    POSHeaderComponent
   ],
   templateUrl: './product-grid.component.html',
   styleUrls: ['./product-grid.component.css'],
@@ -32,29 +40,19 @@ export class ProductGridComponent implements OnInit, OnDestroy {
   filteredProducts: Product[] = [];
   isLoading = true;
   searchTerm = '';
+  isOnline = true;
 
   // Performance optimization properties
   private destroy$ = new Subject<void>();
-  private searchSubject = new Subject<string>();
   private readonly ITEMS_PER_PAGE = 20;
   private readonly VISIBLE_ITEMS = 12;
   currentPage = 1;
   totalPages = 1;
   paginatedProducts: Product[] = [];
 
-  // Memoized product states for performance
-  private productStateCache = new Map<string, { isLowStock: boolean; isOutOfStock: boolean; isImageUrl: boolean }>();
-
   // Cart sidebar properties
   isCartOpen = false;
-  cartItems: CartItem[] = [];
-  openOrders: OpenOrder[] = [];
-  openOrderName = '';
-  isOpenOrderActive = false;
   cartItemCount = 0;
-  subtotal = 0;
-  tax = 0;
-  total = 0;
 
   // Checkout sidebar properties
   isCheckoutOpen = false;
@@ -67,7 +65,6 @@ export class ProductGridComponent implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit(): void {
-    this.setupSearchDebounce();
     this.loadProducts();
     this.loadCategories();
     this.loadCart();
@@ -78,16 +75,6 @@ export class ProductGridComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  private setupSearchDebounce(): void {
-    this.searchSubject.pipe(
-      debounceTime(300),
-      distinctUntilChanged(),
-      takeUntil(this.destroy$)
-    ).subscribe(searchTerm => {
-      this.searchTerm = searchTerm;
-      this.filterProducts();
-    });
-  }
 
   private loadProducts(): void {
     this.isLoading = true;
@@ -99,9 +86,6 @@ export class ProductGridComponent implements OnInit, OnDestroy {
     ).subscribe({
       next: (products) => {
         this.products = products || [];
-        // Clear and rebuild product state cache
-        this.productStateCache.clear();
-        this.products.forEach(p => this.updateProductStateCache(p));
         this.filterProducts();
         this.isLoading = false;
         if (this.categories.length === 0 && this.products.length > 0) {
@@ -137,23 +121,9 @@ export class ProductGridComponent implements OnInit, OnDestroy {
     ).subscribe(items => {
       // Use requestAnimationFrame to batch updates and reduce lag
       requestAnimationFrame(() => {
-        this.cartItems = items;
-        // Calculate count directly from items array to ensure it updates when cart is cleared
         this.cartItemCount = items.reduce((total, item) => total + item.quantity, 0);
-        this.subtotal = this.cartService.getCartTotal();
-        this.total = this.subtotal;
-        this.tax = 0;
-        this.isOpenOrderActive = this.cartService.getActiveOpenOrderId() !== null;
         this.cdr.markForCheck();
       });
-    });
-
-    this.cartService.getOpenOrders().pipe(
-      takeUntil(this.destroy$)
-    ).subscribe(openOrders => {
-      this.openOrders = openOrders;
-      this.isOpenOrderActive = this.cartService.getActiveOpenOrderId() !== null;
-      this.cdr.markForCheck();
     });
   }
 
@@ -190,9 +160,9 @@ export class ProductGridComponent implements OnInit, OnDestroy {
     this.cdr.markForCheck();
   }
 
-  onSearchInput(event: Event): void {
-    const target = event.target as HTMLInputElement;
-    this.searchSubject.next(target.value);
+  onSearch(term: string): void {
+    this.searchTerm = term;
+    this.filterProducts();
   }
 
   loadMoreProducts(): void {
@@ -206,7 +176,7 @@ export class ProductGridComponent implements OnInit, OnDestroy {
     return this.currentPage < this.totalPages;
   }
 
-  selectCategory(category: string): void {
+  filterByCategory(category: string): void {
     this.selectedCategory = category;
     this.filterProducts();
     this.cdr.markForCheck();
@@ -280,34 +250,13 @@ export class ProductGridComponent implements OnInit, OnDestroy {
     requestAnimationFrame(() => this.cdr.markForCheck());
   }
 
-  // Cart item management
-  increaseQuantity(item: CartItem): void {
-    if (item.quantity < item.stock) {
-      this.cartService.updateQuantity(item.productId, item.quantity + 1);
-      // Use requestAnimationFrame for smoother UI updates
-      requestAnimationFrame(() => this.cdr.markForCheck());
-    }
-  }
-
-  decreaseQuantity(item: CartItem): void {
-    if (item.quantity > 1) {
-      this.cartService.updateQuantity(item.productId, item.quantity - 1);
-      requestAnimationFrame(() => this.cdr.markForCheck());
-    }
-  }
-
-  removeFromCart(item: CartItem): void {
-    this.cartService.removeFromCart(item.productId);
-    requestAnimationFrame(() => this.cdr.markForCheck());
-  }
-
   clearCart(): void {
     this.cartService.clearCart();
     requestAnimationFrame(() => this.cdr.markForCheck());
   }
 
   proceedToCheckout(): void {
-    if (this.cartItems.length === 0) {
+    if (this.cartItemCount === 0) {
       return;
     }
 
@@ -318,13 +267,7 @@ export class ProductGridComponent implements OnInit, OnDestroy {
   }
 
   saveOpenOrder(): void {
-    if (this.cartItems.length === 0) {
-      return;
-    }
-    this.cartService.saveOpenOrder(this.openOrderName);
-    this.openOrderName = '';
-    this.isCartOpen = false;
-    requestAnimationFrame(() => this.cdr.markForCheck());
+    // Moved to POSCartSidebarComponent
   }
 
   closeCheckout(): void {
@@ -345,9 +288,6 @@ export class ProductGridComponent implements OnInit, OnDestroy {
       next: (products) => {
         // Products are already updated via BehaviorSubject, but ensure UI updates
         this.products = products || [];
-        // Clear and rebuild product state cache
-        this.productStateCache.clear();
-        this.products.forEach(p => this.updateProductStateCache(p));
         this.filterProducts();
         this.isLoading = false;
         this.cdr.markForCheck();
@@ -363,82 +303,9 @@ export class ProductGridComponent implements OnInit, OnDestroy {
     // Keep checkout sidebar open so receipt sidebar can be displayed
   }
 
-  trackByItem(index: number, item: CartItem): string {
-    // Include temperature and add-ons in the key to ensure items with same product
-    // but different temperatures/add-ons are treated as separate items
-    const addOnsKey = item.addOns ? item.addOns.map(a => a.name).sort().join(',') : '';
-    const temperatureKey = item.temperature || 'none';
-    return `${item.productId}-${temperatureKey}-${addOnsKey}`;
-  }
-
-  isLowStock(product: Product): boolean {
-    if (!product?.id) return false;
-    const cacheKey = product.id;
-    if (!this.productStateCache.has(cacheKey)) {
-      this.updateProductStateCache(product);
-    }
-    return this.productStateCache.get(cacheKey)?.isLowStock ?? false;
-  }
-
-  isOutOfStock(product: Product): boolean {
-    if (!product?.id) return false;
-    const cacheKey = product.id;
-    if (!this.productStateCache.has(cacheKey)) {
-      this.updateProductStateCache(product);
-    }
-    return this.productStateCache.get(cacheKey)?.isOutOfStock ?? false;
-  }
-
-  private updateProductStateCache(product: Product): void {
-    if (!product?.id) return;
-    const threshold = product.lowQuantityThreshold ?? 10;
-    this.productStateCache.set(product.id, {
-      isLowStock: product.stock > 0 && product.stock <= threshold,
-      isOutOfStock: product.stock === 0,
-      isImageUrl: this.checkIsImageUrl(product.image)
-    });
-  }
-
-  private checkIsImageUrl(image: string | undefined): boolean {
-    if (!image) return false;
-    return image.startsWith('data:image/') ||
-      image.startsWith('http') ||
-      image.startsWith('/uploads/') ||
-      image.startsWith('/');
-  }
 
   trackByProduct(index: number, product: Product): string {
     return product.id;
-  }
-
-  onImageError(event: any): void {
-    // Handle image loading errors
-    const img = event.target;
-    img.style.display = 'none';
-    const placeholder = img.parentElement?.querySelector('.image-placeholder');
-    if (placeholder) {
-      placeholder.style.display = 'flex';
-    }
-  }
-
-
-  isImageUrl(image: string | undefined): boolean {
-    if (!image) return false;
-    // Check for data URLs, full URLs, or relative paths (starting with /)
-    return image.startsWith('data:image/') ||
-      image.startsWith('http') ||
-      image.startsWith('/uploads/') ||
-      image.startsWith('/');
-  }
-
-  getProductImageUrl(product: Product): string | undefined {
-    if (!product?.id) return undefined;
-    const cacheKey = product.id;
-    if (!this.productStateCache.has(cacheKey)) {
-      this.updateProductStateCache(product);
-    }
-    const cached = this.productStateCache.get(cacheKey);
-    return cached?.isImageUrl ? product.image : undefined;
   }
 
   refreshData(): void {

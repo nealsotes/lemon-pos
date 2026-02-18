@@ -15,7 +15,7 @@ import { PwaService } from '../../services/pwa.service';
           </svg>
         </div>
         <div class="banner-text">
-          <h3>Install QuickServe POS</h3>
+          <h3>Install Lemon POS Advance</h3>
           <p>Get quick access to your POS system with our app!</p>
         </div>
         <div class="banner-actions">
@@ -190,7 +190,7 @@ export class PwaInstallComponent implements OnInit, OnDestroy {
   canInstall = false;
   private installPromptShown = false;
 
-  constructor(private pwaService: PwaService) {}
+  constructor(private pwaService: PwaService) { }
 
   ngOnInit() {
     this.checkInstallability();

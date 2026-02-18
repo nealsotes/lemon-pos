@@ -1,0 +1,39 @@
+<div class="product-card">
+    <div class="product-image">
+        <img *ngIf="isImageUrl(product.image)" [src]="product.image" [alt]="product.name" class="product-img"
+            loading="lazy" (error)="onImageError($event)">
+        <div *ngIf="!isImageUrl(product.image)" class="image-placeholder">
+            <span class="placeholder-text">{{ product.image || '📦' }}</span>
+        </div>
+        <!-- Low Stock Badge -->
+        <div class="product-badge" *ngIf="isLowStock()">
+            <span class="badge badge-warning">Low Stock</span>
+        </div>
+        <!-- Out of Stock Badge -->
+        <div class="product-badge" *ngIf="isOutOfStock()">
+            <span class="badge badge-danger">Out of Stock</span>
+        </div>
+    </div>
+
+    <div class="product-content">
+        <div class="product-info">
+            <h3 class="product-name">{{ product.name }}</h3>
+            <p class="product-category">{{ product.category }}</p>
+            <div class="product-price">
+                <span class="price-amount">₱{{ product.price | number:'1.2-2' }}</span>
+                <span class="stock-info" [class.low-stock]="isLowStock()" [class.out-of-stock]="isOutOfStock()">
+                    Stock: {{ product.stock }}
+                </span>
+            </div>
+        </div>
+
+        <!-- Circular Add to Cart Button -->
+        <button class="add-to-cart-btn circular-btn" [disabled]="product.stock === 0" (click)="onAddToCart()"
+            [title]="product.stock === 0 ? 'Out of Stock' : 'Add to Cart'">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+        </button>
+    </div>
+</div>

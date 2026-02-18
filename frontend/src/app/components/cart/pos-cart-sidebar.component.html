@@ -1,0 +1,115 @@
+<div class="cart-sidebar-overlay" [class.active]="isOpen" (click)="closeSidebar()"></div>
+
+<div class="cart-sidebar" [class.open]="isOpen">
+    <div class="cart-header">
+        <h2 class="cart-title">Order Cart</h2>
+        <button class="close-btn" (click)="closeSidebar()">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+        </button>
+    </div>
+
+    <div class="cart-content">
+        <!-- Empty Cart -->
+        <div *ngIf="cartItems.length === 0" class="empty-cart">
+            <div class="empty-cart-icon">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                        d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6-5v6a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-6m8 0V9a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v4.01"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+            </div>
+            <h3 class="empty-cart-title">Your cart is empty</h3>
+            <p class="empty-cart-description">Add some products to get started!</p>
+        </div>
+
+        <!-- Cart Items -->
+        <div *ngIf="cartItems.length > 0" class="cart-items" [class.scrollable]="cartItems.length > 10">
+            <div *ngFor="let item of cartItems; trackBy: trackByItem" class="cart-item">
+                <div class="item-image">
+                    <img *ngIf="isImageUrl(item.image)" [src]="item.image" [alt]="item.name"
+                        (error)="onImageError($event)">
+                    <div *ngIf="!isImageUrl(item.image)" class="image-placeholder">
+                        <span class="placeholder-text">{{ item.image || '📦' }}</span>
+                    </div>
+                </div>
+
+                <div class="item-details">
+                    <h4 class="item-name">
+                        {{ item.name }}
+                        <span *ngIf="item.temperature" class="temperature-badge"
+                            [class.hot]="item.temperature === 'hot'" [class.cold]="item.temperature === 'cold'">
+                            <span *ngIf="item.temperature === 'hot'">🔥 hot</span>
+                            <span *ngIf="item.temperature === 'cold'">❄️ Iced</span>
+                        </span>
+                    </h4>
+                    <p class="item-category">{{ item.category }}</p>
+                    <div class="item-addons" *ngIf="item.addOns && item.addOns.length > 0">
+                        <span *ngFor="let addOn of item.addOns" class="addon-badge">
+                            <span *ngIf="addOn.quantity && addOn.quantity > 1">{{ addOn.quantity }}x </span>{{
+                            addOn.name }} (+₱{{
+                            (addOn.price * (addOn.quantity || 1)) | number:'1.2-2' }})
+                        </span>
+                    </div>
+                    <div class="item-price">₱{{ item.price | number:'1.2-2' }}</div>
+                </div>
+
+                <div class="item-actions">
+                    <div class="item-quantity">
+                        <div class="quantity-controls">
+                            <button class="quantity-btn" (click)="increaseQuantity(item)"
+                                [disabled]="item.quantity >= item.stock">
+                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2"
+                                        stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </button>
+                            <span class="quantity-display">{{ item.quantity }}</span>
+                            <button class="quantity-btn" (click)="decreaseQuantity(item)"
+                                [disabled]="item.quantity <= 1">
+                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="item-total">
+                        <span class="total-amount">₱{{ item.total | number:'1.2-2' }}</span>
+                    </div>
+                </div>
+
+                <button class="remove-btn" (click)="removeFromCart(item)">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cart Summary -->
+    <div *ngIf="cartItems.length > 0" class="cart-summary">
+        <div class="summary-row total-row">
+            <span class="summary-label">Total:</span>
+            <span class="summary-value total-value">₱{{ total | number:'1.2-2' }}</span>
+        </div>
+
+        <div class="cart-actions">
+            <button *ngIf="openOrders.length === 0" class="btn btn-secondary" (click)="clearCart()">
+                Clear Cart
+            </button>
+            <button *ngIf="isOpenOrderActive" class="btn btn-secondary" (click)="saveOpenOrder()">
+                Save Open Order
+            </button>
+            <button class="btn btn-primary checkout-btn" (click)="proceedToCheckout()">
+                Proceed to Checkout
+            </button>
+        </div>
+    </div>
+</div>
