@@ -6,7 +6,7 @@ import { RouterModule } from '@angular/router';
 import { ServiceWorkerModule } from '@angular/service-worker';
 import { AppComponent } from './app/app.component';
 import { routes } from './app/app-routing.module';
-import { AuthInterceptor } from './app/interceptors/auth.interceptor';
+import { AuthInterceptor } from './app/core/interceptors/auth.interceptor';
 
 // Remove initial loader when app is ready
 const removeLoader = () => {
@@ -40,11 +40,11 @@ bootstrapApplication(AppComponent, {
     }
   ]
 })
-.then(() => {
-  removeLoader();
-})
-.catch(err => {
-  removeLoader();
-});
+  .then(() => {
+    removeLoader();
+  })
+  .catch(err => {
+    removeLoader();
+  });
 
 // Build timestamp: 20251220-202931

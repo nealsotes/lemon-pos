@@ -1,12 +1,12 @@
 import { Component, OnInit, AfterViewInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterModule, Router, NavigationEnd } from '@angular/router';
-import { CartService } from './services/cart.service';
-import { OfflineService } from './services/offline.service';
-import { AuthService } from './services/auth.service';
-import { SettingsService, PageSettings } from './services/settings.service';
-import { PwaInstallComponent } from './components/pwa-install/pwa-install.component';
-import { User, UserRole } from './models/user.model';
+import { CartService } from './features/checkout/services/cart.service';
+import { OfflineService } from './core/services/offline.service';
+import { AuthService } from './core/services/auth.service';
+import { SettingsService, PageSettings } from './core/services/settings.service';
+import { PwaInstallComponent } from './shared/components/pwa-install/pwa-install.component';
+import { User, UserRole } from './shared/models/user.model';
 import { Subject, takeUntil, filter } from 'rxjs';
 
 @Component({
