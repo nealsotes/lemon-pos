@@ -68,94 +68,56 @@ static string BuildConnectionStringFromEnv()
 
 ### DbContext Configuration
 
+### DbContext Configuration
 ```csharp
 public class PosSystemDbContext : DbContext
 {
-    public PosSystemDbContext(DbContextOptions<PosSystemDbContext> options)
-        : base(options)
+    public PosSystemDbContext(DbContextOptions<PosSystemDbContext> options) : base(options)
     {
     }
 
     public DbSet<Product> Products { get; set; }
-    public DbSet<Category> Categories { get; set; }
-    public DbSet<Transaction> Transactions { get; set; }
-    public DbSet<TransactionItem> TransactionItems { get; set; }
-    public DbSet<User> Users { get; set; }
+    public DbSet<Transaction> Transactions { get; set; } // Items and AddOns are owned entities
     public DbSet<Ingredient> Ingredients { get; set; }
     public DbSet<StockMovement> StockMovements { get; set; }
+    public DbSet<User> Users { get; set; }
+    public DbSet<ApplicationSettings> ApplicationSettings { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // Configure Product entity
+        // Product configuration
         modelBuilder.Entity<Product>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.Id).HasMaxLength(36);
-            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
-            entity.Property(e => e.Description).HasMaxLength(1000);
             entity.Property(e => e.Price).HasPrecision(18, 2);
-            entity.Property(e => e.HotPrice).HasPrecision(18, 2);
-            entity.Property(e => e.ImageUrl).HasMaxLength(500);
-            entity.HasIndex(e => e.Name);
-            entity.HasIndex(e => e.CategoryId);
+            // Category is stored as a string
+            entity.Property(e => e.Category).IsRequired().HasMaxLength(50); 
+            // ... other properties
         });
 
-        // Configure Category entity
-        modelBuilder.Entity<Category>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.Id).HasMaxLength(36);
-            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
-            entity.HasIndex(e => e.Name).IsUnique();
-        });
-
-        // Configure Transaction entity
+        // Transaction configuration (Aggregate Root)
         modelBuilder.Entity<Transaction>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.Id).HasMaxLength(36);
-            entity.Property(e => e.TotalAmount).HasPrecision(18, 2);
-            entity.Property(e => e.PaymentMethod).HasMaxLength(50);
-            entity.HasIndex(e => e.CreatedAt);
-            entity.HasIndex(e => e.UserId);
+            entity.OwnsOne(e => e.CustomerInfo); // Embedded CustomerInfo
+            
+            entity.OwnsMany(e => e.Items, items =>
+            {
+                items.ToTable("TransactionItem");
+                items.OwnsOne(i => i.Discount);
+                
+                items.OwnsMany(i => i.AddOns, addons => 
+                {
+                    addons.ToTable("AddOn");
+                    addons.Property<int>("Id").ValueGeneratedOnAdd();
+                    addons.HasKey("Id", "TransactionItemTransactionId", "TransactionItemId");
+                });
+            });
         });
-
-        // Configure TransactionItem entity
-        modelBuilder.Entity<TransactionItem>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.Id).HasMaxLength(36);
-            entity.Property(e => e.Quantity).IsRequired();
-            entity.Property(e => e.Price).HasPrecision(18, 2);
-            entity.Property(e => e.TotalPrice).HasPrecision(18, 2);
-        });
-
-        // Configure relationships
-        modelBuilder.Entity<Product>()
-            .HasOne(p => p.Category)
-            .WithMany(c => c.Products)
-            .HasForeignKey(p => p.CategoryId)
-            .OnDelete(DeleteBehavior.SetNull);
-
-        modelBuilder.Entity<TransactionItem>()
-            .HasOne(ti => ti.Transaction)
-            .WithMany(t => t.Items)
-            .HasForeignKey(ti => ti.TransactionId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        modelBuilder.Entity<TransactionItem>()
-            .HasOne(ti => ti.Product)
-            .WithMany()
-            .HasForeignKey(ti => ti.ProductId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        modelBuilder.Entity<Transaction>()
-            .HasOne(t => t.User)
-            .WithMany()
-            .HasForeignKey(t => t.UserId)
-            .OnDelete(DeleteBehavior.SetNull);
+        
+        // ... other entities (Ingredient, StockMovement, User, ApplicationSettings)
     }
 }
 ```
@@ -233,6 +195,7 @@ using (var scope = app.Services.CreateScope())
 
 ### Seed Data Pattern
 
+### Seed Data Pattern
 ```csharp
 public static class SeedData
 {
@@ -244,28 +207,26 @@ public static class SeedData
         // Ensure database is created
         context.Database.EnsureCreated();
 
-        // Seed categories
-        if (!context.Categories.Any())
+        // Seed Application Settings
+        if (!context.ApplicationSettings.Any())
         {
-            context.Categories.AddRange(
-                new Category { Id = Guid.NewGuid().ToString(), Name = "Food" },
-                new Category { Id = Guid.NewGuid().ToString(), Name = "Beverages" },
-                new Category { Id = Guid.NewGuid().ToString(), Name = "Desserts" }
+            context.ApplicationSettings.AddRange(
+                new ApplicationSettings { Key = "StoreName", Value = "My Lemon POS" },
+                new ApplicationSettings { Key = "TaxRate", Value = "0.10" }
             );
             context.SaveChanges();
         }
 
-        // Seed products
+        // Seed products (with string categories)
         if (!context.Products.Any())
         {
-            var foodCategory = context.Categories.First(c => c.Name == "Food");
             context.Products.AddRange(
                 new Product
                 {
                     Id = Guid.NewGuid().ToString(),
                     Name = "Burger",
                     Price = 5.99m,
-                    CategoryId = foodCategory.Id,
+                    Category = "Food", // String property
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow

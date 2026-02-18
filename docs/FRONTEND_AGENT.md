@@ -25,20 +25,34 @@ The Frontend Agent specializes in Angular 20 development, focusing on:
 
 ```
 frontend/src/app/
-├── components/              # Feature components
-│   ├── cart/               # Shopping cart
-│   ├── checkout/           # Checkout flow
-│   ├── inventory/          # Inventory management
-│   ├── login/              # Authentication
-│   ├── product-grid/       # Product display
-│   ├── product-management/ # Product CRUD
+├── core/                   # Core application features (singleton)
+│   ├── guards/            # Route guards
+│   ├── interceptors/      # HTTP interceptors
+│   ├── services/          # Core services (Auth, Settings, etc.)
+│   └── models/            # Core domain models
+├── features/               # Feature modules
+│   ├── pos/               # POS feature
+│   │   ├── components/    # Feature-specific components
+│   │   ├── services/      # Feature-specific services
+│   │   └── pos.routes.ts # Feature routes
 │   └── ...
-├── services/               # Business logic and API calls
-├── models/                 # TypeScript interfaces
-├── guards/                 # Route guards
-├── interceptors/           # HTTP interceptors
+├── shared/                 # Shared resources
+│   ├── components/        # Reusable components
+│   └── models/            # Shared models
 └── app.component.*         # Root component
 ```
+
+## Component Architecture
+
+### Feature-Based Strategy
+Components should be organized by feature. Each feature module contains its own components, services, and routes.
+
+### Component Decomposition
+Large components should be broken down into smaller, focused sub-components. For example, a complex screen like the POS view is split into:
+- **Header Component**: Navigation and actions
+- **Filter Component**: Search and filtering controls
+- **List/Grid Component**: Data display
+- **Container Component**: The main feature component that orchestrates these parts
 
 ## Code Patterns
 
@@ -436,24 +450,26 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
 
 ### Adding a New Component
 
-1. Generate component: `ng generate component components/my-component`
-2. Make it standalone (if not already)
-3. Define model interfaces in `models/`
-4. Create service if needed in `services/`
-5. Add route in `app-routing.module.ts`
-6. Import necessary Angular Material modules
+1. Determine if it belongs to a **feature** or **shared** module.
+2. Generate component: `ng g c features/my-feature/components/my-component` (or `shared/components/my-component`)
+3. Make it standalone (if not already)
+4. Define model interfaces in `core/models/` or feature-specific models
+5. Create service if needed in `core/services/` or feature-specific services
+6. Add route in feature routing file (e.g., `my-feature.routes.ts`)
+7. Import necessary Angular Material modules
 
 ### Adding a New Service
 
-1. Create file: `services/my.service.ts`
-2. Use `@Injectable({ providedIn: 'root' })`
-3. Implement with BehaviorSubject for state management
-4. Add error handling with `catchError`
-5. Add localStorage caching for offline support
+1. Determine scope: **Core** (singleton) or **Feature** (scoped).
+2. Create file: `core/services/my.service.ts` or `features/my-feature/services/my.service.ts`
+3. Use `@Injectable({ providedIn: 'root' })` for core services
+4. Implement with BehaviorSubject for state management
+5. Add error handling with `catchError`
+6. Add localStorage caching for offline support
 
 ### Adding a New Route Guard
 
-1. Create guard: `ng generate guard guards/my-guard`
+1. Create guard: `ng generate guard core/guards/my-guard`
 2. Implement `CanActivate` interface
 3. Add to route configuration with `canActivate: [MyGuard]`
 

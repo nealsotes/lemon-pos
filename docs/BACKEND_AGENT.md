@@ -159,14 +159,12 @@ public class ProductRepository : IProductRepository
     public async Task<IEnumerable<Product>> GetAllAsync()
     {
         return await _context.Products
-            .Include(p => p.Category)
             .ToListAsync();
     }
 
     public async Task<Product?> GetByIdAsync(string id)
     {
         return await _context.Products
-            .Include(p => p.Category)
             .FirstOrDefaultAsync(p => p.Id == id);
     }
 
@@ -209,29 +207,22 @@ public class PosSystemDbContext : DbContext
     }
 
     public DbSet<Product> Products { get; set; }
-    public DbSet<Category> Categories { get; set; }
     public DbSet<Transaction> Transactions { get; set; }
-    public DbSet<TransactionItem> TransactionItems { get; set; }
     public DbSet<User> Users { get; set; }
+    // Other entities...
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // Configure entity relationships
-        modelBuilder.Entity<Product>()
-            .HasOne(p => p.Category)
-            .WithMany(c => c.Products)
-            .HasForeignKey(p => p.CategoryId);
+        modelBuilder.Entity<Product>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Category).IsRequired().HasMaxLength(50); // String property
+        });
 
-        // Configure indexes
-        modelBuilder.Entity<Product>()
-            .HasIndex(p => p.Name);
-
-        // Configure string lengths
-        modelBuilder.Entity<Product>()
-            .Property(p => p.Name)
-            .HasMaxLength(200);
+        // Other configurations...
     }
 }
 ```
