@@ -22,7 +22,7 @@ import { Subject, takeUntil, filter } from 'rxjs';
   styleUrls: ['./app.component.css']
 })
 export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
-  title = 'Lemon POS Advance';
+
   cartItemCount = 0;
   isOnline = true;
   mobileMenuOpen = false;
@@ -41,7 +41,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     private settingsService: SettingsService,
     private router: Router,
     private cdr: ChangeDetectorRef
-  ) {}
+  ) { }
 
   ngOnInit() {
     this.initTheme();
@@ -67,7 +67,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
           // Force update check immediately
           registration.update();
-          
+
           // Check for updates every 30 seconds (more frequent)
           setInterval(() => {
             registration.update();
@@ -85,10 +85,10 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
     // Check build version on startup
     this.checkBuildVersion();
-    
+
     // Check if on login page
     this.checkLoginPage();
-    
+
     // Subscribe to route changes
     this.router.events
       .pipe(

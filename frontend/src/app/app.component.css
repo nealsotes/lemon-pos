@@ -85,6 +85,7 @@
 }
 
 .header-left {
+  flex: 1;
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -155,6 +156,7 @@
 .header-nav {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 1.5rem;
 }
 
@@ -189,8 +191,10 @@
 
 /* Header Right */
 .header-right {
+  flex: 1;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 1rem;
 }
 
