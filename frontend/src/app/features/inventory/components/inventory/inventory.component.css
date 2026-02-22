@@ -182,46 +182,50 @@
   border-top: 1px solid var(--border-color);
 }
 
-/* Filters Section */
+/* Filters Section — compact bar (same as product-management / POS) */
 .filters-section {
   width: 100%;
-  margin: 0 0 2rem 0;
+  margin: 0 0 1.5rem 0;
   padding: 0 2rem;
 }
 
 .filters-content {
   background: linear-gradient(135deg, var(--surface-color) 0%, var(--background-secondary) 100%);
-  border-radius: 1rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  border: 1px solid var(--background-tertiary);
-  padding: 1.5rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--border-light);
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  min-height: 40px;
 }
 
 .search-box {
   position: relative;
-  max-width: 400px;
+  width: 200px;
+  min-width: 200px;
 }
 
 .search-icon {
   position: absolute;
-  left: 1rem;
+  left: 0.625rem;
   top: 50%;
   transform: translateY(-50%);
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   color: var(--text-muted);
   z-index: 2;
 }
 
 .search-input {
   width: 100%;
-  padding: 0.875rem 1rem 0.875rem 2.75rem;
-  border: 2px solid var(--border-color);
-  border-radius: 0.875rem;
-  font-size: 1rem;
+  padding: 0.5rem 0.75rem 0.5rem 2.25rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
   background-color: var(--surface-color);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
   font-weight: 500;
 }
 
@@ -232,8 +236,7 @@
 .search-input:focus {
   outline: none;
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(196, 165, 116, 0.12), 0 4px 16px rgba(0, 0, 0, 0.06);
-  transform: translateY(-1px);
+  box-shadow: 0 0 0 2px rgba(180, 83, 9, 0.12);
 }
 
 .search-input::placeholder {
