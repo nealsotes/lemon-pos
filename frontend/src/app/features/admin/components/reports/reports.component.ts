@@ -9,11 +9,12 @@ import { ProductService } from '../../../pos/services/product.service';
 import { ThermalPrinterService } from '../../../checkout/services/thermal-printer.service';
 import { Transaction } from '../../../checkout/models/transaction.model';
 import { Product } from '../../../pos/models/product.model';
+import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 
 @Component({
   selector: 'app-reports',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, MatSnackBarModule],
+  imports: [CommonModule, RouterModule, FormsModule, MatSnackBarModule, PageHeaderComponent],
   templateUrl: './reports.component.html',
   styleUrls: ['./reports.component.css']
 })

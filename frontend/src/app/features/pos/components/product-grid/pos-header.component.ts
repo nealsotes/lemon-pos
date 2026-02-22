@@ -10,7 +10,6 @@ import { CommonModule } from '@angular/common';
     changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class POSHeaderComponent {
-    @Input() isOnline = true;
     @Input() cartItemCount = 0;
 
     @Output() openCart = new EventEmitter<void>();

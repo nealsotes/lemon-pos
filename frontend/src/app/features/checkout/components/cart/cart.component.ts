@@ -5,6 +5,7 @@ import { CartItem } from '../../models/cart-item.model';
 import { OpenOrder } from '../../models/open-order.model';
 import { CartService } from '../../services/cart.service';
 import { CheckoutSidebarComponent } from '../checkout/checkout-sidebar.component';
+import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 
 @Component({
   selector: 'app-cart',
@@ -12,7 +13,8 @@ import { CheckoutSidebarComponent } from '../checkout/checkout-sidebar.component
   imports: [
     CommonModule,
     RouterModule,
-    CheckoutSidebarComponent
+    CheckoutSidebarComponent,
+    PageHeaderComponent
   ],
   templateUrl: './cart.component.html',
   styleUrls: ['./cart.component.css']

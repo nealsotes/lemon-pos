@@ -15,12 +15,14 @@ import { Ingredient } from '../../../pos/models/ingredient.model';
 import { IngredientService } from '../../../pos/services/ingredient.service';
 import { DeleteConfirmationDialogComponent, DeleteConfirmationData } from '../../../admin/components/product-management/delete-confirmation-dialog.component';
 import { StockMovementHistoryComponent } from './stock-movement-history.component';
+import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 
 @Component({
   selector: 'app-inventory',
   standalone: true,
   imports: [
     CommonModule,
+    PageHeaderComponent,
     ReactiveFormsModule,
     FormsModule,
     MatButtonModule,

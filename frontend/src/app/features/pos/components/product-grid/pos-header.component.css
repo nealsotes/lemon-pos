@@ -1,10 +1,10 @@
-/* Page Header Styles moved from product-grid.component.css */
+/* POS Header — refined utility / industrial editorial */
 
 .page-header {
     background: var(--surface-color);
-    padding: 1.25rem 0;
-    border-bottom: 1px solid var(--border-color);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    padding: 1rem 0;
+    border-bottom: 2px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
     z-index: 100;
 }
 
@@ -24,45 +24,16 @@
 }
 
 .page-title {
-    font-size: 1.75rem;
-    font-weight: 800;
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
     color: var(--text-primary);
     margin: 0;
-    letter-spacing: -0.025em;
+    letter-spacing: -0.03em;
     background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-}
-
-.status-indicator {
-    display: flex;
-    align-items: center;
-    gap: 0.625rem;
-    padding: 0.5rem 1rem;
-    background: var(--background-secondary);
-    border-radius: 2rem;
-    border: 1px solid var(--border-color);
-}
-
-.status-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background-color: var(--error-color);
-    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
-}
-
-.status-dot.online {
-    background-color: #10b981;
-    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
-    animation: pulse 2s infinite;
-}
-
-.status-text {
-    font-size: 0.8125rem;
-    font-weight: 600;
-    color: var(--text-secondary);
 }
 
 .header-actions {
@@ -115,12 +86,12 @@
     border-color: var(--primary-color);
     background: var(--background-secondary);
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(196, 165, 116, 0.15);
+    box-shadow: 0 6px 20px rgb(0 0 0 / 0.08);
 }
 
 .cart-btn.has-items {
     border-color: var(--primary-color);
-    background: rgba(196, 165, 116, 0.05);
+    background: color-mix(in srgb, var(--primary-color) 8%, var(--surface-color));
 }
 
 .cart-icon-wrapper {
@@ -135,7 +106,7 @@
     top: -12px;
     right: -12px;
     background: var(--primary-color);
-    color: var(--surface-color);
+    color: var(--text-inverse);
     font-size: 0.75rem;
     font-weight: 700;
     min-width: 22px;
@@ -145,29 +116,12 @@
     align-items: center;
     justify-content: center;
     border: 2px solid var(--surface-color);
-    box-shadow: 0 4px 10px rgba(196, 165, 116, 0.3);
+    box-shadow: var(--shadow-md);
 }
 
 .btn-icon {
     width: 24px;
     height: 24px;
-}
-
-@keyframes pulse {
-    0% {
-        transform: scale(1);
-        opacity: 1;
-    }
-
-    50% {
-        transform: scale(1.1);
-        opacity: 0.8;
-    }
-
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
 }
 
 /* Responsive Styles */
@@ -183,14 +137,6 @@
 
     .page-title {
         font-size: 1.375rem;
-    }
-
-    .status-indicator {
-        padding: 0.25rem 0.5rem;
-    }
-
-    .status-text {
-        font-size: 0.7rem;
     }
 
     .compact-btn {

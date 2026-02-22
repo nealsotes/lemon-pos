@@ -1,38 +1,21 @@
 <div class="cart-container">
-  <!-- Cart Header -->
-  <div class="cart-header">
-    <div class="header-content">
-      <div class="header-left">
-        <div class="title-section">
-          <h2 class="cart-title">
-            <svg class="cart-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M9 22a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" fill="currentColor"/>
-              <path d="M20 22a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" fill="currentColor"/>
-              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            Order Cart
-          </h2>
-          <div class="cart-status">
-            <span class="status-dot"></span>
-            <span class="status-text">{{ cartItems.length }} items</span>
-          </div>
-          <div *ngIf="isOpenOrderActive" class="open-order-indicator">
-            Open order loaded<span *ngIf="activeOpenOrderName">: {{ activeOpenOrderName }}</span>
-          </div>
-        </div>
-        <p class="cart-subtitle">Review your order before checkout</p>
-      </div>
-      <div class="header-actions">
-        <button *ngIf="openOrders.length === 0" class="btn btn-secondary" (click)="clearCart()" [disabled]="cartItems.length === 0">
-          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M3 6h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          Clear Cart
-        </button>
-      </div>
+  <!-- Page Header (shared layout) -->
+  <app-page-header title="Order Cart" subtitle="Review your order before checkout">
+    <div *ngIf="cartItems.length > 0" class="cart-status-inline">
+      <span class="status-dot"></span>
+      <span class="status-text">{{ cartItems.length }} items</span>
     </div>
-  </div>
+    <div *ngIf="isOpenOrderActive" class="open-order-indicator">
+      Open order loaded<span *ngIf="activeOpenOrderName">: {{ activeOpenOrderName }}</span>
+    </div>
+    <button *ngIf="openOrders.length === 0" class="btn btn-secondary" (click)="clearCart()" [disabled]="cartItems.length === 0">
+      <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M3 6h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Clear Cart
+    </button>
+  </app-page-header>
 
   <!-- Cart Content -->
   <div class="cart-content">

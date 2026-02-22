@@ -1,9 +1,27 @@
 <div class="product-grid-container">
 
-  <!-- POS Header -->
-  <app-pos-header [isOnline]="isOnline" [cartItemCount]="cartItemCount" (openCart)="openCartSidebar()"
-    (refresh)="refreshData()">
-  </app-pos-header>
+  <!-- Page Header (shared layout) -->
+  <app-page-header title="Lemon POS Advance" subtitle="Point of Sale">
+    <button class="header-btn compact-btn" (click)="refreshData()" title="Refresh System">
+      <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path
+          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </button>
+    <button (click)="openCartSidebar()" class="cart-btn" [class.has-items]="cartItemCount > 0"
+      title="View Order Cart">
+      <div class="cart-icon-wrapper">
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path
+            d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m-4 5a1 1 0 11-2 0 1 1 0 012 0zm-8 0a1 1 0 11-2 0 1 1 0 012 0z"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <span *ngIf="cartItemCount > 0" class="cart-badge">{{ cartItemCount }}</span>
+      </div>
+      <span class="cart-text">Cart</span>
+    </button>
+  </app-page-header>
 
   <!-- Product Filters -->
   <app-product-filters [categories]="categories" [selectedCategory]="selectedCategory" [searchTerm]="searchTerm"
@@ -18,8 +36,8 @@
 
   <!-- Products Grid -->
   <div *ngIf="!isLoading" class="products-grid">
-    <app-product-card *ngFor="let product of paginatedProducts; trackBy: trackByProduct" [product]="product"
-      (addToCart)="addToCart($event)">
+    <app-product-card *ngFor="let product of paginatedProducts; trackBy: trackByProduct; let i = index"
+      [product]="product" [index]="i" (addToCart)="addToCart($event)">
     </app-product-card>
   </div>
 

@@ -15,12 +15,14 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Product } from '../../../pos/models/product.model';
 import { ProductService } from '../../../pos/services/product.service';
 import { DeleteConfirmationDialogComponent, DeleteConfirmationData } from './delete-confirmation-dialog.component';
+import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 
 @Component({
   selector: 'app-product-management',
   standalone: true,
   imports: [
     CommonModule,
+    PageHeaderComponent,
     ReactiveFormsModule,
     FormsModule,
     MatCardModule,

@@ -12,7 +12,7 @@ import { CheckoutSidebarComponent } from '../../../checkout/components/checkout/
 import { POSCartSidebarComponent } from '../../../checkout/components/cart/pos-cart-sidebar.component';
 import { ProductCardComponent } from './product-card.component';
 import { ProductFiltersComponent } from './product-filters.component';
-import { POSHeaderComponent } from './pos-header.component';
+import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { TemperatureSelectDialogComponent, TemperatureDialogResult } from './temperature-select-dialog.component';
 import { Subject, takeUntil } from 'rxjs';
 
@@ -27,7 +27,7 @@ import { Subject, takeUntil } from 'rxjs';
     POSCartSidebarComponent,
     ProductCardComponent,
     ProductFiltersComponent,
-    POSHeaderComponent
+    PageHeaderComponent
   ],
   templateUrl: './product-grid.component.html',
   styleUrls: ['./product-grid.component.css'],
@@ -40,7 +40,6 @@ export class ProductGridComponent implements OnInit, OnDestroy {
   filteredProducts: Product[] = [];
   isLoading = true;
   searchTerm = '';
-  isOnline = true;
 
   // Performance optimization properties
   private destroy$ = new Subject<void>();

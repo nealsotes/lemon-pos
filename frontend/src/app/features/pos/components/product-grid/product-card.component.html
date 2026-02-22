@@ -1,4 +1,4 @@
-<div class="product-card">
+<div class="product-card" [style.animationDelay]="(index * 0.03) + 's'">
     <div class="product-image">
         <img *ngIf="isImageUrl(product.image)" [src]="product.image" [alt]="product.name" class="product-img"
             loading="lazy" (error)="onImageError($event)">
