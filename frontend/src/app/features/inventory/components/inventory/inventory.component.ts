@@ -15,6 +15,7 @@ import { Ingredient } from '../../../pos/models/ingredient.model';
 import { IngredientService } from '../../../pos/services/ingredient.service';
 import { DeleteConfirmationDialogComponent, DeleteConfirmationData } from '../../../admin/components/product-management/delete-confirmation-dialog.component';
 import { StockMovementHistoryComponent } from './stock-movement-history.component';
+import { ProductRecipesComponent } from '../product-recipes/product-recipes.component';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 
 @Component({
@@ -23,6 +24,7 @@ import { PageHeaderComponent } from '../../../../shared/components/page-header/p
   imports: [
     CommonModule,
     PageHeaderComponent,
+    ProductRecipesComponent,
     ReactiveFormsModule,
     FormsModule,
     MatButtonModule,
@@ -47,6 +49,7 @@ export class InventoryComponent implements OnInit {
   isLoading = true;
   showForm = false;
 
+  activeTab: 'ingredients' | 'recipes' = 'ingredients';
   searchTerm: string = '';
 
   displayedColumns: string[] = ['name', 'quantity', 'unit', 'supplier', 'expirationDate', 'lowStockThreshold', 'status', 'actions'];

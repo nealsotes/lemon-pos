@@ -196,6 +196,7 @@ builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<IReportingService, ReportingService>();
 builder.Services.AddScoped<IIngredientService, IngredientService>();
 builder.Services.AddScoped<IStockMovementService, StockMovementService>();
+builder.Services.AddScoped<IRecipeService, RecipeService>();
 
 // Register Repositories
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
@@ -448,6 +449,26 @@ using (var scope = app.Services.CreateScope())
     catch
     {
         // Column already exists - expected, ignore
+    }
+
+    // Ensure ProductIngredient (recipe) table exists
+    try
+    {
+        await context.Database.ExecuteSqlRawAsync(@"
+            CREATE TABLE IF NOT EXISTS `ProductIngredients` (
+                `ProductId` VARCHAR(255) NOT NULL,
+                `IngredientId` VARCHAR(255) NOT NULL,
+                `QuantityPerUnit` DECIMAL(18,4) NOT NULL,
+                `SortOrder` INT NOT NULL DEFAULT 0,
+                PRIMARY KEY (`ProductId`, `IngredientId`),
+                INDEX `IX_ProductIngredients_ProductId` (`ProductId`),
+                INDEX `IX_ProductIngredients_IngredientId` (`IngredientId`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        ");
+    }
+    catch
+    {
+        // Table might already exist, ignore error
     }
 
     // Ensure StockMovements table exists

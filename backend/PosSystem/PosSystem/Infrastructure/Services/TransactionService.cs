@@ -99,7 +99,62 @@ public class TransactionService : ITransactionService
                 }
             }
 
-            // Calculate total if not provided (includes service fee if already in total, otherwise calculate from items)
+            // Recipe-based ingredient deduction: aggregate required ingredient quantities per product sold
+            var ingredientRequirements = new Dictionary<string, decimal>();
+            foreach (var productQty in productQuantities)
+            {
+                var recipeLines = await _context.ProductIngredients
+                    .Where(pi => pi.ProductId == productQty.ProductId)
+                    .ToListAsync();
+                foreach (var line in recipeLines)
+                {
+                    var required = line.QuantityPerUnit * productQty.TotalQuantity;
+                    if (!ingredientRequirements.TryGetValue(line.IngredientId, out var existing))
+                        ingredientRequirements[line.IngredientId] = required;
+                    else
+                        ingredientRequirements[line.IngredientId] = existing + required;
+                }
+            }
+
+            // Validate ingredient availability
+            foreach (var kv in ingredientRequirements)
+            {
+                var ingredient = await _context.Ingredients
+                    .FirstOrDefaultAsync(i => i.Id == kv.Key && i.IsActive);
+                if (ingredient == null)
+                    throw new InvalidOperationException($"Ingredient with ID {kv.Key} not found.");
+                if (ingredient.Quantity < kv.Value)
+                    throw new InvalidOperationException(
+                        $"Insufficient ingredient: {ingredient.Name}. Required: {kv.Value} {ingredient.Unit}, Available: {ingredient.Quantity}");
+            }
+
+            // Deduct ingredients (raw SQL for consistency within transaction)
+            foreach (var kv in ingredientRequirements)
+            {
+                var ingredientId = kv.Key;
+                var required = kv.Value;
+                var rowsAffected = await _context.Database.ExecuteSqlInterpolatedAsync(
+                    $"UPDATE Ingredients SET Quantity = Quantity - {required}, UpdatedAt = {DateTime.UtcNow} WHERE Id = {ingredientId} AND IsActive = 1 AND Quantity >= {required}");
+                if (rowsAffected == 0)
+                {
+                    var ingredient = await _context.Ingredients.FirstOrDefaultAsync(i => i.Id == ingredientId);
+                    throw new InvalidOperationException(
+                        $"Insufficient ingredient: {ingredient?.Name ?? ingredientId}. Required: {required}, Available: {ingredient?.Quantity ?? 0}");
+                }
+
+                // Optional: create StockMovement (Sale) for audit
+                var movement = new StockMovement
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    IngredientId = ingredientId,
+                    MovementType = MovementType.Sale,
+                    Quantity = -required,
+                    Reason = "POS Sale",
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.StockMovements.Add(movement);
+            }
+
             // Calculate total if not provided (includes service fee if already in total, otherwise calculate from items)
             var itemsSubtotal = transaction.Items.Sum(item => item.Price * item.Quantity);
             var itemsDiscount = transaction.Items.Sum(item => item.Discount?.Amount ?? 0);

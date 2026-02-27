@@ -147,13 +147,13 @@ app-root {
   overflow: hidden;
 }
 
-/* Routed view fills main area so only inner content (e.g. product grid) scrolls, not the page */
+/* Routed view fills main area; pages scroll their own content */
 .main-content router-outlet + * {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 /* Typography */

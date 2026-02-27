@@ -13,6 +13,7 @@ public class PosSystemDbContext : DbContext
     public DbSet<Transaction> Transactions { get; set; }
     public DbSet<Ingredient> Ingredients { get; set; }
     public DbSet<StockMovement> StockMovements { get; set; }
+    public DbSet<ProductIngredient> ProductIngredients { get; set; }
     public DbSet<User> Users { get; set; }
     public DbSet<ApplicationSettings> ApplicationSettings { get; set; }
 
@@ -101,6 +102,15 @@ public class PosSystemDbContext : DbContext
             entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
             entity.Property(e => e.Unit).IsRequired().HasMaxLength(20);
             entity.Property(e => e.Supplier).HasMaxLength(100);
+        });
+
+        // ProductIngredient (recipe) configuration
+        modelBuilder.Entity<ProductIngredient>(entity =>
+        {
+            entity.HasKey(pi => new { pi.ProductId, pi.IngredientId });
+            entity.Property(pi => pi.QuantityPerUnit).HasPrecision(18, 4);
+            entity.HasIndex(pi => pi.ProductId);
+            entity.HasIndex(pi => pi.IngredientId);
         });
 
         // StockMovement configuration
