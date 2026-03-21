@@ -1,6 +1,6 @@
 <div class="reports-container">
   <!-- Page Header -->
-  <app-page-header title="Sales Reports" subtitle="Analytics and insights for your business">
+  <app-top-bar title="Sales Reports">
     <div class="date-range-picker">
       <div class="date-inputs">
         <div class="date-input-group">
@@ -29,8 +29,9 @@
           stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
       </svg>
     </button>
-  </app-page-header>
+  </app-top-bar>
 
+  <div class="reports-body">
   <!-- Loading State -->
   <div *ngIf="isLoading" class="loading-container">
     <div class="loading-spinner">
@@ -291,6 +292,7 @@
       </button>
     </div>
 
+  </div>
   </div>
 </div>
 

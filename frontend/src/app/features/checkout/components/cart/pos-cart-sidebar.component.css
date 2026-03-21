@@ -444,14 +444,14 @@
 .btn-primary {
     background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
     color: var(--surface-color);
-    box-shadow: 0 6px 20px rgba(196, 165, 116, 0.25);
+    box-shadow: 0 6px 20px rgba(var(--accent-rgb), 0.25);
     flex: 2;
 }
 
 .btn-primary:hover {
     background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-dark) 100%);
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(196, 165, 116, 0.3);
+    box-shadow: 0 8px 24px rgba(var(--accent-rgb), 0.3);
 }
 
 .btn-secondary {

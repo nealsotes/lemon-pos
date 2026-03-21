@@ -2,19 +2,19 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { firstValueFrom } from 'rxjs';
 import { TransactionService } from '../../../checkout/services/transaction.service';
 import { ProductService } from '../../../pos/services/product.service';
 import { ThermalPrinterService } from '../../../checkout/services/thermal-printer.service';
 import { Transaction } from '../../../checkout/models/transaction.model';
 import { Product } from '../../../pos/models/product.model';
-import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { TopBarComponent } from '../../../../shared/ui/top-bar/top-bar.component';
+import { ToastService } from '../../../../shared/ui/toast/toast.service';
 
 @Component({
   selector: 'app-reports',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, MatSnackBarModule, PageHeaderComponent],
+  imports: [CommonModule, RouterModule, FormsModule, TopBarComponent],
   templateUrl: './reports.component.html',
   styleUrls: ['./reports.component.css']
 })
@@ -52,7 +52,7 @@ export class ReportsComponent implements OnInit {
     private transactionService: TransactionService,
     private productService: ProductService,
     private thermalPrinter: ThermalPrinterService,
-    private snackBar: MatSnackBar
+    private toast: ToastService
   ) {
     this.initializeDateRange();
   }
@@ -667,10 +667,7 @@ export class ReportsComponent implements OnInit {
           break;
       }
     } catch (error) {
-      this.snackBar.open(`Failed to export to ${format.toUpperCase()}. Please try again.`, 'Close', {
-        duration: 5000,
-        panelClass: ['error-snackbar']
-      });
+      this.toast.error(`Failed to export to ${format.toUpperCase()}. Please try again.`);
     }
   }
 
@@ -678,20 +675,14 @@ export class ReportsComponent implements OnInit {
     const data = this.prepareExportData();
     const csvContent = this.convertToCSV(data);
     this.downloadFile(csvContent, `reports_${this.getExportDate()}.csv`, 'text/csv');
-    this.snackBar.open('CSV export completed successfully!', 'Close', {
-      duration: 3000,
-      panelClass: ['success-snackbar']
-    });
+    this.toast.success('CSV export completed successfully!');
   }
 
   private exportToExcel(): void {
     const data = this.prepareExportData();
     const excelContent = this.convertToExcel(data);
     this.downloadFile(excelContent, `reports_${this.getExportDate()}.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    this.snackBar.open('Excel export completed successfully!', 'Close', {
-      duration: 3000,
-      panelClass: ['success-snackbar']
-    });
+    this.toast.success('Excel export completed successfully!');
   }
 
   private exportToPDF(): void {
@@ -838,10 +829,7 @@ export class ReportsComponent implements OnInit {
   private generatePDF(data: any): void {
     // For now, we'll show a message that PDF export is coming soon
     // In a production app, you'd use a library like jsPDF or similar
-    this.snackBar.open('PDF export is coming soon! For now, please use CSV or Excel export.', 'Close', {
-      duration: 4000,
-      panelClass: ['info-snackbar']
-    });
+    this.toast.info('PDF export is coming soon! For now, please use CSV or Excel export.');
   }
 
   private downloadFile(content: string, filename: string, mimeType: string): void {
@@ -1030,10 +1018,7 @@ export class ReportsComponent implements OnInit {
       // Use the shared thermal printer service to ensure consistent format with the sidebar
       await this.thermalPrinter.printReceipt(this.selectedTransaction, true);
     } catch (error: any) {
-      this.snackBar.open(error.message || 'Failed to print receipt', 'Close', {
-        duration: 5000,
-        panelClass: ['error-snackbar']
-      });
+      this.toast.error(error.message || 'Failed to print receipt');
     }
   }
 }

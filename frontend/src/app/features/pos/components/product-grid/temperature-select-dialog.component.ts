@@ -164,7 +164,7 @@ export interface TemperatureDialogResult {
     .temperature-btn.selected {
       border-color: var(--primary-color);
       background: var(--background-secondary);
-      box-shadow: 0 4px 16px rgba(196, 165, 116, 0.2);
+      box-shadow: 0 4px 16px rgba(var(--accent-rgb), 0.15);
     }
     
     .hot-btn.selected {
@@ -225,12 +225,12 @@ export interface TemperatureDialogResult {
     .btn-primary {
       background: var(--primary-color);
       color: var(--surface-color);
-      box-shadow: 0 4px 12px rgba(196, 165, 116, 0.25);
+      box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.2);
     }
     
     .btn-primary:hover:not(:disabled) {
       background: var(--primary-dark);
-      box-shadow: 0 6px 16px rgba(196, 165, 116, 0.35);
+      box-shadow: 0 6px 16px rgba(var(--accent-rgb), 0.35);
     }
     
     .btn-primary:disabled {

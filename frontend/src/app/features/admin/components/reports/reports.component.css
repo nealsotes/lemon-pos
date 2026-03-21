@@ -5,16 +5,31 @@
    so light + dark theme both work.
    ========================================================================== */
 
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
 /* ---------- Container ---------- */
 .reports-container {
   display: flex;
   flex-direction: column;
-  min-height: 100%;
-  padding: var(--spacing-lg) var(--spacing-xl);
-  gap: var(--spacing-lg);
+  flex: 1;
+  overflow: hidden;
   font-family: var(--font-ui);
   color: var(--text-primary);
-  background: var(--background-primary);
+  background: var(--bg-app);
+}
+
+.reports-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg);
+  flex: 1;
+  overflow-y: auto;
 }
 
 /* ---------- Page Header: Date Range & Refresh ---------- */
@@ -57,7 +72,7 @@
 }
 
 .date-input:focus {
-  border-color: var(--primary-color);
+  border-color: var(--accent);
 }
 
 .btn-outline {
@@ -247,13 +262,13 @@
 
 .btn-primary {
   color: var(--text-inverse);
-  background: var(--primary-color);
-  border-color: var(--primary-color);
+  background: var(--accent);
+  border-color: var(--accent);
 }
 
 .btn-primary:hover {
-  background: var(--primary-dark);
-  border-color: var(--primary-dark);
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 
 .btn-secondary {
@@ -374,7 +389,7 @@
 
 .period-btn.active {
   color: var(--text-inverse);
-  background: var(--primary-color);
+  background: var(--accent);
 }
 
 /* Chart Body */
@@ -427,13 +442,13 @@
   width: 100%;
   max-width: 40px;
   min-height: 2px;
-  background: var(--primary-color);
+  background: var(--accent);
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   transition: height 0.4s ease;
 }
 
 .chart-col:hover .chart-bar {
-  background: var(--primary-light);
+  background: var(--accent-hover);
 }
 
 .bar-label {
@@ -679,7 +694,7 @@
 }
 
 .search-box:focus-within {
-  border-color: var(--primary-color);
+  border-color: var(--accent);
 }
 
 .search-box svg {
@@ -715,7 +730,7 @@
 }
 
 .sort-select:focus {
-  border-color: var(--primary-color);
+  border-color: var(--accent);
 }
 
 /* Category Chips */
@@ -746,8 +761,8 @@
 
 .chip.active {
   color: var(--text-inverse);
-  background: var(--primary-color);
-  border-color: var(--primary-color);
+  background: var(--accent);
+  border-color: var(--accent);
 }
 
 /* Leaderboard Grid */
@@ -786,7 +801,7 @@
 }
 
 .lb-top .lb-rank {
-  color: var(--primary-color);
+  color: var(--accent);
 }
 
 .lb-info {
@@ -829,13 +844,13 @@
 
 .lb-progress-fill {
   height: 100%;
-  background: var(--primary-color);
+  background: var(--accent);
   border-radius: 2px;
   transition: width 0.5s ease;
 }
 
 .lb-top .lb-progress-fill {
-  background: var(--primary-light);
+  background: var(--accent-hover);
 }
 
 .lb-data {

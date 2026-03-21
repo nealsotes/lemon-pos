@@ -5,7 +5,8 @@ import { CartItem } from '../../models/cart-item.model';
 import { OpenOrder } from '../../models/open-order.model';
 import { CartService } from '../../services/cart.service';
 import { CheckoutSidebarComponent } from '../checkout/checkout-sidebar.component';
-import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { TopBarComponent } from '../../../../shared/ui/top-bar/top-bar.component';
+
 
 @Component({
   selector: 'app-cart',
@@ -14,7 +15,7 @@ import { PageHeaderComponent } from '../../../../shared/components/page-header/p
     CommonModule,
     RouterModule,
     CheckoutSidebarComponent,
-    PageHeaderComponent
+    TopBarComponent
   ],
   templateUrl: './cart.component.html',
   styleUrls: ['./cart.component.css']

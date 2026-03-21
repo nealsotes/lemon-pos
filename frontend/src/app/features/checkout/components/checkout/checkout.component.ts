@@ -3,12 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { CartService } from '../../services/cart.service';
 import { TransactionService } from '../../services/transaction.service';
 import { CartItem } from '../../models/cart-item.model';
 import { ReceiptComponent } from '../receipt/receipt.component';
 import { CashPaymentDialogComponent } from './cash-payment-dialog.component';
+import { ToastService } from '../../../../shared/ui/toast/toast.service';
 
 @Component({
   selector: 'app-checkout',
@@ -17,8 +17,7 @@ import { CashPaymentDialogComponent } from './cash-payment-dialog.component';
     CommonModule,
     FormsModule,
     RouterModule,
-    MatDialogModule,
-    MatSnackBarModule
+    MatDialogModule
   ],
   templateUrl: './checkout.component.html',
   styleUrls: ['./checkout.component.css']
@@ -46,7 +45,7 @@ export class CheckoutComponent implements OnInit {
     private cartService: CartService,
     private transactionService: TransactionService,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private toast: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -99,18 +98,12 @@ export class CheckoutComponent implements OnInit {
 
   processTransaction(): void {
     if (!this.paymentMethod) {
-      this.snackBar.open('Please select a payment method', 'Close', {
-        duration: 3000,
-        panelClass: ['error-snackbar']
-      });
+      this.toast.error('Please select a payment method');
       return;
     }
 
     if (this.cartItems.length === 0) {
-      this.snackBar.open('Cart is empty', 'Close', {
-        duration: 3000,
-        panelClass: ['error-snackbar']
-      });
+      this.toast.error('Cart is empty');
       return;
     }
 
@@ -118,10 +111,7 @@ export class CheckoutComponent implements OnInit {
     if (this.paymentMethod === 'cash') {
       // Validate amount received
       if (!this.amountReceived || this.amountReceived < this.total) {
-        this.snackBar.open(`Amount received must be at least ₱${this.total.toFixed(2)}`, 'Close', {
-          duration: 3000,
-          panelClass: ['error-snackbar']
-        });
+        this.toast.error(`Amount received must be at least ₱${this.total.toFixed(2)}`);
         return;
       }
       const change = this.getChange();
@@ -186,10 +176,7 @@ export class CheckoutComponent implements OnInit {
           errorMessage = error.message;
         }
         
-        this.snackBar.open(errorMessage, 'Close', {
-          duration: 7000,
-          panelClass: ['error-snackbar']
-        });
+        this.toast.error(errorMessage);
       }
     });
   }

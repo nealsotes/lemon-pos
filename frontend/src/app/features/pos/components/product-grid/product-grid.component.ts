@@ -10,9 +10,10 @@ import { ProductService } from '../../services/product.service';
 import { CartService } from '../../../checkout/services/cart.service';
 import { CheckoutSidebarComponent } from '../../../checkout/components/checkout/checkout-sidebar.component';
 import { POSCartSidebarComponent } from '../../../checkout/components/cart/pos-cart-sidebar.component';
-import { ProductCardComponent } from './product-card.component';
-import { ProductFiltersComponent } from './product-filters.component';
-import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { SearchInputComponent } from '../../../../shared/ui/search-input/search-input.component';
+import { ChipGroupComponent } from '../../../../shared/ui/chip-group/chip-group.component';
+import { EmptyStateComponent } from '../../../../shared/ui/empty-state/empty-state.component';
+import { TopBarComponent } from '../../../../shared/ui/top-bar/top-bar.component';
 import { TemperatureSelectDialogComponent, TemperatureDialogResult } from './temperature-select-dialog.component';
 import { Subject, takeUntil } from 'rxjs';
 
@@ -25,9 +26,10 @@ import { Subject, takeUntil } from 'rxjs';
     RouterModule,
     CheckoutSidebarComponent,
     POSCartSidebarComponent,
-    ProductCardComponent,
-    ProductFiltersComponent,
-    PageHeaderComponent
+    SearchInputComponent,
+    ChipGroupComponent,
+    EmptyStateComponent,
+    TopBarComponent
   ],
   templateUrl: './product-grid.component.html',
   styleUrls: ['./product-grid.component.css'],
@@ -36,7 +38,7 @@ import { Subject, takeUntil } from 'rxjs';
 export class ProductGridComponent implements OnInit, OnDestroy {
   products: Product[] = [];
   categories: string[] = [];
-  selectedCategory: string = 'all';
+  selectedCategory: string = '';
   filteredProducts: Product[] = [];
   isLoading = true;
   searchTerm = '';
@@ -130,7 +132,7 @@ export class ProductGridComponent implements OnInit, OnDestroy {
     // Filter out inactive products (only show active products in POS)
     let filtered = this.products.filter(product => product.isActive !== false);
 
-    if (this.selectedCategory !== 'all') {
+    if (this.selectedCategory !== '') {
       filtered = filtered.filter(product => product.category === this.selectedCategory);
     }
 
@@ -319,6 +321,20 @@ export class ProductGridComponent implements OnInit, OnDestroy {
     const uniqueCategories = [...new Set(this.products.map(p => p.category).filter(c => c && c.trim() !== ''))];
     this.categories = uniqueCategories;
     this.cdr.markForCheck();
+  }
+
+  isLowStock(product: Product): boolean {
+    const threshold = product.lowQuantityThreshold ?? 10;
+    return product.stock > 0 && product.stock <= threshold;
+  }
+
+  isImageUrl(image: string | undefined): boolean {
+    if (!image) return false;
+    return image.startsWith('data:image/') || image.startsWith('http') || image.startsWith('/uploads/') || image.startsWith('/');
+  }
+
+  onImageError(event: any): void {
+    event.target.style.display = 'none';
   }
 }
 

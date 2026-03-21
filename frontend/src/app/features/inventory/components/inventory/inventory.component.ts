@@ -1,41 +1,24 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatTableModule } from '@angular/material/table';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatIconModule } from '@angular/material/icon';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Ingredient } from '../../../pos/models/ingredient.model';
 import { IngredientService } from '../../../pos/services/ingredient.service';
-import { DeleteConfirmationDialogComponent, DeleteConfirmationData } from '../../../admin/components/product-management/delete-confirmation-dialog.component';
 import { StockMovementHistoryComponent } from './stock-movement-history.component';
 import { ProductRecipesComponent } from '../product-recipes/product-recipes.component';
-import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { TopBarComponent } from '../../../../shared/ui/top-bar/top-bar.component';
+import { ToastService } from '../../../../shared/ui/toast/toast.service';
+import { ConfirmDialogService } from '../../../../shared/ui/confirm-dialog/confirm-dialog.service';
 
 @Component({
   selector: 'app-inventory',
   standalone: true,
   imports: [
     CommonModule,
-    PageHeaderComponent,
+    TopBarComponent,
     ProductRecipesComponent,
     ReactiveFormsModule,
     FormsModule,
-    MatButtonModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatTableModule,
-    MatProgressSpinnerModule,
-    MatIconModule,
-    MatSnackBarModule,
-    MatChipsModule,
     MatDialogModule
   ],
   templateUrl: './inventory.component.html',
@@ -74,7 +57,8 @@ export class InventoryComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private ingredientService: IngredientService,
-    private snackBar: MatSnackBar,
+    private toast: ToastService,
+    private confirmDialog: ConfirmDialogService,
     private dialog: MatDialog
   ) {
     this.ingredientForm = this.fb.group({
@@ -102,13 +86,27 @@ export class InventoryComponent implements OnInit {
         this.isLoading = false;
       },
       error: (error) => {
-        this.snackBar.open('Error loading ingredients: ' + error.message, 'Close', {
-          duration: 3000,
-          panelClass: ['error-snackbar']
-        });
+        this.toast.error('Error loading ingredients: ' + error.message);
         this.isLoading = false;
       }
     });
+  }
+
+  // KPI Calculations
+  getTotalInventoryValue(): number {
+    return this.ingredients.reduce((acc, i) => acc + (this.calculateTotalCost(i)), 0);
+  }
+
+  getExpiringSoonCount(): number {
+    return this.ingredients.filter(i => this.isExpiringSoon(i) && !this.isExpired(i)).length;
+  }
+
+  getExpiredCount(): number {
+    return this.ingredients.filter(i => this.isExpired(i)).length;
+  }
+
+  getActiveIngredientsCount(): number {
+    return this.ingredients.filter(i => i.isActive !== false).length;
   }
 
   applyFilter(): void {
@@ -208,10 +206,7 @@ export class InventoryComponent implements OnInit {
 
   saveIngredient(): void {
     if (this.ingredientForm.invalid) {
-      this.snackBar.open('Please fill in all required fields correctly', 'Close', {
-        duration: 3000,
-        panelClass: ['error-snackbar']
-      });
+      this.toast.error('Please fill in all required fields correctly');
       return;
     }
 
@@ -248,19 +243,13 @@ export class InventoryComponent implements OnInit {
 
       this.ingredientService.updateIngredient(this.editingIngredient.id, updateData).subscribe({
         next: () => {
-          this.snackBar.open('Ingredient updated successfully', 'Close', {
-            duration: 3000,
-            panelClass: ['success-snackbar']
-          });
+          this.toast.success('Ingredient updated successfully');
           this.loadIngredients();
           this.cancelEdit();
         },
         error: (error) => {
           const errorMessage = error.error?.message || error.message || 'Unknown error';
-          this.snackBar.open('Error updating ingredient: ' + errorMessage, 'Close', {
-            duration: 3000,
-            panelClass: ['error-snackbar']
-          });
+          this.toast.error('Error updating ingredient: ' + errorMessage);
         }
       });
     } else {
@@ -278,10 +267,7 @@ export class InventoryComponent implements OnInit {
 
       this.ingredientService.createIngredient(createData).subscribe({
         next: () => {
-          this.snackBar.open('Ingredient added successfully', 'Close', {
-            duration: 3000,
-            panelClass: ['success-snackbar']
-          });
+          this.toast.success('Ingredient added successfully');
           this.loadIngredients();
           this.cancelEdit();
         },
@@ -294,45 +280,32 @@ export class InventoryComponent implements OnInit {
           } else if (error.message) {
             errorMessage = error.message;
           }
-          this.snackBar.open('Error adding ingredient: ' + errorMessage, 'Close', {
-            duration: 5000,
-            panelClass: ['error-snackbar']
-          });
+          this.toast.error('Error adding ingredient: ' + errorMessage);
         }
       });
     }
   }
 
-  deleteIngredient(ingredient: Ingredient): void {
-    const dialogData: DeleteConfirmationData = {
-      productName: ingredient.name,
-      productId: ingredient.id
-    };
-
-    const dialogRef = this.dialog.open(DeleteConfirmationDialogComponent, {
-      width: '400px',
-      data: dialogData
+  async deleteIngredient(ingredient: Ingredient): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Delete Ingredient',
+      message: `Are you sure you want to delete "${ingredient.name}"? This action cannot be undone.`,
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      variant: 'danger'
     });
 
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.ingredientService.deleteIngredient(ingredient.id).subscribe({
-          next: () => {
-            this.snackBar.open('Ingredient deleted successfully', 'Close', {
-              duration: 3000,
-              panelClass: ['success-snackbar']
-            });
-            this.loadIngredients();
-          },
-          error: (error) => {
-            this.snackBar.open('Error deleting ingredient: ' + error.message, 'Close', {
-              duration: 3000,
-              panelClass: ['error-snackbar']
-            });
-          }
-        });
-      }
-    });
+    if (confirmed) {
+      this.ingredientService.deleteIngredient(ingredient.id).subscribe({
+        next: () => {
+          this.toast.success('Ingredient deleted successfully');
+          this.loadIngredients();
+        },
+        error: (error) => {
+          this.toast.error('Error deleting ingredient: ' + error.message);
+        }
+      });
+    }
   }
 
   isLowStock(ingredient: Ingredient): boolean {
@@ -364,19 +337,13 @@ export class InventoryComponent implements OnInit {
   adjustQuantity(ingredient: Ingredient, adjustment: number): void {
     const newQuantity = ingredient.quantity + adjustment;
     if (newQuantity < 0) {
-      this.snackBar.open('Cannot reduce quantity below 0', 'Close', {
-        duration: 3000,
-        panelClass: ['error-snackbar']
-      });
+      this.toast.error('Cannot reduce quantity below 0');
       return;
     }
 
     this.ingredientService.adjustQuantity(ingredient.id, adjustment).subscribe({
       next: () => {
-        this.snackBar.open(`Quantity ${adjustment >= 0 ? 'increased' : 'decreased'} by ${Math.abs(adjustment)}`, 'Close', {
-          duration: 3000,
-          panelClass: ['success-snackbar']
-        });
+        this.toast.success(`Quantity ${adjustment >= 0 ? 'increased' : 'decreased'} by ${Math.abs(adjustment)}`);
         this.loadIngredients();
       },
       error: (error) => {
@@ -386,10 +353,7 @@ export class InventoryComponent implements OnInit {
         } else if (error.message) {
           errorMessage = error.message;
         }
-        this.snackBar.open('Error adjusting quantity: ' + errorMessage, 'Close', {
-          duration: 3000,
-          panelClass: ['error-snackbar']
-        });
+        this.toast.error('Error adjusting quantity: ' + errorMessage);
       }
     });
   }
@@ -401,10 +365,7 @@ export class InventoryComponent implements OnInit {
     if (adjustment !== null && adjustment !== '') {
       const adjustmentValue = parseFloat(adjustment);
       if (isNaN(adjustmentValue)) {
-        this.snackBar.open('Please enter a valid number', 'Close', {
-          duration: 3000,
-          panelClass: ['error-snackbar']
-        });
+        this.toast.error('Please enter a valid number');
         return;
       }
       this.adjustQuantity(ingredient, adjustmentValue);

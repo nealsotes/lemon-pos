@@ -1,41 +1,26 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatTableModule } from '@angular/material/table';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatIconModule } from '@angular/material/icon';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Product } from '../../../pos/models/product.model';
 import { ProductService } from '../../../pos/services/product.service';
-import { DeleteConfirmationDialogComponent, DeleteConfirmationData } from './delete-confirmation-dialog.component';
-import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { TopBarComponent } from '../../../../shared/ui/top-bar/top-bar.component';
+import { SearchInputComponent } from '../../../../shared/ui/search-input/search-input.component';
+import { ChipGroupComponent } from '../../../../shared/ui/chip-group/chip-group.component';
+import { EmptyStateComponent } from '../../../../shared/ui/empty-state/empty-state.component';
+import { ToastService } from '../../../../shared/ui/toast/toast.service';
+import { ConfirmDialogService } from '../../../../shared/ui/confirm-dialog/confirm-dialog.service';
 
 @Component({
   selector: 'app-product-management',
   standalone: true,
   imports: [
     CommonModule,
-    PageHeaderComponent,
+    TopBarComponent,
+    SearchInputComponent,
+    ChipGroupComponent,
+    EmptyStateComponent,
     ReactiveFormsModule,
-    FormsModule,
-    MatCardModule,
-    MatButtonModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatTableModule,
-    MatProgressSpinnerModule,
-    MatIconModule,
-    MatSnackBarModule,
-    MatChipsModule,
-    MatDialogModule
+    FormsModule
   ],
   templateUrl: './product-management.component.html',
   styleUrls: ['./product-management.component.css']
@@ -78,8 +63,8 @@ export class ProductManagementComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private productService: ProductService,
-    private snackBar: MatSnackBar,
-    private dialog: MatDialog
+    private toast: ToastService,
+    private confirmService: ConfirmDialogService
   ) {
     this.productForm = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(2)]],
@@ -137,6 +122,28 @@ export class ProductManagementComponent implements OnInit {
     this.productService.getCategories().subscribe(categories => {
       this.categories = categories;
     });
+  }
+
+  // KPI Calculations
+  getTotalProductsValue(): number {
+    return this.products.reduce((acc, p) => acc + (p.price * (p.stock || 0)), 0);
+  }
+
+  getLowStockCount(): number {
+    return this.products.filter(p => (p.stock || 0) <= (p.lowQuantityThreshold ?? 10) && (p.stock || 0) > 0).length;
+  }
+
+  getOutOfStockCount(): number {
+    return this.products.filter(p => (p.stock || 0) === 0).length;
+  }
+
+  getActiveProductsCount(): number {
+    return this.products.filter(p => p.isActive !== false).length;
+  }
+
+  getAveragePrice(): number {
+    if (this.products.length === 0) return 0;
+    return this.products.reduce((acc, p) => acc + p.price, 0) / this.products.length;
   }
 
   openAddProductDialog(): void {
@@ -265,39 +272,26 @@ export class ProductManagementComponent implements OnInit {
     this.showForm = true;
   }
 
-  deleteProduct(product: Product): void {
-    const dialogData: DeleteConfirmationData = {
-      productName: product.name,
-      productId: product.id
-    };
-
-    const dialogRef = this.dialog.open(DeleteConfirmationDialogComponent, {
-      data: dialogData,
-      width: '480px',
-      disableClose: false,
-      panelClass: 'delete-confirmation-dialog',
-      maxHeight: '90vh'
+  async deleteProduct(product: Product): Promise<void> {
+    const confirmed = await this.confirmService.confirm({
+      title: 'Delete Product',
+      message: `Are you sure you want to delete "${product.name}"? This action cannot be undone.`,
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      variant: 'danger'
     });
 
-    dialogRef.afterClosed().subscribe(result => {
-      if (result === true) {
-        this.productService.deleteProduct(product.id).subscribe({
-          next: () => {
-            this.snackBar.open('Product deleted successfully', 'Close', {
-              duration: 3000,
-              panelClass: ['success-snackbar']
-            });
-            this.loadProducts(); // Reload products after deletion
-          },
-          error: (error) => {
-            this.snackBar.open('Error deleting product', 'Close', {
-              duration: 3000,
-              panelClass: ['error-snackbar']
-            });
-          }
-        });
-      }
-    });
+    if (confirmed) {
+      this.productService.deleteProduct(product.id).subscribe({
+        next: () => {
+          this.toast.success('Product deleted successfully');
+          this.loadProducts();
+        },
+        error: () => {
+          this.toast.error('Error deleting product');
+        }
+      });
+    }
   }
 
   saveProduct(): void {
@@ -349,38 +343,26 @@ export class ProductManagementComponent implements OnInit {
       // Update existing product
       this.productService.updateProduct(this.editingProduct.id, productData).subscribe({
         next: () => {
-          this.snackBar.open('Product updated successfully', 'Close', {
-            duration: 3000,
-            panelClass: ['success-snackbar']
-          });
+          this.toast.success('Product updated successfully');
           this.resetForm();
           this.showForm = false;
-          this.loadProducts(); // Reload products after update
+          this.loadProducts();
         },
-        error: (error) => {
-          this.snackBar.open('Error updating product', 'Close', {
-            duration: 3000,
-            panelClass: ['error-snackbar']
-          });
+        error: () => {
+          this.toast.error('Error updating product');
         }
       });
     } else {
       // Create new product
       this.productService.addProduct(productData).subscribe({
         next: () => {
-          this.snackBar.open('Product added successfully', 'Close', {
-            duration: 3000,
-            panelClass: ['success-snackbar']
-          });
+          this.toast.success('Product added successfully');
           this.resetForm();
           this.showForm = false;
-          this.loadProducts(); // Reload products after creation
+          this.loadProducts();
         },
-        error: (error) => {
-          this.snackBar.open('Error adding product', 'Close', {
-            duration: 3000,
-            panelClass: ['error-snackbar']
-          });
+        error: () => {
+          this.toast.error('Error adding product');
         }
       });
     }
@@ -471,19 +453,13 @@ export class ProductManagementComponent implements OnInit {
   private handleFileSelection(file: File): void {
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      this.snackBar.open('Please select an image file', 'Close', {
-        duration: 3000,
-        panelClass: ['error-snackbar']
-      });
+      this.toast.error('Please select an image file');
       return;
     }
 
     // Validate file size (10MB limit for mobile images)
     if (file.size > 10 * 1024 * 1024) {
-      this.snackBar.open('File size must be less than 10MB. Large images will be automatically compressed.', 'Close', {
-        duration: 4000,
-        panelClass: ['warning-snackbar']
-      });
+      this.toast.info('File size must be less than 10MB. Large images will be automatically compressed.');
     }
 
     // Compress and resize image if it's large
@@ -501,10 +477,7 @@ export class ProductManagementComponent implements OnInit {
       reader.readAsDataURL(compressedFile);
     }).catch(error => {
       this.isProcessingImage = false;
-      this.snackBar.open('Error processing image. Please try again.', 'Close', {
-        duration: 3000,
-        panelClass: ['error-snackbar']
-      });
+      this.toast.error('Error processing image. Please try again.');
     });
   }
 

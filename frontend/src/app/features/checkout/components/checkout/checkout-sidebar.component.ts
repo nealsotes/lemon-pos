@@ -741,7 +741,7 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
     .open-order-name-row input:focus {
       outline: none;
       border-color: var(--primary-color);
-      box-shadow: 0 0 0 3px rgba(196, 165, 116, 0.12), 0 4px 16px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.12), 0 4px 16px rgba(0, 0, 0, 0.08);
       transform: translateY(-1px);
     }
 
@@ -801,7 +801,7 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
     .form-select:focus {
       outline: none;
       border-color: var(--primary-color);
-      box-shadow: 0 0 0 3px rgba(196, 165, 116, 0.12), 0 4px 16px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.12), 0 4px 16px rgba(0, 0, 0, 0.08);
       transform: translateY(-1px);
     }
 
@@ -857,7 +857,7 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
       background: var(--background-secondary);
       /* Simplify background for better performance */
       /* background: linear-gradient(135deg, var(--background-secondary) 0%, var(--background-tertiary) 100%); */
-      box-shadow: 0 4px 16px rgba(196, 165, 116, 0.15);
+      box-shadow: 0 4px 16px rgba(var(--accent-rgb), 0.15);
       transform: translateY(-2px);
     }
 
@@ -1089,14 +1089,14 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
       border-color: var(--primary-color);
       color: var(--primary-color);
       transform: translateY(-1px);
-      box-shadow: 0 2px 8px rgba(196, 165, 116, 0.2);
+      box-shadow: 0 2px 8px rgba(var(--accent-rgb), 0.2);
     }
     
     .quick-amount-btn.active {
       background: var(--primary-color);
       border-color: var(--primary-color);
       color: white;
-      box-shadow: 0 2px 8px rgba(196, 165, 116, 0.3);
+      box-shadow: 0 2px 8px rgba(var(--accent-rgb), 0.3);
     }
     
     .quick-amount-btn:active {
@@ -1286,7 +1286,7 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
       /* Simplify background for better performance */
       /* background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); */
       color: var(--surface-color);
-      box-shadow: 0 6px 20px rgba(196, 165, 116, 0.25);
+      box-shadow: 0 6px 20px rgba(var(--accent-rgb), 0.25);
     }
 
     .btn-primary:hover:not(:disabled) {
@@ -1294,7 +1294,7 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
       /* Simplify background for better performance */
       /* background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-dark) 100%); */
       transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(196, 165, 116, 0.35);
+      box-shadow: 0 8px 24px rgba(var(--accent-rgb), 0.35);
     }
 
     .btn-primary:disabled {

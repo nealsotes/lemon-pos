@@ -1,139 +1,173 @@
 <div class="recipes-container" [class.embedded]="!showHeader">
-  <app-page-header
-    *ngIf="showHeader"
-    title="Product Recipes"
-    subtitle="Define ingredients and quantities per unit for each product. Ingredients are deducted on sale."
-  >
-  </app-page-header>
+  <!-- Page Header -->
+  <app-top-bar *ngIf="showHeader" title="Product Recipes">
+  </app-top-bar>
 
   <div class="recipes-content">
-    <!-- Single-flow card -->
-    <div class="recipe-card">
-      <!-- Step 1: Choose product -->
-      <div class="recipe-card__pick">
-        <label for="product" class="recipe-card__label">Which product?</label>
-        <p class="recipe-card__hint">Select a product to define which ingredients (and how much) go into each unit sold. These amounts are deducted from inventory when the product is sold.</p>
-        <select
-          id="product"
-          class="recipe-card__select"
-          [(ngModel)]="selectedProductId"
-          (ngModelChange)="onProductChange()"
-          [disabled]="isLoadingProducts"
-        >
-          <option value="">Choose product…</option>
-          <option *ngFor="let p of products" [value]="p.id">{{ p.name }} · {{ p.category }}</option>
-        </select>
+
+    <!-- Product Selection Panel -->
+    <div class="panel selection-panel">
+      <div class="section-header">
+        <div class="section-title-group">
+          <h3 class="section-title">Select Product</h3>
+          <span class="section-subtitle">Choose a product to view or edit its recipe</span>
+        </div>
+      </div>
+      <div class="panel-body selection-body">
+        <div class="form-group product-picker">
+          <label for="product">Inventory Item</label>
+          <div class="select-wrapper">
+            <select id="product" class="form-control" [(ngModel)]="selectedProductId"
+              (ngModelChange)="onProductChange()" [disabled]="isLoadingProducts">
+              <option value="">Choose a product catalog item...</option>
+              <optgroup label="Products by Category">
+                <option *ngFor="let p of products" [value]="p.id">{{ p.name }} ({{ p.category }})</option>
+              </optgroup>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State: No Product Selected -->
+    <div class="recipe-empty-state" *ngIf="!selectedProductId && !isLoadingProducts">
+      <div class="empty-state-mini">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M20 7h-4M4 7h4m0 0V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-6 4v6m4-6v6" />
+        </svg>
+        <p>Select a product above to start managing its ingredient components.</p>
+      </div>
+    </div>
+
+    <!-- Recipe Editor: Product Selected -->
+    <ng-container *ngIf="selectedProductId">
+
+      <!-- Recipe KPI Summary -->
+      <div class="kpi-strip">
+        <div class="kpi-card">
+          <div class="kpi-label">Ingredients</div>
+          <div class="kpi-value">{{ workingLines.length }}</div>
+          <div class="kpi-sub">Components in recipe</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Recipe Cost Est.</div>
+          <div class="kpi-value">₱{{ getRecipeCost() | number:'1.2-2' }}</div>
+          <div class="kpi-sub">Total cost per unit sold</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Product Price</div>
+          <div class="kpi-value">₱{{ (selectedProduct?.price || 0) | number:'1.2-2' }}</div>
+          <div class="kpi-sub">Listing price in POS</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Margin Est.</div>
+          <div class="kpi-value" [class.trend-down]="(selectedProduct?.price || 0) - getRecipeCost() < 0">
+            ₱{{ ((selectedProduct?.price || 0) - getRecipeCost()) | number:'1.2-2' }}
+          </div>
+          <div class="kpi-sub">Potential gross profit</div>
+        </div>
       </div>
 
-      <!-- Empty state: no product selected -->
-      <div class="recipe-empty" *ngIf="!selectedProductId && !isLoadingProducts">
-        <div class="recipe-empty__icon" aria-hidden="true">
-          <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M24 8L8 16v16l16 8 16-8V16L24 8z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
-            <path d="M24 24V8M24 24l-8 4M24 24l8 4M24 24v16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
-          </svg>
-        </div>
-        <p class="recipe-empty__title">No product selected</p>
-        <p class="recipe-empty__text">Pick a product above to set its recipe. You’ll add ingredients and the quantity used per unit sold.</p>
-      </div>
+      <!-- Main Recipe Panel -->
+      <div class="panel recipe-panel">
+        <div class="section-header">
+          <div class="section-title-group">
+            <h3 class="section-title">Ingredients for {{ selectedProduct?.name }}</h3>
+            <span class="section-subtitle">Amounts deducted from inventory upon successful transaction</span>
+          </div>
 
-      <!-- Recipe editor: product selected -->
-      <ng-container *ngIf="selectedProductId">
-        <div class="recipe-card__head">
-          <span class="recipe-card__product-label">Recipe for</span>
-          <span class="recipe-card__product-name">{{ selectedProduct?.name }}</span>
-        </div>
-        <p class="recipe-card__meta">Amount per 1 unit sold. Add or remove ingredients below.</p>
-
-        <!-- Add ingredient row (visually part of table flow) -->
-        <div class="recipe-add-row" *ngIf="ingredients.length">
-          <div class="recipe-add-row__fields">
-            <div class="recipe-add-row__field">
-              <label for="addIngredient" class="sr-only">Ingredient</label>
-              <select id="addIngredient" class="recipe-add-row__select" [(ngModel)]="addIngredientId">
-                <option value="">Add ingredient…</option>
-                <option *ngFor="let i of ingredients" [value]="i.id">{{ i.name }} ({{ i.unit }})</option>
-              </select>
-            </div>
-            <div class="recipe-add-row__field recipe-add-row__field--narrow">
-              <label for="addQty" class="sr-only">Quantity per unit</label>
-              <input
-                id="addQty"
-                type="number"
-                class="recipe-add-row__input"
-                min="0.001"
-                step="0.01"
-                [(ngModel)]="addQuantityPerUnit"
-                placeholder="0.00"
-                (keydown.enter)="addLine(); $event.preventDefault()"
-              >
-            </div>
-            <button type="button" class="recipe-add-row__btn" (click)="addLine()">
-              <svg class="recipe-add-row__btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              Add
+          <div class="header-actions" *ngIf="hasChanges">
+            <span class="status-indicator">Unsaved changes</span>
+            <button class="btn btn-primary btn-sm" (click)="saveRecipe()" [disabled]="isSaving">
+              {{ isSaving ? 'Saving...' : 'Save Recipe' }}
             </button>
+          </div>
+          <div class="header-actions" *ngIf="!hasChanges && workingLines.length > 0">
+            <span class="status-indicator saved">Up to date</span>
           </div>
         </div>
 
-        <!-- Loading -->
-        <div class="recipe-loading" *ngIf="isLoadingRecipe">
-          <span class="recipe-loading__dot"></span>
-          <span class="recipe-loading__dot"></span>
-          <span class="recipe-loading__dot"></span>
+        <!-- Add Ingredient Row -->
+        <div class="recipe-add-row-new">
+          <div class="add-grid">
+            <div class="form-group flex-2">
+              <label>Add Ingredient</label>
+              <select class="form-control" [(ngModel)]="addIngredientId">
+                <option value="">Search for ingredient...</option>
+                <option *ngFor="let i of ingredients" [value]="i.id">{{ i.name }} ({{ i.unit }})</option>
+              </select>
+            </div>
+            <div class="form-group flex-1">
+              <label>Qty per Unit</label>
+              <input type="number" class="form-control" [(ngModel)]="addQuantityPerUnit" placeholder="0.00"
+                (keydown.enter)="addLine()">
+            </div>
+            <div class="add-action">
+              <button class="btn btn-primary" (click)="addLine()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+              </button>
+            </div>
+          </div>
         </div>
 
-        <!-- Empty recipe (product has no lines yet) -->
-        <div class="recipe-list-empty" *ngIf="!isLoadingRecipe && workingLines.length === 0">
-          <p>No ingredients yet. Use the row above to add the first one.</p>
-        </div>
+        <div class="panel-body">
+          <div class="loading-overlay" *ngIf="isLoadingRecipe">
+            <div class="loading-spinner">
+              <svg class="spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="12" cy="12" r="10" stroke-width="2" />
+              </svg>
+            </div>
+          </div>
 
-        <!-- Recipe table -->
-        <div class="recipe-table-wrap" *ngIf="!isLoadingRecipe && workingLines.length > 0">
-          <table class="recipe-table" mat-table [dataSource]="workingLines">
-            <ng-container matColumnDef="ingredientName">
-              <th mat-header-cell *matHeaderCellDef>Ingredient</th>
-              <td mat-cell *matCellDef="let row">{{ row.ingredientName }}</td>
-            </ng-container>
-            <ng-container matColumnDef="unit">
-              <th mat-header-cell *matHeaderCellDef>Unit</th>
-              <td mat-cell *matCellDef="let row">{{ row.unit }}</td>
-            </ng-container>
-            <ng-container matColumnDef="quantityPerUnit">
-              <th mat-header-cell *matHeaderCellDef>Per unit</th>
-              <td mat-cell *matCellDef="let row">{{ row.quantityPerUnit }}</td>
-            </ng-container>
-            <ng-container matColumnDef="actions">
-              <th mat-header-cell *matHeaderCellDef></th>
-              <td mat-cell *matCellDef="let row; let i = index">
-                <button type="button" class="recipe-row-remove" (click)="removeLine(i)" title="Remove ingredient">
-                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h12z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                  </svg>
-                </button>
-              </td>
-            </ng-container>
-            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns" class="recipe-table-row"></tr>
-          </table>
-        </div>
+          <div class="table-wrapper">
+            <table class="recipe-table-new">
+              <thead>
+                <tr>
+                  <th>Ingredient Component</th>
+                  <th>Quantity / Unit Sold</th>
+                  <th>Unit</th>
+                  <th>Est. Cost</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let line of workingLines; let i = index">
+                  <td>
+                    <div class="ingredient-info">
+                      <span class="ing-name">{{ line.ingredientName }}</span>
+                      <span class="ing-id">#{{ line.ingredientId.substring(0, 8) }}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <input type="number" class="table-input" [(ngModel)]="line.quantityPerUnit">
+                  </td>
+                  <td><span class="unit-tag">{{ line.unit }}</span></td>
+                  <td>
+                    <span class="line-cost">₱{{ getLineCost(line) | number:'1.2-2' }}</span>
+                  </td>
+                  <td class="actions-cell">
+                    <button class="row-delete-btn" (click)="removeLine(i)" title="Remove Ingredient">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14"
+                        height="14">
+                        <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                      </svg>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
 
-        <!-- Save bar -->
-        <div class="recipe-save" *ngIf="selectedProductId && !isLoadingRecipe">
-          <span class="recipe-save__dirty" *ngIf="hasChanges && !isSaving">Unsaved changes</span>
-          <span class="recipe-save__dirty recipe-save__dirty--saved" *ngIf="!hasChanges && recipeLines.length">Saved</span>
-          <button
-            type="button"
-            class="recipe-save__btn"
-            [disabled]="!hasChanges || isSaving"
-            (click)="saveRecipe()"
-          >
-            {{ isSaving ? 'Saving…' : 'Save recipe' }}
-          </button>
+          <div class="recipe-empty-list" *ngIf="!isLoadingRecipe && workingLines.length === 0">
+            <div class="empty-state-mini">
+              <p>No ingredients defined for this product recipe yet.</p>
+            </div>
+          </div>
         </div>
-      </ng-container>
-    </div>
+      </div>
+
+    </ng-container>
   </div>
 </div>

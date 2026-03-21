@@ -1,21 +1,14 @@
 import { Component, OnInit, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSelectModule } from '@angular/material/select';
-import { MatInputModule } from '@angular/material/input';
-import { MatTableModule } from '@angular/material/table';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatIconModule } from '@angular/material/icon';
 import { Product } from '../../../pos/models/product.model';
 import { Ingredient } from '../../../pos/models/ingredient.model';
 import { RecipeLine, RecipeLineRequest } from '../../../pos/models/recipe.model';
 import { ProductService } from '../../../pos/services/product.service';
 import { IngredientService } from '../../../pos/services/ingredient.service';
 import { RecipeService } from '../../../pos/services/recipe.service';
-import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { TopBarComponent } from '../../../../shared/ui/top-bar/top-bar.component';
+import { ToastService } from '../../../../shared/ui/toast/toast.service';
 
 @Component({
   selector: 'app-product-recipes',
@@ -23,15 +16,7 @@ import { PageHeaderComponent } from '../../../../shared/components/page-header/p
   imports: [
     CommonModule,
     FormsModule,
-    MatButtonModule,
-    MatFormFieldModule,
-    MatSelectModule,
-    MatInputModule,
-    MatTableModule,
-    MatProgressSpinnerModule,
-    MatIconModule,
-    MatSnackBarModule,
-    PageHeaderComponent
+    TopBarComponent
   ],
   templateUrl: './product-recipes.component.html',
   styleUrls: ['./product-recipes.component.css']
@@ -59,8 +44,8 @@ export class ProductRecipesComponent implements OnInit {
     private productService: ProductService,
     private ingredientService: IngredientService,
     private recipeService: RecipeService,
-    private snackBar: MatSnackBar
-  ) {}
+    private toast: ToastService
+  ) { }
 
   ngOnInit(): void {
     this.productService.getProducts().subscribe(products => {
@@ -96,10 +81,7 @@ export class ProductRecipesComponent implements OnInit {
         this.isLoadingRecipe = false;
       },
       error: err => {
-        this.snackBar.open(err?.message || 'Failed to load recipe', 'Close', {
-          duration: 3000,
-          panelClass: ['error-snackbar']
-        });
+        this.toast.error(err?.message || 'Failed to load recipe');
         this.isLoadingRecipe = false;
       }
     });
@@ -107,19 +89,13 @@ export class ProductRecipesComponent implements OnInit {
 
   addLine(): void {
     if (!this.addIngredientId || this.addQuantityPerUnit == null || this.addQuantityPerUnit <= 0) {
-      this.snackBar.open('Select an ingredient and enter a positive quantity per unit.', 'Close', {
-        duration: 3000,
-        panelClass: ['error-snackbar']
-      });
+      this.toast.error('Select an ingredient and enter a positive quantity per unit.');
       return;
     }
     const ing = this.ingredients.find(i => i.id === this.addIngredientId);
     if (!ing) return;
     if (this.workingLines.some(l => l.ingredientId === this.addIngredientId)) {
-      this.snackBar.open('This ingredient is already in the recipe.', 'Close', {
-        duration: 3000,
-        panelClass: ['error-snackbar']
-      });
+      this.toast.error('This ingredient is already in the recipe.');
       return;
     }
     this.workingLines = [
@@ -141,10 +117,7 @@ export class ProductRecipesComponent implements OnInit {
 
   saveRecipe(): void {
     if (!this.selectedProductId) {
-      this.snackBar.open('Select a product first.', 'Close', {
-        duration: 3000,
-        panelClass: ['error-snackbar']
-      });
+      this.toast.error('Select a product first.');
       return;
     }
     const lines: RecipeLineRequest[] = this.workingLines.map(l => ({
@@ -154,10 +127,7 @@ export class ProductRecipesComponent implements OnInit {
     this.isSaving = true;
     this.recipeService.setRecipe(this.selectedProductId, { lines }).subscribe({
       next: () => {
-        this.snackBar.open('Recipe saved successfully.', 'Close', {
-          duration: 3000,
-          panelClass: ['success-snackbar']
-        });
+        this.toast.success('Recipe saved successfully.');
         this.recipeLines = this.workingLines.map(l => ({
           ingredientId: l.ingredientId,
           ingredientName: l.ingredientName,
@@ -168,10 +138,7 @@ export class ProductRecipesComponent implements OnInit {
         this.isSaving = false;
       },
       error: err => {
-        this.snackBar.open(err?.message || 'Failed to save recipe', 'Close', {
-          duration: 5000,
-          panelClass: ['error-snackbar']
-        });
+        this.toast.error(err?.message || 'Failed to save recipe');
         this.isSaving = false;
       }
     });
@@ -185,5 +152,17 @@ export class ProductRecipesComponent implements OnInit {
       if (!a || !b || a.ingredientId !== b.ingredientId || a.quantityPerUnit !== b.quantityPerUnit) return true;
     }
     return false;
+  }
+
+  getRecipeCost(): number {
+    return this.workingLines.reduce((acc, line) => {
+      const ingredient = this.ingredients.find(i => i.id === line.ingredientId);
+      return acc + (ingredient?.unitCost || 0) * line.quantityPerUnit;
+    }, 0);
+  }
+
+  getLineCost(line: { ingredientId: string; quantityPerUnit: number }): number {
+    const ingredient = this.ingredients.find(i => i.id === line.ingredientId);
+    return (ingredient?.unitCost || 0) * line.quantityPerUnit;
   }
 }

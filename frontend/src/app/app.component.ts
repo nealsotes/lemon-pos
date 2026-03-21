@@ -6,7 +6,10 @@ import { OfflineService } from './core/services/offline.service';
 import { AuthService } from './core/services/auth.service';
 import { SettingsService, PageSettings } from './core/services/settings.service';
 import { PwaInstallComponent } from './shared/components/pwa-install/pwa-install.component';
-import { User, UserRole } from './shared/models/user.model';
+import { NavRailComponent } from './shared/ui/nav-rail/nav-rail.component';
+import { BottomTabBarComponent } from './shared/ui/bottom-tab-bar/bottom-tab-bar.component';
+import { ToastComponent } from './shared/ui/toast/toast.component';
+import { ConfirmDialogComponent } from './shared/ui/confirm-dialog/confirm-dialog.component';
 import { Subject, takeUntil, filter } from 'rxjs';
 
 @Component({
@@ -16,7 +19,11 @@ import { Subject, takeUntil, filter } from 'rxjs';
     CommonModule,
     RouterOutlet,
     RouterModule,
-    PwaInstallComponent
+    PwaInstallComponent,
+    NavRailComponent,
+    BottomTabBarComponent,
+    ToastComponent,
+    ConfirmDialogComponent
   ],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
@@ -24,12 +31,7 @@ import { Subject, takeUntil, filter } from 'rxjs';
 export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
   cartItemCount = 0;
-  isOnline = true;
-  mobileMenuOpen = false;
   isDarkMode = false;
-  currentUser: User | null = null;
-  isOwner = false;
-  isAdmin = false;
   isLoginPage = false;
   pageSettings: PageSettings[] = [];
   private destroy$ = new Subject<void>();
@@ -41,132 +43,65 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     private settingsService: SettingsService,
     private router: Router,
     private cdr: ChangeDetectorRef
-  ) { }
+  ) {}
 
-  ngOnInit() {
+  ngOnInit(): void {
     this.initTheme();
 
-    // Check for service worker updates immediately and handle updates
+    // Service worker update handling
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistration().then(registration => {
         if (registration) {
-          // Listen for service worker updates
           registration.addEventListener('updatefound', () => {
             const newWorker = registration.installing;
             if (newWorker) {
               newWorker.addEventListener('statechange', () => {
                 if (newWorker.state === 'activated') {
-                  // Reload after a short delay to allow user to see the update
-                  setTimeout(() => {
-                    window.location.reload();
-                  }, 1000);
+                  setTimeout(() => { window.location.reload(); }, 1000);
                 }
               });
             }
           });
-
-          // Force update check immediately
           registration.update();
-
-          // Check for updates every 30 seconds (more frequent)
-          setInterval(() => {
-            registration.update();
-          }, 30000);
-
-          // Also check on visibility change (when user returns to tab)
+          setInterval(() => { registration.update(); }, 30000);
           document.addEventListener('visibilitychange', () => {
-            if (!document.hidden) {
-              registration.update();
-            }
+            if (!document.hidden) { registration.update(); }
           });
         }
       });
     }
 
-    // Check build version on startup
     this.checkBuildVersion();
-
-    // Check if on login page
     this.checkLoginPage();
 
-    // Subscribe to route changes
     this.router.events
-      .pipe(
-        filter(event => event instanceof NavigationEnd),
-        takeUntil(this.destroy$)
-      )
-      .subscribe(() => {
-        this.checkLoginPage();
-      });
+      .pipe(filter(event => event instanceof NavigationEnd), takeUntil(this.destroy$))
+      .subscribe(() => { this.checkLoginPage(); });
 
-    // Subscribe to cart changes
     this.cartService.getCartItems().subscribe(items => {
       this.cartItemCount = items.reduce((total, item) => total + item.quantity, 0);
     });
 
-    // Subscribe to online status
-    this.offlineService.isOnline$.subscribe(status => {
-      this.isOnline = status;
+    this.authService.currentUser$.pipe(takeUntil(this.destroy$)).subscribe(() => {
+      this.cdr.detectChanges();
     });
 
-    // Subscribe to current user
-    this.authService.currentUser$.pipe(takeUntil(this.destroy$)).subscribe(user => {
-      this.currentUser = user;
-      // Use auth service method which handles both string and number role values
-      this.isOwner = this.authService.isOwner();
-      this.isAdmin = this.authService.isAdmin();
-    });
-
-    // Subscribe to page settings changes
     this.settingsService.pageSettings$.pipe(takeUntil(this.destroy$)).subscribe(settings => {
       this.pageSettings = settings;
-      this.cdr.detectChanges(); // Trigger change detection when settings update
+      this.cdr.detectChanges();
     });
   }
 
-  private checkLoginPage(): void {
-    const url = this.router.url;
-    // Hide header/footer on login page and public menu page
-    this.isLoginPage = url === '/login' || url.startsWith('/login') || url === '/menu' || url.startsWith('/menu');
+  ngAfterViewInit(): void {
+    setTimeout(() => { document.body.classList.add('app-loaded'); }, 1000);
   }
 
-  private checkBuildVersion(): void {
-    // Fetch build info to verify we have the latest version
-    fetch('/build-info.txt')
-      .then(response => {
-        if (response.ok) {
-          return response.text();
-        }
-        return null;
-      })
-      .then(buildInfo => {
-        if (buildInfo) {
-          // Store in sessionStorage to compare on next load
-          const previousBuild = sessionStorage.getItem('buildInfo');
-          if (previousBuild && previousBuild !== buildInfo) {
-            // Force service worker update
-            if ('serviceWorker' in navigator) {
-              navigator.serviceWorker.getRegistration().then(registration => {
-                if (registration) {
-                  registration.update();
-                }
-              });
-            }
-          }
-          sessionStorage.setItem('buildInfo', buildInfo);
-        }
-      })
-      .catch(err => {
-        // Silently handle build info fetch errors
-      });
-  }
-
-  ngOnDestroy() {
+  ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
   }
 
-  logout() {
+  logout(): void {
     this.authService.logout();
   }
 
@@ -175,35 +110,35 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     this.applyTheme(nextTheme);
   }
 
-  ngAfterViewInit() {
-    // Hide loading screen when app is ready
-    setTimeout(() => {
-      document.body.classList.add('app-loaded');
-    }, 1000);
-  }
-
-  toggleMobileMenu() {
-    this.mobileMenuOpen = !this.mobileMenuOpen;
-    // Prevent body scroll when menu is open
-    if (this.mobileMenuOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-  }
-
-  closeMobileMenu() {
-    this.mobileMenuOpen = false;
-    document.body.style.overflow = '';
-  }
-
   isPageEnabled(path: string): boolean {
-    // Admin can see all pages regardless of settings
-    if (this.isAdmin) {
-      return true;
-    }
+    const isAdmin = this.authService.isAdmin();
+    if (isAdmin) return true;
     const page = this.pageSettings.find(s => s.path === path);
-    return page ? page.enabled : true; // Default to enabled if not found
+    return page ? page.enabled : true;
+  }
+
+  private checkLoginPage(): void {
+    const url = this.router.url;
+    this.isLoginPage = url === '/login' || url.startsWith('/login') || url === '/menu' || url.startsWith('/menu');
+  }
+
+  private checkBuildVersion(): void {
+    fetch('/build-info.txt')
+      .then(response => response.ok ? response.text() : null)
+      .then(buildInfo => {
+        if (buildInfo) {
+          const previousBuild = sessionStorage.getItem('buildInfo');
+          if (previousBuild && previousBuild !== buildInfo) {
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.getRegistration().then(registration => {
+                if (registration) { registration.update(); }
+              });
+            }
+          }
+          sessionStorage.setItem('buildInfo', buildInfo);
+        }
+      })
+      .catch(() => {});
   }
 
   private initTheme(): void {
@@ -212,7 +147,6 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       this.applyTheme(storedTheme);
       return;
     }
-
     const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
     this.applyTheme(prefersDark ? 'dark' : 'light');
   }
@@ -230,7 +164,3 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     metaTheme.content = theme === 'dark' ? 'var(--text-primary)' : '#3B82F6';
   }
 }
-
-
-
-
