@@ -38,26 +38,23 @@
 
   <!-- Product Grid -->
   <div *ngIf="!isLoading && paginatedProducts.length > 0" class="product-grid">
-    <button *ngFor="let product of paginatedProducts; trackBy: trackByProduct"
+    <div *ngFor="let product of paginatedProducts; trackBy: trackByProduct"
          class="product-card"
          [class.out-of-stock]="product.stock <= 0"
-         [disabled]="product.stock <= 0"
          (click)="addToCart(product)">
       <div class="card-image">
-        <img *ngIf="isImageUrl(product.image)" [src]="product.image" [alt]="product.name" loading="lazy" (error)="onImageError($event)">
-        <span *ngIf="!isImageUrl(product.image)" class="card-emoji">{{ product.image || '&#x1F4E6;' }}</span>
+        <img *ngIf="isImageLoaded(product)" [src]="product.image" [alt]="product.name" loading="lazy" (error)="onImageError($event, product)">
+        <span *ngIf="!isImageLoaded(product)" class="card-emoji">{{ isImageUrl(product.image) ? '&#x1F4F7;' : (product.image || '&#x1F4E6;') }}</span>
         <span class="stock-badge badge-warning" *ngIf="isLowStock(product)">Low Stock</span>
         <span class="stock-badge badge-danger" *ngIf="product.stock <= 0">Out of Stock</span>
       </div>
       <div class="card-body">
         <span class="card-name">{{ product.name }}</span>
         <span class="card-category">{{ product.category }}</span>
-        <div class="card-footer">
-          <span class="card-price">&#x20B1;{{ product.price | number:'1.2-2' }}</span>
-          <span class="card-stock">{{ product.stock }} left</span>
-        </div>
+        <span class="card-price">&#x20B1;{{ product.price | number:'1.2-2' }}</span>
       </div>
-    </button>
+      <span class="stock-count">{{ product.stock }} left</span>
+    </div>
   </div>
 
   <!-- Load More -->

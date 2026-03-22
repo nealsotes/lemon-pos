@@ -103,6 +103,7 @@ export class POSCartSidebarComponent implements OnInit, OnDestroy {
         return image.startsWith('data:image/') ||
             image.startsWith('http') ||
             image.startsWith('/uploads/') ||
+            image.startsWith('uploads/') ||
             image.startsWith('/');
     }
 

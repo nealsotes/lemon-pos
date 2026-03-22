@@ -54,27 +54,44 @@ public class ProductsController : ControllerBase
         if (imageUrl.StartsWith("data:"))
             return imageUrl;
 
-        // If it's a full URL pointing to localhost or old server, convert to relative
+        // If it's already using the API image endpoint, return as is
+        if (imageUrl.StartsWith("/api/products/image/"))
+            return imageUrl;
+
+        // If it's a full URL (not localhost), return as is
+        if (imageUrl.StartsWith("http") && !imageUrl.StartsWith("http://localhost") && !imageUrl.StartsWith("http://192.168") && !imageUrl.StartsWith("https://localhost"))
+            return imageUrl;
+
+        // Extract the filename from any upload path format
+        string? fileName = null;
+
         if (imageUrl.StartsWith("http://localhost") || imageUrl.StartsWith("http://192.168") || imageUrl.StartsWith("https://localhost"))
         {
             try
             {
                 var uri = new Uri(imageUrl);
-                return uri.AbsolutePath; // Returns /uploads/image.jpg
+                var path = uri.AbsolutePath; // e.g. /uploads/image.jpg
+                fileName = Path.GetFileName(path);
             }
             catch
             {
-                // If URI parsing fails, try to extract path manually
-                var pathMatch = System.Text.RegularExpressions.Regex.Match(imageUrl, @"/(uploads/.*)$");
+                var pathMatch = Regex.Match(imageUrl, @"uploads/(.+)$");
                 if (pathMatch.Success)
-                {
-                    return pathMatch.Groups[1].Value;
-                }
-                return imageUrl;
+                    fileName = pathMatch.Groups[1].Value;
             }
         }
+        else if (imageUrl.Contains("uploads/"))
+        {
+            var match = Regex.Match(imageUrl, @"uploads/(.+)$");
+            if (match.Success)
+                fileName = match.Groups[1].Value;
+        }
 
-        // If it's already a relative path or full URL (not localhost), return as is
+        // Return API image endpoint URL (works through /api proxy in dev)
+        if (!string.IsNullOrEmpty(fileName))
+            return $"/api/products/image/{fileName}";
+
+        // If it's already a relative path or emoji, return as is
         return imageUrl;
     }
 
@@ -222,6 +239,31 @@ public class ProductsController : ControllerBase
     {
         await _productService.DeleteProductAsync(id);
         return NoContent();
+    }
+
+    [HttpGet("image/{fileName}")]
+    [AllowAnonymous]
+    public IActionResult GetImage(string fileName)
+    {
+        var wwwrootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+        var webHostEnv = HttpContext.RequestServices.GetRequiredService<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>();
+        var rootPath = webHostEnv.WebRootPath ?? wwwrootPath;
+        var filePath = Path.Combine(rootPath, "uploads", fileName);
+
+        if (!System.IO.File.Exists(filePath))
+            return NotFound();
+
+        var extension = Path.GetExtension(fileName).ToLowerInvariant();
+        var contentType = extension switch
+        {
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".gif" => "image/gif",
+            ".webp" => "image/webp",
+            _ => "application/octet-stream"
+        };
+
+        return PhysicalFile(filePath, contentType);
     }
 
     [HttpGet("categories")]

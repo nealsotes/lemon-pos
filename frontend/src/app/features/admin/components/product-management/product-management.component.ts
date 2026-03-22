@@ -544,10 +544,10 @@ export class ProductManagementComponent implements OnInit {
 
   isImageUrl(image: string): boolean {
     if (!image) return false;
-    // Check for data URLs, full URLs, or relative paths (starting with /)
     return image.startsWith('data:image/') ||
       image.startsWith('http') ||
       image.startsWith('/uploads/') ||
+      image.startsWith('uploads/') ||
       image.startsWith('/');
   }
 

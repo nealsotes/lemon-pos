@@ -328,13 +328,21 @@ export class ProductGridComponent implements OnInit, OnDestroy {
     return product.stock > 0 && product.stock <= threshold;
   }
 
+  brokenImages = new Set<string>();
+
   isImageUrl(image: string | undefined): boolean {
     if (!image) return false;
-    return image.startsWith('data:image/') || image.startsWith('http') || image.startsWith('/uploads/') || image.startsWith('/');
+    return image.startsWith('data:image/') || image.startsWith('http') || image.startsWith('/uploads/') || image.startsWith('uploads/') || image.startsWith('/');
   }
 
-  onImageError(event: any): void {
+  isImageLoaded(product: Product): boolean {
+    return this.isImageUrl(product.image) && !this.brokenImages.has(product.id);
+  }
+
+  onImageError(event: any, product: Product): void {
     event.target.style.display = 'none';
+    this.brokenImages.add(product.id);
+    this.cdr.markForCheck();
   }
 }
 
