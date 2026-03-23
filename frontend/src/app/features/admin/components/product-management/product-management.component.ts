@@ -1,12 +1,19 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Product } from '../../../pos/models/product.model';
 import { ProductService } from '../../../pos/services/product.service';
+import { ProductEditorDialogComponent } from './product-editor-dialog.component';
 import { TopBarComponent } from '../../../../shared/ui/top-bar/top-bar.component';
-import { SearchInputComponent } from '../../../../shared/ui/search-input/search-input.component';
-import { ChipGroupComponent } from '../../../../shared/ui/chip-group/chip-group.component';
-import { EmptyStateComponent } from '../../../../shared/ui/empty-state/empty-state.component';
+import { KpiStripComponent, KpiItem } from '../../../../shared/ui/kpi-strip/kpi-strip.component';
+import { FilterBarComponent } from '../../../../shared/ui/filter-bar/filter-bar.component';
+import { DataTableComponent, TableColumn } from '../../../../shared/ui/data-table/data-table.component';
+import { CellDefDirective } from '../../../../shared/ui/data-table/cell-def.directive';
+import { BadgeComponent } from '../../../../shared/ui/badge/badge.component';
+import { ImageDisplayComponent } from '../../../../shared/ui/image-display/image-display.component';
+import { StockIndicatorComponent } from '../../../../shared/ui/stock-indicator/stock-indicator.component';
+import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/loading-spinner.component';
+import { ButtonComponent } from '../../../../shared/ui/button/button.component';
 import { ToastService } from '../../../../shared/ui/toast/toast.service';
 import { ConfirmDialogService } from '../../../../shared/ui/confirm-dialog/confirm-dialog.service';
 
@@ -16,11 +23,16 @@ import { ConfirmDialogService } from '../../../../shared/ui/confirm-dialog/confi
   imports: [
     CommonModule,
     TopBarComponent,
-    SearchInputComponent,
-    ChipGroupComponent,
-    EmptyStateComponent,
-    ReactiveFormsModule,
-    FormsModule
+    KpiStripComponent,
+    FilterBarComponent,
+    DataTableComponent,
+    CellDefDirective,
+    BadgeComponent,
+    ImageDisplayComponent,
+    StockIndicatorComponent,
+    LoadingSpinnerComponent,
+    ButtonComponent,
+    MatDialogModule
   ],
   templateUrl: './product-management.component.html',
   styleUrls: ['./product-management.component.css']
@@ -29,81 +41,36 @@ export class ProductManagementComponent implements OnInit {
   products: Product[] = [];
   filteredProducts: Product[] = [];
   categories: string[] = [];
-  productForm: FormGroup;
-  editingProduct: Product | null = null;
   isLoading = true;
-  showForm = false;
 
   // Filter and search properties
   searchTerm: string = '';
   selectedCategory: string = '';
   sortBy: string = 'name';
 
-  // Category input toggle
-  useCustomCategory: boolean = false;
+  // Table columns definition
+  tableColumns: TableColumn[] = [
+    { key: 'name', label: 'Product', cellTemplate: 'product' },
+    { key: 'category', label: 'Category', cellTemplate: 'category' },
+    { key: 'price', label: 'Price', cellTemplate: 'price' },
+    { key: 'stock', label: 'Stock', cellTemplate: 'stock' },
+    { key: 'isActive', label: 'Status', cellTemplate: 'status' },
+    { key: 'actions', label: '', cellTemplate: 'actions', width: '100px', align: 'right' as const }
+  ];
 
-  displayedColumns: string[] = ['image', 'name', 'category', 'price', 'stock', 'actions'];
-
-  // Image upload properties
-  imageType: 'emoji' | 'file' = 'emoji';
-  selectedFile: File | null = null;
-  imagePreview: string | null = null;
-  isDragOver = false;
-  isProcessingImage = false;
-
-  productEmojis = [
-    '☕', '🥪', '🥐', '🍵', '🧁', '💧', '🥗', '🧃',
-    '🍔', '🍕', '🌭', '🥙', '🌮', '🍤', '🍗', '🥘',
-    '🍜', '🍝', '🍲', '🥣', '🍿', '🧀', '🥓', '🥖',
-    '🍞', '🥯', '🥨', '🍪', '🎂', '🍰', '🧁', '🍫',
-    '🍬', '🍭', '🍮', '🍯', '🍼', '🥛', '☕', '🍵',
-    '🥤', '🧋', '🍷', '🍺', '🍻', '🥂', '🍾', '🍸'
+  // Sort options for filter bar
+  sortOptions = [
+    { value: 'name', label: 'Sort by Name' },
+    { value: 'price', label: 'Sort by Price' },
+    { value: 'stock', label: 'Sort by Stock' }
   ];
 
   constructor(
-    private fb: FormBuilder,
     private productService: ProductService,
     private toast: ToastService,
-    private confirmService: ConfirmDialogService
-  ) {
-    this.productForm = this.fb.group({
-      name: ['', [Validators.required, Validators.minLength(2)]],
-      price: ['', [Validators.required, Validators.min(0.01)]],
-      hotPrice: ['', [Validators.min(0.01)]], // Required for beverages (handled dynamically)
-      coldPrice: ['', [Validators.min(0.01)]], // Required for beverages (handled dynamically)
-      category: ['', Validators.required],
-      stock: ['', [Validators.required, Validators.min(0)]],
-      lowQuantityThreshold: [10, [Validators.required, Validators.min(0)]],
-      image: ['📦', Validators.required],
-      isActive: [true]
-    });
-
-    // Watch category changes to update validation
-    this.productForm.get('category')?.valueChanges.subscribe(category => {
-      const isBeverage = this.isBeverageCategory(category);
-      const hotPriceControl = this.productForm.get('hotPrice');
-      const coldPriceControl = this.productForm.get('coldPrice');
-      const priceControl = this.productForm.get('price');
-
-      // Base price is always required for all categories
-      priceControl?.setValidators([Validators.required, Validators.min(0.01)]);
-
-      if (isBeverage) {
-        // For beverages: hot/cold prices are optional
-        hotPriceControl?.setValidators([Validators.min(0.01)]);
-        coldPriceControl?.setValidators([Validators.min(0.01)]);
-      } else {
-        // For non-beverages: clear hot/cold prices
-        hotPriceControl?.clearValidators();
-        coldPriceControl?.clearValidators();
-        hotPriceControl?.setValue('');
-        coldPriceControl?.setValue('');
-      }
-      hotPriceControl?.updateValueAndValidity();
-      coldPriceControl?.updateValueAndValidity();
-      priceControl?.updateValueAndValidity();
-    });
-  }
+    private confirmService: ConfirmDialogService,
+    private dialog: MatDialog
+  ) {}
 
   ngOnInit(): void {
     this.loadProducts();
@@ -122,6 +89,36 @@ export class ProductManagementComponent implements OnInit {
     this.productService.getCategories().subscribe(categories => {
       this.categories = categories;
     });
+  }
+
+  // KPI items getter
+  get kpiItems(): KpiItem[] {
+    return [
+      {
+        label: 'Total Products',
+        value: this.products.length,
+        trend: `${this.getActiveProductsCount()} active items`,
+        trendDirection: 'neutral' as const
+      },
+      {
+        label: 'Inventory Value',
+        value: this.formatPrice(this.getTotalProductsValue()),
+        trend: 'Total stock value',
+        trendDirection: 'neutral' as const
+      },
+      {
+        label: 'Low Stock',
+        value: this.getLowStockCount(),
+        trend: 'items below threshold',
+        trendDirection: this.getLowStockCount() > 0 ? 'down' as const : 'neutral' as const
+      },
+      {
+        label: 'Out of Stock',
+        value: this.getOutOfStockCount(),
+        trend: 'require immediate restock',
+        trendDirection: this.getOutOfStockCount() > 0 ? 'down' as const : 'neutral' as const
+      }
+    ];
   }
 
   // KPI Calculations
@@ -147,8 +144,23 @@ export class ProductManagementComponent implements OnInit {
   }
 
   openAddProductDialog(): void {
-    this.showForm = true;
-    this.resetForm();
+    this.openProductDialog(null);
+  }
+
+  // Filter handler methods
+  onSearchChange(term: string): void {
+    this.searchTerm = term;
+    this.filterProducts();
+  }
+
+  onSortChange(value: string): void {
+    this.sortBy = value;
+    this.filterProducts();
+  }
+
+  onCategoryChange(category: string): void {
+    this.selectedCategory = category;
+    this.filterProducts();
   }
 
   filterProducts(): void {
@@ -188,88 +200,22 @@ export class ProductManagementComponent implements OnInit {
     this.filteredProducts = filtered;
   }
 
-  trackByProduct(index: number, product: Product): string {
-    return product.id;
-  }
-
-  getStockStatus(stock: number, threshold?: number): string {
-    const lowThreshold = threshold ?? 10; // Default to 10 if not set
-    if (stock === 0) return 'low';
-    if (stock <= lowThreshold) return 'medium';
-    return 'high';
-  }
-
-  getStockPercentage(stock: number): number {
-    // Assuming max stock is 100 for percentage calculation
-    const maxStock = 100;
-    return Math.min((stock / maxStock) * 100, 100);
-  }
-
-  toggleForm(): void {
-    this.showForm = !this.showForm;
-    if (!this.showForm) {
-      this.resetForm();
-    }
-  }
-
-  resetForm(): void {
-    this.productForm.reset({
-      name: '',
-      category: '',
-      price: '',
-      hotPrice: '',
-      coldPrice: '',
-      stock: '',
-      lowQuantityThreshold: 10,
-      image: '📦',
-      isActive: true
-    });
-    this.editingProduct = null;
-    this.imageType = 'emoji';
-    this.selectedFile = null;
-    this.imagePreview = null;
-    this.isDragOver = false;
-    this.useCustomCategory = false;
-  }
-
   editProduct(product: Product): void {
-    this.editingProduct = product;
+    this.openProductDialog(product);
+  }
 
-    // Determine image type based on the product image
-    if (this.isImageUrl(product.image)) {
-      this.imageType = 'file';
-      this.imagePreview = product.image;
-      this.selectedFile = null; // We don't have the original file for editing
-    } else {
-      this.imageType = 'emoji';
-      this.selectedFile = null;
-      this.imagePreview = null;
-    }
+  private openProductDialog(product: Product | null): void {
+    const dialogRef = this.dialog.open(ProductEditorDialogComponent, {
+      width: '660px',
+      maxWidth: '95vw',
+      data: { product, categories: this.categories },
+      disableClose: false
+    });
 
-    // Prices are stored without VAT, so use them directly
-    const isBeverage = this.isBeverageCategory(product.category);
-    const formValues: any = {
-      name: product.name,
-      price: product.price, // Always populate base price
-      category: product.category,
-      stock: product.stock,
-      lowQuantityThreshold: product.lowQuantityThreshold ?? 10,
-      image: product.image,
-      isActive: product.isActive ?? true
-    };
-
-    if (isBeverage) {
-      // For beverages: populate hot/cold prices if they exist
-      formValues.hotPrice = product.hotPrice ?? '';
-      formValues.coldPrice = product.coldPrice ?? '';
-    } else {
-      // For non-beverages: clear hot/cold prices
-      formValues.hotPrice = '';
-      formValues.coldPrice = '';
-    }
-
-    this.productForm.patchValue(formValues);
-    this.showForm = true;
+    dialogRef.afterClosed().subscribe(formValue => {
+      if (!formValue) return;
+      this.saveProduct(formValue, product);
+    });
   }
 
   async deleteProduct(product: Product): Promise<void> {
@@ -294,24 +240,14 @@ export class ProductManagementComponent implements OnInit {
     }
   }
 
-  saveProduct(): void {
-    if (this.productForm.invalid) {
-      this.markFormGroupTouched();
-      return;
-    }
-
-    const formValue = this.productForm.value;
+  private saveProduct(formValue: any, existingProduct: Product | null): void {
     const isBeverage = this.isBeverageCategory(formValue.category);
-
-    // Base price is always required and comes from the form
     const basePrice = parseFloat(formValue.price) || 0;
 
-    // Hot and cold prices are optional for beverages
     let hotPrice: number | undefined = undefined;
     let coldPrice: number | undefined = undefined;
 
     if (isBeverage) {
-      // For beverages: use hot and cold prices if provided
       const hotPriceValue = formValue.hotPrice ? parseFloat(formValue.hotPrice) : null;
       const coldPriceValue = formValue.coldPrice ? parseFloat(formValue.coldPrice) : null;
 
@@ -325,9 +261,9 @@ export class ProductManagementComponent implements OnInit {
 
     const productData = {
       name: formValue.name,
-      price: basePrice, // Store price without VAT
-      hotPrice: hotPrice, // Store hot price without VAT (for beverages)
-      coldPrice: coldPrice, // Store cold price without VAT (for beverages)
+      price: basePrice,
+      hotPrice: hotPrice,
+      coldPrice: coldPrice,
       category: formValue.category,
       stock: parseInt(formValue.stock),
       lowQuantityThreshold: typeof formValue.lowQuantityThreshold === 'number'
@@ -339,27 +275,23 @@ export class ProductManagementComponent implements OnInit {
       isActive: formValue.isActive === true || (formValue.isActive !== false && formValue.isActive !== 'false')
     };
 
-    if (this.editingProduct) {
-      // Update existing product
-      this.productService.updateProduct(this.editingProduct.id, productData).subscribe({
+    if (existingProduct) {
+      this.productService.updateProduct(existingProduct.id, productData).subscribe({
         next: () => {
           this.toast.success('Product updated successfully');
-          this.resetForm();
-          this.showForm = false;
           this.loadProducts();
+          this.loadCategories();
         },
         error: () => {
           this.toast.error('Error updating product');
         }
       });
     } else {
-      // Create new product
       this.productService.addProduct(productData).subscribe({
         next: () => {
           this.toast.success('Product added successfully');
-          this.resetForm();
-          this.showForm = false;
           this.loadProducts();
+          this.loadCategories();
         },
         error: () => {
           this.toast.error('Error adding product');
@@ -368,197 +300,16 @@ export class ProductManagementComponent implements OnInit {
     }
   }
 
-  private markFormGroupTouched(): void {
-    Object.keys(this.productForm.controls).forEach(key => {
-      const control = this.productForm.get(key);
-      control?.markAsTouched();
-    });
-  }
-
   formatPrice(price: number): string {
     if (price === undefined || price === null || isNaN(price)) return '₱0.00';
     return `₱${price.toFixed(2)}`;
   }
 
-  isBeverageCategory(category: string | null | undefined): boolean {
+  private isBeverageCategory(category: string | null | undefined): boolean {
     if (!category) return false;
-    const categoryLower = category.toLowerCase();
-    // Check if category is any beverage-related category
-    return categoryLower === 'beverages' ||
-      categoryLower === 'beverage' ||
-      categoryLower === 'coffee' ||
-      categoryLower === 'non coffee' ||
-      categoryLower === 'drinks' ||
-      categoryLower === 'drink' ||
-      categoryLower === 'tea' ||
-      categoryLower === 'juice' ||
-      categoryLower === 'smoothie' ||
-      categoryLower === 'shake';
+    const lower = category.toLowerCase();
+    return ['beverages', 'beverage', 'coffee', 'non coffee', 'drinks', 'drink', 'tea', 'juice', 'smoothie', 'shake'].includes(lower);
   }
-
-  getStockStatusClass(stock: number): string {
-    if (stock === 0) return 'out-of-stock';
-    if (stock <= 5) return 'low-stock';
-    return 'in-stock';
-  }
-
-  getStockStatusText(stock: number): string {
-    if (stock === 0) return 'Out of Stock';
-    if (stock <= 5) return 'Low Stock';
-    return 'In Stock';
-  }
-
-  selectEmoji(emoji: string): void {
-    this.productForm.patchValue({ image: emoji });
-  }
-
-  // Image upload methods
-  onImageTypeChange(): void {
-    if (this.imageType === 'emoji') {
-      this.selectedFile = null;
-      this.imagePreview = null;
-      this.productForm.patchValue({ image: '📦' });
-    } else {
-      this.productForm.patchValue({ image: '' });
-    }
-  }
-
-  onFileSelected(event: any): void {
-    const file = event.target.files[0];
-    if (file) {
-      this.handleFileSelection(file);
-    }
-  }
-
-  onDragOver(event: DragEvent): void {
-    event.preventDefault();
-    this.isDragOver = true;
-  }
-
-  onDragLeave(event: DragEvent): void {
-    event.preventDefault();
-    this.isDragOver = false;
-  }
-
-  onDrop(event: DragEvent): void {
-    event.preventDefault();
-    this.isDragOver = false;
-
-    const files = event.dataTransfer?.files;
-    if (files && files.length > 0) {
-      this.handleFileSelection(files[0]);
-    }
-  }
-
-  private handleFileSelection(file: File): void {
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      this.toast.error('Please select an image file');
-      return;
-    }
-
-    // Validate file size (10MB limit for mobile images)
-    if (file.size > 10 * 1024 * 1024) {
-      this.toast.info('File size must be less than 10MB. Large images will be automatically compressed.');
-    }
-
-    // Compress and resize image if it's large
-    this.isProcessingImage = true;
-    this.compressAndResizeImage(file).then(compressedFile => {
-      this.selectedFile = compressedFile;
-
-      // Create preview
-      const reader = new FileReader();
-      reader.onload = (e: any) => {
-        this.imagePreview = e.target.result;
-        this.productForm.patchValue({ image: e.target.result });
-        this.isProcessingImage = false;
-      };
-      reader.readAsDataURL(compressedFile);
-    }).catch(error => {
-      this.isProcessingImage = false;
-      this.toast.error('Error processing image. Please try again.');
-    });
-  }
-
-  private async compressAndResizeImage(file: File): Promise<File> {
-    return new Promise((resolve, reject) => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const img = new Image();
-
-      img.onload = () => {
-        // Calculate new dimensions (max 800x800 for product images)
-        const maxWidth = 800;
-        const maxHeight = 800;
-        let { width, height } = img;
-
-        // Resize if image is larger than max dimensions
-        if (width > maxWidth || height > maxHeight) {
-          const ratio = Math.min(maxWidth / width, maxHeight / height);
-          width *= ratio;
-          height *= ratio;
-        }
-
-        // Set canvas dimensions
-        canvas.width = width;
-        canvas.height = height;
-
-        // Draw and compress image
-        ctx?.drawImage(img, 0, 0, width, height);
-
-        // Convert to blob with compression
-        canvas.toBlob((blob) => {
-          if (blob) {
-            // Create new file with compressed data
-            const compressedFile = new File([blob], file.name, {
-              type: 'image/jpeg',
-              lastModified: Date.now()
-            });
-
-            resolve(compressedFile);
-          } else {
-            reject(new Error('Failed to compress image'));
-          }
-        }, 'image/jpeg', 0.8); // 80% quality
-      };
-
-      img.onerror = () => reject(new Error('Failed to load image'));
-      img.src = URL.createObjectURL(file);
-    });
-  }
-
-  removeFile(): void {
-    this.selectedFile = null;
-    this.imagePreview = null;
-    this.productForm.patchValue({ image: '' });
-  }
-
-  formatFileSize(bytes: number): string {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  }
-
-  isImageUrl(image: string): boolean {
-    if (!image) return false;
-    return image.startsWith('data:image/') ||
-      image.startsWith('http') ||
-      image.startsWith('/uploads/') ||
-      image.startsWith('uploads/') ||
-      image.startsWith('/');
-  }
-
-  toggleCategoryInput(): void {
-    this.useCustomCategory = !this.useCustomCategory;
-    // Clear category value when toggling to avoid confusion
-    if (this.useCustomCategory) {
-      this.productForm.patchValue({ category: '' });
-    }
-  }
-
 
   refreshData(): void {
     this.isLoading = true;
@@ -567,7 +318,3 @@ export class ProductManagementComponent implements OnInit {
     this.loadCategories();
   }
 }
-
-
-
-

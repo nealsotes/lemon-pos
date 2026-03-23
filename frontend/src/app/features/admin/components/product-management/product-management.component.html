@@ -1,382 +1,100 @@
 <div class="product-management-container">
   <!-- Page Header -->
   <app-top-bar title="Product Management">
-    <button class="btn btn-primary btn-sm" (click)="openAddProductDialog()" *ngIf="!showForm">
+    <app-button variant="primary" size="sm" (click)="openAddProductDialog()">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
         <path d="M12 5v14M5 12h14"/>
       </svg>
       Add Product
-    </button>
-    <button class="btn btn-ghost btn-sm" (click)="refreshData()" [disabled]="isLoading" title="Refresh">
+    </app-button>
+    <app-button variant="ghost" size="sm" (click)="refreshData()" [disabled]="isLoading">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M1 4v6h6M23 20v-6h-6"/>
         <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/>
       </svg>
-    </button>
+    </app-button>
   </app-top-bar>
 
   <div class="page-body">
   <!-- Loading State -->
-  <div *ngIf="isLoading" class="loading-container">
-    <div class="loading-spinner">
-      <svg class="spinner" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-          stroke-dasharray="31.416" stroke-dashoffset="31.416">
-          <animate attributeName="stroke-dasharray" dur="2s" values="0 31.416;15.708 15.708;0 31.416"
-            repeatCount="indefinite" />
-          <animate attributeName="stroke-dashoffset" dur="2s" values="0;-15.708;-31.416" repeatCount="indefinite" />
-        </circle>
-      </svg>
-      <p class="loading-text">Loading products...</p>
-    </div>
-  </div>
+  <app-loading-spinner *ngIf="isLoading" message="Loading products..."></app-loading-spinner>
 
   <div class="product-management-content" *ngIf="!isLoading">
 
     <!-- KPI STRIP -->
-    <div *ngIf="!showForm" class="kpi-strip">
-      <div class="kpi-card">
-        <div class="kpi-label">Total Products</div>
-        <div class="kpi-value">{{ products.length }}</div>
-        <div class="kpi-sub">{{ getActiveProductsCount() }} active items</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Inventory Value</div>
-        <div class="kpi-value">{{ formatPrice(getTotalProductsValue()) }}</div>
-        <div class="kpi-sub">Total stock value</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Low Stock</div>
-        <div class="kpi-value" [class.trend-down]="getLowStockCount() > 0">
-          {{ getLowStockCount() }}
-        </div>
-        <div class="kpi-sub">items below threshold</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Out of Stock</div>
-        <div class="kpi-value" [class.trend-down]="getOutOfStockCount() > 0">
-          {{ getOutOfStockCount() }}
-        </div>
-        <div class="kpi-sub">require immediate restock</div>
-      </div>
-    </div>
+    <app-kpi-strip [kpis]="kpiItems"></app-kpi-strip>
 
     <!-- Main List Panel -->
-    <div *ngIf="!showForm" class="panel">
-      <div class="section-header">
-        <div class="section-title-group">
-          <h3 class="section-title">Product Catalog</h3>
-          <span class="section-subtitle">Manage your inventory and pricing</span>
-        </div>
+    <div class="panel">
+      <app-filter-bar
+        title="Product Catalog"
+        subtitle="Manage your inventory and pricing"
+        searchPlaceholder="Search products..."
+        [searchValue]="searchTerm"
+        [sortOptions]="sortOptions"
+        [sortValue]="sortBy"
+        [categories]="categories"
+        [selectedCategory]="selectedCategory"
+        (searchChange)="onSearchChange($event)"
+        (sortChange)="onSortChange($event)"
+        (categoryChange)="onCategoryChange($event)">
+      </app-filter-bar>
 
-        <div class="leaderboard-controls">
-          <app-search-input
-            placeholder="Search products..."
-            [value]="searchTerm"
-            (search)="searchTerm = $event; filterProducts()">
-          </app-search-input>
+      <app-data-table
+        [columns]="tableColumns"
+        [data]="filteredProducts"
+        [clickable]="true"
+        emptyIcon="📦"
+        [emptyTitle]="searchTerm ? 'No results' : 'No products yet'"
+        [emptyMessage]="searchTerm ? 'No products match your search' : 'Add your first product to get started'"
+        [emptyAction]="searchTerm ? '' : 'Add First Product'"
+        (rowClick)="editProduct($event)"
+        (emptyActionClick)="openAddProductDialog()">
 
-          <select [(ngModel)]="sortBy" (change)="filterProducts()" class="sort-select">
-            <option value="name">Sort by Name</option>
-            <option value="price">Sort by Price</option>
-            <option value="stock">Sort by Stock</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="category-chips">
-        <app-chip-group
-          [chips]="categories"
-          [selected]="selectedCategory"
-          allLabel="All"
-          (selectedChange)="selectedCategory = $event; filterProducts()">
-        </app-chip-group>
-      </div>
-
-      <div class="panel-body">
-        <div class="table-wrapper">
-          <table class="products-table">
-            <thead>
-              <tr>
-                <th>Product</th>
-                <th>Category</th>
-                <th>Price</th>
-                <th>Stock</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let product of filteredProducts; trackBy: trackByProduct" class="product-row clickable-row"
-                (click)="editProduct(product)">
-                <td>
-                  <div class="product-info-cell">
-                    <div class="product-image-mini">
-                      <img *ngIf="isImageUrl(product.image)" [src]="product.image" [alt]="product.name">
-                      <span *ngIf="!isImageUrl(product.image)">{{ product.image || '📦' }}</span>
-                    </div>
-                    <div class="product-text">
-                      <span class="product-name-text">{{ product.name }}</span>
-                      <span class="product-id-text">#{{ product.id.substring(0, 8) }}</span>
-                    </div>
-                  </div>
-                </td>
-                <td><span class="category-tag">{{ product.category }}</span></td>
-                <td><span class="price-text">{{ formatPrice(product.price) }}</span></td>
-                <td>
-                  <div class="stock-status">
-                    <span class="stock-num">{{ product.stock }}</span>
-                    <div class="stock-bar-mini">
-                      <div class="stock-bar-fill" [style.width.%]="getStockPercentage(product.stock)"
-                        [class]="getStockStatus(product.stock, product.lowQuantityThreshold)"></div>
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  <span class="status-pill" [class.active]="product.isActive !== false">
-                    {{ product.isActive !== false ? 'Active' : 'Inactive' }}
-                  </span>
-                </td>
-                <td class="actions-cell">
-                  <div class="row-actions">
-                    <button class="action-btn-mini" (click)="editProduct(product); $event.stopPropagation()"
-                      title="Edit">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path
-                          d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                      </svg>
-                    </button>
-                    <button class="action-btn-mini delete" (click)="deleteProduct(product); $event.stopPropagation()"
-                      title="Delete">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-                      </svg>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <app-empty-state
-          *ngIf="filteredProducts.length === 0"
-          icon="📦"
-          [title]="searchTerm ? 'No results' : 'No products yet'"
-          [message]="searchTerm ? 'No products match your search' : 'Add your first product to get started'"
-          [actionLabel]="searchTerm ? '' : 'Add First Product'"
-          (action)="openAddProductDialog()">
-        </app-empty-state>
-      </div>
-    </div>
-
-    <!-- Add/Edit Product Form -->
-    <div class="form-section" *ngIf="showForm">
-      <div class="form-card">
-        <div class="form-header">
-          <h2>{{ editingProduct ? 'Edit Product' : 'Add New Product' }}</h2>
-          <button class="close-btn" (click)="toggleForm()">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                stroke-linejoin="round" />
-            </svg>
-          </button>
-        </div>
-
-        <form [formGroup]="productForm" (ngSubmit)="saveProduct()">
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="name">Product Name *</label>
-              <input type="text" id="name" formControlName="name" class="form-control" placeholder="Enter product name">
-              <div class="error-message" *ngIf="productForm.get('name')?.invalid && productForm.get('name')?.touched">
-                <span *ngIf="productForm.get('name')?.errors?.['required']">Product name is required</span>
-                <span *ngIf="productForm.get('name')?.errors?.['minlength']">Product name must be at least 2
-                  characters</span>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label for="category">Category *</label>
-              <div class="category-input-wrapper">
-                <input *ngIf="useCustomCategory" type="text" id="customCategory" formControlName="category"
-                  class="form-control" placeholder="Enter new category name" list="categoryOptions">
-                <datalist id="categoryOptions">
-                  <option *ngFor="let category of categories" [value]="category">
-                </datalist>
-                <select *ngIf="!useCustomCategory" id="category" formControlName="category" class="form-control">
-                  <option value="">Select a category</option>
-                  <option *ngFor="let category of categories" [value]="category">{{ category }}</option>
-                </select>
-                <button type="button" class="category-toggle-btn" (click)="toggleCategoryInput()"
-                  [title]="useCustomCategory ? 'Select from existing categories' : 'Add new category'">
-                  <svg *ngIf="!useCustomCategory" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                      stroke-linejoin="round" />
-                  </svg>
-                  <svg *ngIf="useCustomCategory" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                      stroke-linejoin="round" />
-                  </svg>
-                </button>
-              </div>
-              <div class="error-message"
-                *ngIf="productForm.get('category')?.invalid && productForm.get('category')?.touched">
-                <span *ngIf="productForm.get('category')?.errors?.['required']">Category is required</span>
-              </div>
+        <ng-template cellDef="product" let-row>
+          <div class="product-info-cell">
+            <app-image-display [src]="row.image" [size]="36" [alt]="row.name" fallbackEmoji="📦"></app-image-display>
+            <div class="product-text">
+              <span class="product-name-text">{{ row.name }}</span>
+              <span class="product-id-text">#{{ row.id.substring(0, 8) }}</span>
             </div>
           </div>
+        </ng-template>
 
-          <!-- Base Price (for all categories) -->
-          <div class="form-group">
-            <label for="price">Price *</label>
-            <input type="number" id="price" formControlName="price" class="form-control" placeholder="0.00" step="0.01"
-              min="0.01">
-            <small class="form-text">12% VAT will be added at checkout</small>
-            <div class="error-message" *ngIf="productForm.get('price')?.invalid && productForm.get('price')?.touched">
-              <span *ngIf="productForm.get('price')?.errors?.['required']">Price is required</span>
-              <span *ngIf="productForm.get('price')?.errors?.['min']">Price must be greater than 0</span>
-            </div>
-          </div>
+        <ng-template cellDef="category" let-row>
+          <app-badge variant="neutral">{{ row.category }}</app-badge>
+        </ng-template>
 
-          <!-- Hot and Cold Prices (Optional for beverage categories) -->
-          <div class="form-group" *ngIf="isBeverageCategory(productForm.get('category')?.value)">
-            <label class="section-label">Temperature-Specific Prices (Optional)</label>
-            <div class="temperature-price-row">
-              <div class="temperature-price-group">
-                <label for="hotPrice">🔥 Hot Price</label>
-                <input type="number" id="hotPrice" formControlName="hotPrice" class="form-control" placeholder="0.00"
-                  step="0.01" min="0.01">
-                <small class="form-text">Leave empty to use base price</small>
-              </div>
-              <div class="temperature-price-group">
-                <label for="coldPrice">❄️ Iced Price</label>
-                <input type="number" id="coldPrice" formControlName="coldPrice" class="form-control" placeholder="0.00"
-                  step="0.01" min="0.01">
-                <small class="form-text">Leave empty to use base price</small>
-              </div>
-            </div>
-            <div class="error-message"
-              *ngIf="(productForm.get('hotPrice')?.invalid || productForm.get('coldPrice')?.invalid) && (productForm.get('hotPrice')?.touched || productForm.get('coldPrice')?.touched)">
-              <span
-                *ngIf="productForm.get('hotPrice')?.errors?.['min'] || productForm.get('coldPrice')?.errors?.['min']">Prices
-                must be greater than 0</span>
-            </div>
-          </div>
+        <ng-template cellDef="price" let-row>
+          <span class="price-text">{{ formatPrice(row.price) }}</span>
+        </ng-template>
 
-          <div class="form-group">
-            <label for="stock">Stock Quantity *</label>
-            <input type="number" id="stock" formControlName="stock" class="form-control" placeholder="0" min="0">
-            <div class="error-message" *ngIf="productForm.get('stock')?.invalid && productForm.get('stock')?.touched">
-              <span *ngIf="productForm.get('stock')?.errors?.['required']">Stock quantity is required</span>
-              <span *ngIf="productForm.get('stock')?.errors?.['min']">Stock quantity must be 0 or greater</span>
-            </div>
-          </div>
+        <ng-template cellDef="stock" let-row>
+          <app-stock-indicator [stock]="row.stock" [threshold]="row.lowQuantityThreshold || 10"></app-stock-indicator>
+        </ng-template>
 
-          <div class="form-group">
-            <label for="lowQuantityThreshold">Low Quantity Threshold *</label>
-            <input type="number" id="lowQuantityThreshold" formControlName="lowQuantityThreshold" class="form-control"
-              placeholder="10" min="0">
-            <small class="form-text">Stock will be marked as low when it reaches or falls below this value</small>
-            <div class="error-message"
-              *ngIf="productForm.get('lowQuantityThreshold')?.invalid && productForm.get('lowQuantityThreshold')?.touched">
-              <span *ngIf="productForm.get('lowQuantityThreshold')?.errors?.['required']">Low quantity threshold is
-                required</span>
-              <span *ngIf="productForm.get('lowQuantityThreshold')?.errors?.['min']">Threshold must be 0 or
-                greater</span>
-            </div>
-          </div>
+        <ng-template cellDef="status" let-row>
+          <app-badge [variant]="row.isActive !== false ? 'success' : 'danger'">
+            {{ row.isActive !== false ? 'Active' : 'Inactive' }}
+          </app-badge>
+        </ng-template>
 
-          <div class="form-group" style="grid-column: 1 / -1;">
-            <label>Product Image *</label>
-            <div class="image-upload-section">
-              <!-- Image Type Selection -->
-              <div class="image-type-selector">
-                <label class="image-type-option">
-                  <input type="radio" name="imageType" value="emoji" [(ngModel)]="imageType"
-                    [ngModelOptions]="{standalone: true}" (change)="onImageTypeChange()" class="image-type-radio">
-                  <span class="image-type-label">Emoji Icon</span>
-                </label>
-                <label class="image-type-option">
-                  <input type="radio" name="imageType" value="file" [(ngModel)]="imageType"
-                    [ngModelOptions]="{standalone: true}" (change)="onImageTypeChange()" class="image-type-radio">
-                  <span class="image-type-label">Upload Image</span>
-                </label>
-              </div>
-
-              <!-- Emoji Selector -->
-              <div *ngIf="imageType === 'emoji'" class="emoji-selector">
-                <div class="emoji-grid">
-                  <button type="button" *ngFor="let emoji of productEmojis" class="emoji-btn"
-                    [class.selected]="productForm.get('image')?.value === emoji" (click)="selectEmoji(emoji)"
-                    [title]="emoji">
-                    {{ emoji }}
-                  </button>
-                </div>
-                <div class="current-emoji">
-                  <span class="emoji-label">Selected:</span>
-                  <span class="emoji-display">{{ productForm.get('image')?.value || '📦' }}</span>
-                </div>
-              </div>
-
-              <!-- File Upload -->
-              <div *ngIf="imageType === 'file'" class="file-upload-section">
-                <div class="file-upload-area" (click)="fileInput.click()" (dragover)="onDragOver($event)"
-                  (dragleave)="onDragLeave($event)" (drop)="onDrop($event)" [class.dragover]="isDragOver"
-                  [class.has-file]="selectedFile" [class.processing]="isProcessingImage">
-                  <div class="upload-content">
-                    <svg *ngIf="!selectedFile" class="upload-icon" viewBox="0 0 24 24" fill="none"
-                      xmlns="http://www.w3.org/2000/svg">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round" />
-                      <polyline points="7,10 12,15 17,10" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round" />
-                      <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round" />
-                    </svg>
-                    <div *ngIf="!selectedFile && !isProcessingImage" class="upload-text">
-                      <p class="upload-title">Click to upload or drag and drop</p>
-                      <p class="upload-subtitle">PNG, JPG, JPEG up to 10MB (auto-compressed)</p>
-                    </div>
-                    <div *ngIf="isProcessingImage" class="upload-text">
-                      <p class="upload-title">Processing image...</p>
-                      <p class="upload-subtitle">Compressing and resizing for optimal performance</p>
-                    </div>
-                    <div *ngIf="selectedFile" class="file-preview">
-                      <img [src]="imagePreview" alt="Preview" class="preview-image">
-                      <div class="file-info">
-                        <p class="file-name">{{ selectedFile.name }}</p>
-                        <p class="file-size">{{ formatFileSize(selectedFile.size) }}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <input #fileInput type="file" accept="image/*" (change)="onFileSelected($event)" class="file-input"
-                  style="display: none;">
-                <div class="upload-actions" *ngIf="selectedFile">
-                  <button type="button" class="btn btn-secondary btn-sm" (click)="removeFile()">
-                    Remove
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="form-group" style="grid-column: 1 / -1;">
-            <label>
-              <input type="checkbox" formControlName="isActive" class="form-checkbox">
-              <span>Active Product</span>
-            </label>
-            <small class="form-text">Inactive products won't appear in the main catalog</small>
-          </div>
-
-          <div class="form-actions">
-            <button type="button" class="btn btn-secondary" (click)="toggleForm()">Cancel</button>
-            <button type="submit" class="btn btn-primary" [disabled]="productForm.invalid">
-              {{ editingProduct ? 'Update' : 'Add' }} Product
+        <ng-template cellDef="actions" let-row>
+          <div class="row-actions">
+            <button class="action-btn-mini" (click)="editProduct(row); $event.stopPropagation()" title="Edit">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+            </button>
+            <button class="action-btn-mini delete" (click)="deleteProduct(row); $event.stopPropagation()" title="Delete">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+              </svg>
             </button>
           </div>
-        </form>
-      </div>
+        </ng-template>
+      </app-data-table>
     </div>
   </div>
   </div>
+</div>
