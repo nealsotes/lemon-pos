@@ -33,8 +33,6 @@ export interface IngredientEditorDialogData {
       <!-- Body -->
       <div class="dialog-body">
         <form [formGroup]="ingredientForm" (ngSubmit)="save()">
-          <!-- Section: Basic Info -->
-          <div class="form-section-label">Basic Information</div>
           <div class="form-grid form-grid-2">
             <div class="form-group">
               <label for="name">Name *</label>
@@ -53,8 +51,6 @@ export interface IngredientEditorDialogData {
             </div>
           </div>
 
-          <!-- Section: Stock & Measurement -->
-          <div class="form-section-label">Stock & Measurement</div>
           <div class="form-group unit-group">
             <label>Unit *</label>
             <div class="unit-card-list">
@@ -68,7 +64,7 @@ export interface IngredientEditorDialogData {
               </button>
             </div>
           </div>
-          <div class="form-grid form-grid-2" style="margin-top: 12px;">
+          <div class="form-grid form-grid-2">
             <div class="form-group">
               <label for="quantity">Quantity *</label>
               <input type="number" id="quantity" formControlName="quantity" class="form-control"
@@ -82,8 +78,6 @@ export interface IngredientEditorDialogData {
             </div>
           </div>
 
-          <!-- Section: Cost & Tracking -->
-          <div class="form-section-label">Cost & Tracking</div>
           <div class="form-grid form-grid-3">
             <div class="form-group">
               <label for="unitCost">Unit Cost (&#8369;)</label>
@@ -118,7 +112,7 @@ export interface IngredientEditorDialogData {
     .ingredient-dialog {
       display: flex;
       flex-direction: column;
-      max-height: 85vh;
+      max-height: 90vh;
       font-family: var(--font-ui);
       color: var(--text-primary);
       background: var(--bg-surface);
@@ -131,13 +125,13 @@ export interface IngredientEditorDialogData {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 20px 24px;
+      padding: 14px 20px;
       border-bottom: 1px solid var(--border);
     }
 
     .dialog-header h2 {
       font-family: var(--font-display);
-      font-size: 1.125rem;
+      font-size: 1rem;
       font-weight: 700;
       margin: 0;
     }
@@ -146,8 +140,8 @@ export interface IngredientEditorDialogData {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 36px;
-      height: 36px;
+      width: 30px;
+      height: 30px;
       background: transparent;
       border: 1px solid var(--border);
       border-radius: 8px;
@@ -167,29 +161,14 @@ export interface IngredientEditorDialogData {
     .dialog-body {
       flex: 1;
       overflow-y: auto;
-      padding: 24px;
+      padding: 16px 20px;
       min-height: 0;
     }
 
     /* ---------- Form ---------- */
-    .form-section-label {
-      font-size: 0.6875rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--accent);
-      margin-bottom: 8px;
-      margin-top: 20px;
-      padding-left: 2px;
-    }
-
-    .form-section-label:first-of-type {
-      margin-top: 0;
-    }
-
     .form-grid {
       display: grid;
-      gap: 12px;
+      gap: 10px;
     }
 
     .form-grid-2 {
@@ -203,11 +182,11 @@ export interface IngredientEditorDialogData {
     .form-group {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 3px;
     }
 
     .form-group label {
-      font-size: 0.6875rem;
+      font-size: 0.625rem;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.04em;
@@ -215,14 +194,17 @@ export interface IngredientEditorDialogData {
     }
 
     .form-control {
-      padding: 10px 12px;
+      padding: 0 12px;
+      height: 34px;
+      line-height: 34px;
       background: var(--bg-subtle, var(--background-secondary));
       border: 1px solid var(--border, var(--border-color));
-      border-radius: 6px;
+      border-radius: 5px;
       color: var(--text-primary);
-      font-size: 0.875rem;
+      font-size: 13px;
       font-family: var(--font-ui);
       outline: none;
+      box-sizing: border-box;
       transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
     }
 
@@ -239,7 +221,7 @@ export interface IngredientEditorDialogData {
     .unit-card-list {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 6px;
     }
 
     .unit-card {
@@ -248,12 +230,12 @@ export interface IngredientEditorDialogData {
       align-items: center;
       justify-content: center;
       gap: 4px;
-      width: 64px;
-      height: 58px;
-      padding: 8px 4px;
+      width: 52px;
+      height: 44px;
+      padding: 4px;
       background: var(--bg-subtle, var(--background-secondary));
       border: 1.5px solid var(--border, var(--border-color));
-      border-radius: 8px;
+      border-radius: 6px;
       color: var(--text-secondary);
       cursor: pointer;
       transition: all var(--transition-fast);
@@ -274,7 +256,7 @@ export interface IngredientEditorDialogData {
     }
 
     .unit-icon {
-      font-size: 0.875rem;
+      font-size: 0.75rem;
       font-weight: 800;
       font-family: var(--font-display);
       letter-spacing: -0.02em;
@@ -286,7 +268,7 @@ export interface IngredientEditorDialogData {
     }
 
     .unit-label {
-      font-size: 0.625rem;
+      font-size: 0.5625rem;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.04em;
@@ -299,7 +281,7 @@ export interface IngredientEditorDialogData {
 
     .value-summary {
       background: rgba(var(--accent-rgb), 0.04);
-      padding: 8px 12px;
+      padding: 6px 10px;
       border-radius: 6px;
       border: 1px dashed rgba(var(--accent-rgb), 0.3);
       display: flex;
@@ -308,7 +290,7 @@ export interface IngredientEditorDialogData {
     }
 
     .summary-val {
-      font-size: 1.25rem;
+      font-size: 1rem;
       font-weight: 700;
       color: var(--accent);
       font-family: var(--font-display);
@@ -316,7 +298,7 @@ export interface IngredientEditorDialogData {
     }
 
     .error-message {
-      font-size: 0.6875rem;
+      font-size: 0.625rem;
       color: var(--danger);
       font-weight: 500;
     }
@@ -326,7 +308,7 @@ export interface IngredientEditorDialogData {
       display: flex;
       justify-content: flex-end;
       gap: 10px;
-      padding: 16px 24px;
+      padding: 10px 20px;
       border-top: 1px solid var(--border);
       background: var(--bg-subtle);
     }
@@ -353,9 +335,9 @@ export interface IngredientEditorDialogData {
 
     @media (pointer: coarse) {
       .form-control {
-        min-height: 44px;
+        min-height: 40px;
         padding: 12px 14px;
-        font-size: 1rem;
+        font-size: 0.9375rem;
       }
 
       .dialog-close-btn {

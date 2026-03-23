@@ -1,260 +1,385 @@
 <div class="reports-container">
   <!-- Page Header -->
-  <app-top-bar title="Sales Reports">
+  <app-top-bar title="Reports">
     <div class="date-range-picker">
       <div class="date-inputs">
         <div class="date-input-group">
-          <label for="startDate">From:</label>
+          <label for="startDate">From</label>
           <input type="date" id="startDate" [value]="startDate.toISOString().split('T')[0]"
             (change)="onStartDateChange($event)" class="date-input">
         </div>
         <div class="date-input-group">
-          <label for="endDate">To:</label>
+          <label for="endDate">To</label>
           <input type="date" id="endDate" [value]="endDate.toISOString().split('T')[0]"
             (change)="onEndDateChange($event)" class="date-input">
         </div>
       </div>
-      <button class="btn-outline" (click)="resetToToday()" [disabled]="!isCustomDateRange"
-        title="Reset to today's view">
-        Today
-      </button>
+      <button class="btn-outline" (click)="resetToToday()" [disabled]="!isCustomDateRange">Today</button>
     </div>
     <button class="header-btn compact-btn" (click)="refreshReports()" [disabled]="isLoading"
       [title]="isLoading ? 'Loading...' : 'Refresh'">
       <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M1 4v6h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-        <path d="M23 20v-6h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-          stroke-linejoin="round" />
+        <path d="M23 20v-6h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
         <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15" stroke="currentColor"
           stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
       </svg>
     </button>
   </app-top-bar>
 
-  <div class="reports-body">
-  <!-- Loading State -->
-  <app-loading-spinner *ngIf="isLoading" message="Loading reports..."></app-loading-spinner>
-
-  <!-- Reports Content -->
-  <div class="reports-content" *ngIf="!isLoading">
-    <!-- Error State -->
-    <div *ngIf="errorMessage" class="error-container">
-      <div class="error-icon">
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
-          <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-            stroke-linejoin="round" />
-          <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-            stroke-linejoin="round" />
-        </svg>
-      </div>
-      <p class="error-text">{{ errorMessage }}</p>
-      <app-button variant="primary" (click)="refreshReports()">Try Again</app-button>
-    </div>
-
-    <!-- Empty State -->
-    <div *ngIf="!errorMessage && !hasData() && allTimeProductSales.length === 0" class="empty-state">
-      <div class="empty-icon">
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M3 3v18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-            stroke-linejoin="round" />
-          <path d="M7 14l4-4 4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-            stroke-linejoin="round" />
-        </svg>
-      </div>
-      <h3 class="empty-title">No Sales Data</h3>
-      <p class="empty-description">
-        It's {{ today | date:'EEEE, MMMM d, y' }} and no sales have been recorded yet.
-        Start making sales to see your metrics here.
-      </p>
-      <div class="empty-actions">
-        <app-button variant="primary" routerLink="/products">Start Selling</app-button>
-        <app-button variant="secondary" (click)="refreshReports()">Refresh</app-button>
-      </div>
-    </div>
-
-    <!-- === KPI STRIP === -->
-    <app-kpi-strip *ngIf="!errorMessage && hasData()" [kpis]="kpiItems"></app-kpi-strip>
-
-    <!-- === SALES TREND CHART === -->
-    <div *ngIf="!errorMessage && hasData()" class="chart-section">
-      <div class="section-header">
-        <h3 class="section-title">Sales Trend</h3>
-        <div class="period-selector">
-          <button class="period-btn" [class.active]="trendPeriod === '7d'" (click)="onTrendPeriodChange('7d')">
-            7D
-          </button>
-          <button class="period-btn" [class.active]="trendPeriod === '30d'" (click)="onTrendPeriodChange('30d')">
-            30D
-          </button>
-          <button class="period-btn" [class.active]="trendPeriod === '90d'" (click)="onTrendPeriodChange('90d')">
-            90D
-          </button>
-        </div>
-      </div>
-
-      <div class="chart-body" *ngIf="chartData.length > 0">
-        <div class="chart-area">
-          <div *ngFor="let data of chartData" class="chart-col">
-            <div class="bar-wrapper">
-              <div class="bar-value">{{ formatCurrency(data.sales) }}</div>
-              <div class="chart-bar" [style.height.%]="getBarHeight(data.sales)"></div>
-            </div>
-            <span class="bar-label">{{ data.formattedDate }}</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="chart-empty" *ngIf="chartData.length === 0">
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="32" height="32">
-          <path d="M3 3v18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-            stroke-linejoin="round" />
-          <path d="M7 14l4-4 4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-            stroke-linejoin="round" />
-        </svg>
-        <p>No sales data for the selected period</p>
-      </div>
-    </div>
-
-    <!-- === TWO-COLUMN: TOP PRODUCTS + RECENT TRANSACTIONS === -->
-    <div *ngIf="!errorMessage && hasData()" class="two-col-row">
-
-      <!-- Top Products -->
-      <div class="panel">
-        <div class="section-header">
-          <h3 class="section-title">Top Products</h3>
-          <span class="section-badge">{{ topProducts.length }}</span>
-        </div>
-        <div class="panel-body">
-          <div *ngIf="topProducts.length === 0" class="panel-empty">No product data available</div>
-          <div *ngFor="let product of topProducts; let i = index" class="list-row product-row">
-            <span class="row-rank" [class.rank-gold]="i === 0" [class.rank-silver]="i === 1"
-              [class.rank-bronze]="i === 2">{{ i + 1 }}</span>
-            <div class="row-main">
-              <span class="row-name">{{ product.name }}</span>
-              <span class="row-meta">{{ product.category }}</span>
-            </div>
-            <div class="row-stats">
-              <span class="row-value">{{ formatCurrency(product.sales) }}</span>
-              <span class="row-meta">{{ product.quantity }} sold</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Recent Transactions -->
-      <div class="panel">
-        <div class="section-header">
-          <h3 class="section-title">Recent Transactions</h3>
-          <span class="section-badge">{{ recentTransactions.length }}</span>
-        </div>
-        <div class="panel-body">
-          <div *ngIf="recentTransactions.length === 0" class="panel-empty">No transactions available</div>
-          <div *ngFor="let transaction of recentTransactions" class="list-row txn-row"
-            (click)="openTransactionDetails(transaction)" title="Click to view details">
-            <div class="row-main">
-              <span class="row-id">#{{ transaction.id }}</span>
-              <span class="row-meta">{{ formatDateTime(transaction.timestamp) }}</span>
-            </div>
-            <div class="row-stats">
-              <span class="row-value">{{ formatCurrency(transaction.total) }}</span>
-              <span class="row-meta">{{ transaction.items.length }} items</span>
-            </div>
-            <span class="status-dot" [class]="'dot-' + transaction.status"
-              [title]="transaction.status"></span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- === ALL-TIME LEADERBOARD === -->
-    <div *ngIf="!errorMessage" class="leaderboard-section">
-      <div class="section-header">
-        <div class="section-title-group">
-          <h3 class="section-title">All-Time Leaderboard</h3>
-          <span class="section-subtitle">Lifetime product performance</span>
-        </div>
-        <div class="leaderboard-controls">
-          <div class="search-box">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
-              <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-            <input type="text" [(ngModel)]="allTimeSearchQuery" placeholder="Search..."
-              class="search-input">
-          </div>
-          <select [(ngModel)]="allTimeSortBy" class="sort-select">
-            <option value="sales">Revenue</option>
-            <option value="quantity">Qty Sold</option>
-            <option value="name">Name</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="category-chips">
-        <button class="chip" [class.active]="allTimeSelectedCategory === 'all'"
-          (click)="selectAllTimeCategory('all')">All</button>
-        <button *ngFor="let category of allTimeCategories" class="chip"
-          [class.active]="allTimeSelectedCategory === category"
-          (click)="selectAllTimeCategory(category)">{{ category }}</button>
-      </div>
-
-      <div class="leaderboard-grid">
-        <div *ngIf="filteredAllTimeSales.length === 0" class="panel-empty">No products found</div>
-        <div *ngFor="let product of filteredAllTimeSales; let i = index" class="lb-item"
-          [class.lb-top]="i < 3"
-          [title]="product.name + ' - Last sold: ' + (product.lastSoldDate ? formatDate(product.lastSoldDate) : 'Never')">
-          <span class="lb-rank">{{ i + 1 }}</span>
-          <div class="lb-info">
-            <div class="lb-name-row">
-              <span class="lb-name">{{ product.name }}</span>
-              <span class="lb-cat">{{ product.category }}</span>
-            </div>
-            <div class="lb-progress">
-              <div class="lb-progress-fill" [style.width.%]="(product.sales / getMaxAllTimeSales()) * 100"></div>
-            </div>
-          </div>
-          <div class="lb-data">
-            <span class="lb-revenue">{{ formatCurrency(product.sales) }}</span>
-            <span class="lb-qty">{{ product.quantity }} sold</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- === EXPORT CONTROLS === -->
-    <div *ngIf="!errorMessage && hasData()" class="export-row">
-      <span class="export-label">Export</span>
-      <button class="btn-export-sm" (click)="exportData('csv')" title="Export CSV">
-        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor"
-            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-          <polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-            stroke-linejoin="round" />
-        </svg>
-        CSV
-      </button>
-      <button class="btn-export-sm" (click)="exportData('excel')" title="Export Excel">
-        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor"
-            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-          <polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-            stroke-linejoin="round" />
-        </svg>
-        Excel
-      </button>
-      <button class="btn-export-sm" (click)="exportData('pdf')" title="Export PDF">
-        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor"
-            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-          <polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-            stroke-linejoin="round" />
-        </svg>
-        PDF
-      </button>
-    </div>
-
+  <!-- Tabs -->
+  <div class="tab-bar">
+    <button class="tab" [class.active]="activeTab === 'overview'" (click)="activeTab = 'overview'">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 4-4"/>
+      </svg>
+      Overview
+    </button>
+    <button class="tab" [class.active]="activeTab === 'profitability'" (click)="activeTab = 'profitability'">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+      </svg>
+      Profitability
+    </button>
+    <button class="tab" [class.active]="activeTab === 'inventory'" (click)="activeTab = 'inventory'">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+        <path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/>
+      </svg>
+      Inventory
+    </button>
+    <button class="tab" [class.active]="activeTab === 'summary'" (click)="activeTab = 'summary'">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+        <polyline points="14,2 14,8 20,8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+        <polyline points="10,9 9,9 8,9"/>
+      </svg>
+      Summary
+    </button>
   </div>
+
+  <div class="reports-body">
+    <!-- Loading -->
+    <app-loading-spinner *ngIf="isLoading" message="Loading reports..."></app-loading-spinner>
+
+    <!-- Content -->
+    <div class="reports-content" *ngIf="!isLoading">
+
+      <!-- Error -->
+      <div *ngIf="errorMessage" class="error-container">
+        <div class="error-icon">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+        <p class="error-text">{{ errorMessage }}</p>
+        <app-button variant="primary" (click)="refreshReports()">Try Again</app-button>
+      </div>
+
+      <!-- Empty -->
+      <div *ngIf="!errorMessage && !hasData() && allTimeProductSales.length === 0" class="empty-state">
+        <div class="empty-icon">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M3 3v18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7 14l4-4 4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+        <h3 class="empty-title">No Sales Data</h3>
+        <p class="empty-description">No sales recorded yet. Start making sales to see your metrics here.</p>
+        <div class="empty-actions">
+          <app-button variant="primary" routerLink="/products">Start Selling</app-button>
+          <app-button variant="secondary" (click)="refreshReports()">Refresh</app-button>
+        </div>
+      </div>
+
+      <!-- ============================================ -->
+      <!-- TAB: OVERVIEW                                -->
+      <!-- ============================================ -->
+      <ng-container *ngIf="!errorMessage && activeTab === 'overview'">
+        <app-kpi-strip *ngIf="hasData()" [kpis]="kpiItems"></app-kpi-strip>
+
+        <!-- Sales Trend -->
+        <div *ngIf="hasData()" class="card">
+          <div class="card-header">
+            <h3 class="card-title">Sales Trend</h3>
+            <div class="period-selector">
+              <button class="period-btn" [class.active]="trendPeriod === '7d'" (click)="onTrendPeriodChange('7d')">7D</button>
+              <button class="period-btn" [class.active]="trendPeriod === '30d'" (click)="onTrendPeriodChange('30d')">30D</button>
+              <button class="period-btn" [class.active]="trendPeriod === '90d'" (click)="onTrendPeriodChange('90d')">90D</button>
+            </div>
+          </div>
+          <div class="chart-body" *ngIf="chartData.length > 0">
+            <div class="chart-area">
+              <div *ngFor="let data of chartData" class="chart-col">
+                <div class="bar-wrapper">
+                  <div class="bar-value">{{ formatCurrency(data.sales) }}</div>
+                  <div class="chart-bar" [style.height.%]="getBarHeight(data.sales)"></div>
+                </div>
+                <span class="bar-label">{{ data.formattedDate }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="chart-empty" *ngIf="chartData.length === 0">
+            <p>No sales data for this period</p>
+          </div>
+        </div>
+
+        <!-- Top Products + Recent Transactions -->
+        <div *ngIf="hasData()" class="two-col-row">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Top Products</h3>
+              <span class="card-badge">{{ topProducts.length }}</span>
+            </div>
+            <div class="card-list">
+              <div *ngIf="topProducts.length === 0" class="card-empty">No product data</div>
+              <div *ngFor="let product of topProducts; let i = index" class="list-row">
+                <span class="row-rank" [class.rank-gold]="i === 0" [class.rank-silver]="i === 1" [class.rank-bronze]="i === 2">{{ i + 1 }}</span>
+                <div class="row-main">
+                  <span class="row-name">{{ product.name }}</span>
+                  <span class="row-meta">{{ product.category }}</span>
+                </div>
+                <div class="row-stats">
+                  <span class="row-value">{{ formatCurrency(product.sales) }}</span>
+                  <span class="row-meta">{{ product.quantity }} sold</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Recent Transactions</h3>
+              <span class="card-badge">{{ recentTransactions.length }}</span>
+            </div>
+            <div class="card-list">
+              <div *ngIf="recentTransactions.length === 0" class="card-empty">No transactions</div>
+              <div *ngFor="let transaction of recentTransactions" class="list-row txn-row"
+                (click)="openTransactionDetails(transaction)">
+                <div class="row-main">
+                  <span class="row-id">#{{ transaction.id }}</span>
+                  <span class="row-meta">{{ formatDateTime(transaction.timestamp) }}</span>
+                </div>
+                <div class="row-stats">
+                  <span class="row-value">{{ formatCurrency(transaction.total) }}</span>
+                  <span class="row-meta">{{ transaction.items.length }} items</span>
+                </div>
+                <span class="status-dot" [class]="'dot-' + transaction.status"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- All-Time Leaderboard -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <h3 class="card-title">All-Time Leaderboard</h3>
+              <span class="card-subtitle">Lifetime product performance</span>
+            </div>
+            <div class="leaderboard-controls">
+              <div class="search-box">
+                <svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <input type="text" [(ngModel)]="allTimeSearchQuery" placeholder="Search..." class="search-input">
+              </div>
+              <select [(ngModel)]="allTimeSortBy" class="sort-select">
+                <option value="sales">Revenue</option>
+                <option value="quantity">Qty Sold</option>
+                <option value="name">Name</option>
+              </select>
+            </div>
+          </div>
+          <div class="category-chips">
+            <button class="chip" [class.active]="allTimeSelectedCategory === 'all'" (click)="selectAllTimeCategory('all')">All</button>
+            <button *ngFor="let category of allTimeCategories" class="chip"
+              [class.active]="allTimeSelectedCategory === category"
+              (click)="selectAllTimeCategory(category)">{{ category }}</button>
+          </div>
+          <div class="card-list leaderboard-list">
+            <div *ngIf="filteredAllTimeSales.length === 0" class="card-empty">No products found</div>
+            <div *ngFor="let product of filteredAllTimeSales; let i = index" class="lb-item" [class.lb-top]="i < 3">
+              <span class="lb-rank">{{ i + 1 }}</span>
+              <div class="lb-info">
+                <div class="lb-name-row">
+                  <span class="lb-name">{{ product.name }}</span>
+                  <span class="lb-cat">{{ product.category }}</span>
+                </div>
+                <div class="lb-progress">
+                  <div class="lb-progress-fill" [style.width.%]="(product.sales / getMaxAllTimeSales()) * 100"></div>
+                </div>
+              </div>
+              <div class="lb-data">
+                <span class="lb-revenue">{{ formatCurrency(product.sales) }}</span>
+                <span class="lb-qty">{{ product.quantity }} sold</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- ============================================ -->
+      <!-- TAB: PROFITABILITY                           -->
+      <!-- ============================================ -->
+      <ng-container *ngIf="!errorMessage && activeTab === 'profitability'">
+        <div *ngIf="profitLossData" class="card">
+          <div class="card-header">
+            <h3 class="card-title">Profit & Loss</h3>
+            <span class="card-subtitle">{{ getDateRangeLabel() }}</span>
+          </div>
+          <div class="pnl-kpis">
+            <div class="pnl-kpi">
+              <span class="pnl-kpi-label">Revenue</span>
+              <span class="pnl-kpi-value">{{ formatCurrency(profitLossData.grossRevenue) }}</span>
+            </div>
+            <div class="pnl-kpi">
+              <span class="pnl-kpi-label">COGS</span>
+              <span class="pnl-kpi-value cogs">{{ formatCurrency(profitLossData.cogs) }}</span>
+            </div>
+            <div class="pnl-kpi">
+              <span class="pnl-kpi-label">Gross Profit</span>
+              <span class="pnl-kpi-value profit">{{ formatCurrency(profitLossData.grossProfit) }}</span>
+            </div>
+            <div class="pnl-kpi">
+              <span class="pnl-kpi-label">Margin</span>
+              <span class="pnl-kpi-value" [class]="getMarginClass(profitLossData.marginPercent)">{{ profitLossData.marginPercent | number:'1.1-1' }}%</span>
+            </div>
+          </div>
+          <div class="pnl-table" *ngIf="profitLossData.breakdown?.length > 0">
+            <div class="pnl-table-head">
+              <span>Period</span><span>Revenue</span><span>COGS</span><span>Profit</span><span>Margin</span>
+            </div>
+            <div class="pnl-table-row" *ngFor="let row of profitLossData.breakdown">
+              <span class="pnl-period">{{ row.period }}</span>
+              <span>{{ formatCurrency(row.revenue) }}</span>
+              <span class="cogs">{{ formatCurrency(row.cogs) }}</span>
+              <span class="profit">{{ formatCurrency(row.grossProfit) }}</span>
+              <span [class]="getMarginClass(row.marginPercent)">{{ row.marginPercent | number:'1.1-1' }}%</span>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="!profitLossData" class="card-empty-state">
+          <p>No profitability data available for this period.</p>
+        </div>
+      </ng-container>
+
+      <!-- ============================================ -->
+      <!-- TAB: INVENTORY                               -->
+      <!-- ============================================ -->
+      <ng-container *ngIf="!errorMessage && activeTab === 'inventory'">
+        <div *ngIf="inventoryData" class="card">
+          <div class="card-header">
+            <h3 class="card-title">Inventory Valuation</h3>
+            <span class="card-subtitle">{{ getDateRangeLabel() }}</span>
+          </div>
+          <div class="pnl-kpis">
+            <div class="pnl-kpi">
+              <span class="pnl-kpi-label">Total Value</span>
+              <span class="pnl-kpi-value">{{ formatCurrency(inventoryData.totalValue) }}</span>
+            </div>
+            <div class="pnl-kpi">
+              <span class="pnl-kpi-label">Period Change</span>
+              <span class="pnl-kpi-value" [class.profit]="inventoryData.periodChange >= 0" [class.cogs]="inventoryData.periodChange < 0">
+                {{ inventoryData.periodChange >= 0 ? '+' : '' }}{{ formatCurrency(inventoryData.periodChange) }}
+              </span>
+            </div>
+            <div class="pnl-kpi">
+              <span class="pnl-kpi-label">Waste / Shrinkage</span>
+              <span class="pnl-kpi-value cogs">{{ formatCurrency(inventoryData.wasteAndShrinkage) }}</span>
+            </div>
+            <div class="pnl-kpi">
+              <span class="pnl-kpi-label">Low Stock</span>
+              <span class="pnl-kpi-value" [class.cogs]="inventoryData.lowStockCount > 0">{{ inventoryData.lowStockCount }}</span>
+            </div>
+          </div>
+          <div class="inv-two-col">
+            <div class="inv-sub-panel" *ngIf="inventoryData.topIngredients?.length > 0">
+              <div class="inv-sub-title">Top Ingredients by Value</div>
+              <div class="inv-table-head"><span>Ingredient</span><span>On Hand</span><span>Value</span><span>%</span></div>
+              <div class="inv-table-row" *ngFor="let ing of inventoryData.topIngredients">
+                <span class="inv-name">{{ ing.name }}</span>
+                <span class="inv-qty">{{ ing.onHand | number:'1.0-1' }} {{ ing.unit }}</span>
+                <span>{{ formatCurrency(ing.totalValue) }}</span>
+                <div class="inv-pct">
+                  <div class="inv-pct-bar" [style.width.%]="ing.percentOfTotal"></div>
+                  <span>{{ ing.percentOfTotal | number:'1.1-1' }}%</span>
+                </div>
+              </div>
+            </div>
+            <div class="inv-sub-panel" *ngIf="inventoryData.movementSummary?.length > 0">
+              <div class="inv-sub-title">Stock Movements</div>
+              <div class="inv-table-head"><span>Type</span><span>Count</span><span>Cost</span></div>
+              <div class="inv-table-row" *ngFor="let mov of inventoryData.movementSummary">
+                <span>{{ mov.type }}</span><span>{{ mov.count }}</span><span>{{ formatCurrency(mov.totalCost) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="!inventoryData" class="card-empty-state">
+          <p>No inventory data available.</p>
+        </div>
+      </ng-container>
+
+      <!-- ============================================ -->
+      <!-- TAB: SUMMARY                                 -->
+      <!-- ============================================ -->
+      <ng-container *ngIf="!errorMessage && activeTab === 'summary'">
+        <div *ngIf="accountantSummary" class="card accountant-card">
+          <div class="card-header">
+            <h3 class="card-title">Accountant Summary</h3>
+            <span class="card-subtitle">{{ getDateRangeLabel() }}</span>
+          </div>
+
+          <div class="acct-section">
+            <div class="acct-section-label">Sales Summary</div>
+            <div class="acct-row"><span>Gross Revenue</span><span>{{ formatCurrency(accountantSummary.grossRevenue) }}</span></div>
+            <div class="acct-row negative"><span>Less: Discounts</span><span>({{ formatCurrency(accountantSummary.totalDiscounts) }})</span></div>
+            <div class="acct-row"><span>Net Revenue</span><span>{{ formatCurrency(accountantSummary.netRevenue) }}</span></div>
+            <div class="acct-row negative"><span>Cost of Goods Sold</span><span>({{ formatCurrency(accountantSummary.cogs) }})</span></div>
+            <div class="acct-row bold"><span>Gross Profit</span><span>{{ formatCurrency(accountantSummary.grossProfit) }}</span></div>
+            <div class="acct-row bold"><span>Gross Margin</span><span [class]="getMarginClass(accountantSummary.grossMarginPercent)">{{ accountantSummary.grossMarginPercent | number:'1.1-1' }}%</span></div>
+          </div>
+
+          <div class="acct-section">
+            <div class="acct-section-label">Transaction Breakdown</div>
+            <div class="acct-row"><span>Total Transactions</span><span>{{ accountantSummary.transactionCount }}</span></div>
+            <div class="acct-row"><span>Average Ticket</span><span>{{ formatCurrency(accountantSummary.averageTicket) }}</span></div>
+            <div class="acct-row" *ngFor="let pm of accountantSummary.paymentMethodBreakdown">
+              <span>{{ pm.method === 'cash' ? 'Cash' : pm.method === 'gcash' ? 'GCash' : pm.method }} Payments</span>
+              <span>{{ pm.count }} ({{ formatCurrency(pm.total) }})</span>
+            </div>
+          </div>
+
+          <div class="acct-section" *ngIf="accountantSummary.categoryBreakdown?.length > 0">
+            <div class="acct-section-label">Sales by Category</div>
+            <div class="acct-row" *ngFor="let cat of accountantSummary.categoryBreakdown">
+              <span>{{ cat.category }}</span>
+              <span>{{ formatCurrency(cat.total) }} ({{ cat.percent | number:'1.1-1' }}%)</span>
+            </div>
+          </div>
+
+          <div class="acct-section">
+            <div class="acct-section-label">Inventory Snapshot</div>
+            <div class="acct-row"><span>Current Inventory Value</span><span>{{ formatCurrency(accountantSummary.currentInventoryValue) }}</span></div>
+            <div class="acct-row"><span>Ingredients Consumed</span><span>{{ formatCurrency(accountantSummary.ingredientsConsumed) }}</span></div>
+            <div class="acct-row"><span>Waste / Shrinkage</span><span class="cogs">{{ formatCurrency(accountantSummary.wasteAndShrinkage) }}</span></div>
+          </div>
+
+          <div class="acct-export">
+            <button class="btn-export-sm" (click)="exportData('csv')">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              CSV
+            </button>
+            <button class="btn-export-sm" (click)="exportData('excel')">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              Excel
+            </button>
+          </div>
+        </div>
+
+        <div *ngIf="!accountantSummary" class="card-empty-state">
+          <p>No summary data available for this period.</p>
+        </div>
+      </ng-container>
+
+    </div>
   </div>
 </div>
 
@@ -265,67 +390,32 @@
       <h3 class="modal-title">Transaction Details</h3>
       <button class="close-btn" (click)="closeTransactionModal()">&times;</button>
     </div>
-
     <div class="modal-body" *ngIf="selectedTransaction">
       <div class="receipt-content">
-        <!-- Store Header -->
         <div class="store-header">
           <h3>Lemon POS Advance</h3>
           <p>Point of Sale Terminal</p>
           <p>{{ formatDateTime(selectedTransaction.timestamp || '') }}</p>
         </div>
-
-        <!-- Transaction Details -->
         <div class="receipt-details">
-          <div class="detail-row">
-            <span>Receipt #:</span>
-            <span>{{ getReceiptNumber(selectedTransaction) }}</span>
-          </div>
-          <div class="detail-row">
-            <span>Payment Method:</span>
-            <span>{{ getPaymentMethodDisplay(selectedTransaction.paymentMethod) }}</span>
-          </div>
-          <div class="detail-row" *ngIf="selectedTransaction.serviceType">
-            <span>Service Type:</span>
-            <span>{{ selectedTransaction.serviceType === 'dineIn' ? 'Dine-in' : 'Take-out' }}</span>
-          </div>
-          <div class="detail-row" *ngIf="selectedTransaction.customerInfo.name">
-            <span>Customer:</span>
-            <span>{{ selectedTransaction.customerInfo.name }}</span>
-          </div>
-          <div class="detail-row" *ngIf="selectedTransaction.customerInfo.phone">
-            <span>Phone:</span>
-            <span>{{ selectedTransaction.customerInfo.phone }}</span>
-          </div>
-          <div class="detail-row" *ngIf="selectedTransaction.customerInfo.email">
-            <span>Email:</span>
-            <span>{{ selectedTransaction.customerInfo.email }}</span>
-          </div>
+          <div class="detail-row"><span>Receipt #:</span><span>{{ getReceiptNumber(selectedTransaction) }}</span></div>
+          <div class="detail-row"><span>Payment:</span><span>{{ getPaymentMethodDisplay(selectedTransaction.paymentMethod) }}</span></div>
+          <div class="detail-row" *ngIf="selectedTransaction.serviceType"><span>Service:</span><span>{{ selectedTransaction.serviceType === 'dineIn' ? 'Dine-in' : 'Take-out' }}</span></div>
+          <div class="detail-row" *ngIf="selectedTransaction.customerInfo.name"><span>Customer:</span><span>{{ selectedTransaction.customerInfo.name }}</span></div>
         </div>
-
-        <!-- Items List -->
         <div class="items-section">
-          <div class="items-header">
-            <span>Item</span>
-            <span>Qty</span>
-            <span>Price</span>
-            <span>Total</span>
-          </div>
-
+          <div class="items-header"><span>Item</span><span>Qty</span><span>Price</span><span>Total</span></div>
           <div class="item-row" *ngFor="let item of selectedTransaction.items">
             <div class="item-info">
               <span class="item-name">
                 {{ item.name || 'Unknown Item' }}
-                <span *ngIf="getTemperature(item)" class="temperature-badge" [class.hot]="isHot(item)"
-                  [class.cold]="isCold(item)">
-                  <span *ngIf="isHot(item)">HOT</span>
-                  <span *ngIf="isCold(item)">ICED</span>
+                <span *ngIf="getTemperature(item)" class="temperature-badge" [class.hot]="isHot(item)" [class.cold]="isCold(item)">
+                  <span *ngIf="isHot(item)">HOT</span><span *ngIf="isCold(item)">ICED</span>
                 </span>
               </span>
               <div class="item-addons" *ngIf="hasAddOns(item)">
                 <span *ngFor="let addOn of getAddOns(item)" class="addon-item">
-                  <span *ngIf="addOn.quantity && addOn.quantity > 1">{{ addOn.quantity }}x </span>+ {{ addOn.name }} ({{
-                  formatPrice(addOn.price * (addOn.quantity || 1)) }})
+                  <span *ngIf="addOn.quantity && addOn.quantity > 1">{{ addOn.quantity }}x </span>+ {{ addOn.name }} ({{ formatPrice(addOn.price * (addOn.quantity || 1)) }})
                 </span>
               </div>
             </div>
@@ -334,59 +424,25 @@
             <span class="item-total">{{ formatPrice(item.price * item.quantity) }}</span>
           </div>
         </div>
-
-        <!-- Totals Section -->
         <div class="totals-section">
-          <div class="total-row">
-            <span>Subtotal:</span>
-            <span>{{ formatPrice(getSubtotal(selectedTransaction)) }}</span>
-          </div>
-          <div class="total-row" *ngIf="getDiscountTotal(selectedTransaction) > 0">
-            <span>Discount:</span>
-            <span>-{{ formatPrice(getDiscountTotal(selectedTransaction)) }}</span>
-          </div>
-          <div class="total-row grand-total">
-            <span>Total:</span>
-            <span>{{ formatPrice(selectedTransaction.total || 0) }}</span>
-          </div>
+          <div class="total-row"><span>Subtotal:</span><span>{{ formatPrice(getSubtotal(selectedTransaction)) }}</span></div>
+          <div class="total-row" *ngIf="getDiscountTotal(selectedTransaction) > 0"><span>Discount:</span><span>-{{ formatPrice(getDiscountTotal(selectedTransaction)) }}</span></div>
+          <div class="total-row grand-total"><span>Total:</span><span>{{ formatPrice(selectedTransaction.total || 0) }}</span></div>
           <div *ngIf="selectedTransaction.paymentMethod === 'cash'" class="cash-details">
-            <div class="total-row">
-              <span>Amount Received:</span>
-              <span>{{ formatPrice(getAmountReceived(selectedTransaction)) }}</span>
-            </div>
-            <div class="total-row">
-              <span>Change:</span>
-              <span class="change-amount">{{ formatPrice(getChange(selectedTransaction)) }}</span>
-            </div>
+            <div class="total-row"><span>Received:</span><span>{{ formatPrice(getAmountReceived(selectedTransaction)) }}</span></div>
+            <div class="total-row"><span>Change:</span><span class="change-amount">{{ formatPrice(getChange(selectedTransaction)) }}</span></div>
           </div>
         </div>
-
-        <!-- Notes -->
-        <div class="notes-section" *ngIf="selectedTransaction.notes">
-          <h4>Notes:</h4>
-          <p>{{ selectedTransaction.notes }}</p>
-        </div>
-
-        <!-- Footer -->
         <div class="receipt-footer">
           <p>Thank you for your purchase!</p>
-          <p class="footer-note">Please keep this receipt for your records</p>
         </div>
       </div>
     </div>
-
     <div class="modal-footer">
       <button class="btn btn-secondary" (click)="closeTransactionModal()">Close</button>
       <button class="btn btn-primary" (click)="printReceipt()">
-        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M6 9V2h12v7" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-            stroke-linejoin="round" />
-          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-          <path d="M6 14h12v8H6z" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-            stroke-linejoin="round" />
-        </svg>
-        Print Thermal
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M6 9V2h12v7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 14h12v8H6z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Print
       </button>
     </div>
   </div>

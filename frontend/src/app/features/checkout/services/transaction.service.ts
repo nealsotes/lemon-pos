@@ -276,6 +276,33 @@ export class TransactionService {
     }
   }
 
+  getProfitLossReport(startDate: Date, endDate: Date): Observable<any> {
+    const params: any = {};
+    if (startDate) params.startDate = startDate.toISOString();
+    if (endDate) params.endDate = endDate.toISOString();
+    return this.http.get<any>(`${this.apiUrl}/reports/profit-loss`, { params }).pipe(
+      catchError(() => of(null))
+    );
+  }
+
+  getInventoryValuation(startDate: Date, endDate: Date): Observable<any> {
+    const params: any = {};
+    if (startDate) params.startDate = startDate.toISOString();
+    if (endDate) params.endDate = endDate.toISOString();
+    return this.http.get<any>(`${this.apiUrl}/reports/inventory-valuation`, { params }).pipe(
+      catchError(() => of(null))
+    );
+  }
+
+  getAccountantSummary(startDate: Date, endDate: Date): Observable<any> {
+    const params: any = {};
+    if (startDate) params.startDate = startDate.toISOString();
+    if (endDate) params.endDate = endDate.toISOString();
+    return this.http.get<any>(`${this.apiUrl}/reports/accountant-summary`, { params }).pipe(
+      catchError(() => of(null))
+    );
+  }
+
   getRecentTransactions(count: number = 5): Observable<Transaction[]> {
     return this.transactionsSubject.asObservable().pipe(
       map(transactions => {

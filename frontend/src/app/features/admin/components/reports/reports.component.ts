@@ -52,6 +52,14 @@ export class ReportsComponent implements OnInit {
   allTimeCategories: string[] = [];
   allTimeSelectedCategory: string = 'all';
 
+  // Accounting report data
+  profitLossData: any = null;
+  inventoryData: any = null;
+  accountantSummary: any = null;
+
+  // Tab navigation
+  activeTab: 'overview' | 'profitability' | 'inventory' | 'summary' = 'overview';
+
   constructor(
     private transactionService: TransactionService,
     private productService: ProductService,
@@ -309,6 +317,9 @@ export class ReportsComponent implements OnInit {
       await this.loadRecentTransactions();
       await this.loadSalesTrendData(); // Load sales trend data for Performance Metrics
       await this.loadAllTimeProductSales(); // Load all-time product sales
+      await this.loadProfitLossReport();
+      await this.loadInventoryValuation();
+      await this.loadAccountantSummary();
 
       clearTimeout(timeoutId);
       this.isLoading = false;
@@ -505,6 +516,42 @@ export class ReportsComponent implements OnInit {
     }
   }
 
+  private async loadProfitLossReport(): Promise<void> {
+    try {
+      const queryStartDate = new Date(this.startDate);
+      queryStartDate.setHours(0, 0, 0, 0);
+      const queryEndDate = new Date(this.endDate);
+      queryEndDate.setHours(23, 59, 59, 999);
+      this.profitLossData = await firstValueFrom(this.transactionService.getProfitLossReport(queryStartDate, queryEndDate));
+    } catch (error) {
+      this.profitLossData = null;
+    }
+  }
+
+  private async loadInventoryValuation(): Promise<void> {
+    try {
+      const queryStartDate = new Date(this.startDate);
+      queryStartDate.setHours(0, 0, 0, 0);
+      const queryEndDate = new Date(this.endDate);
+      queryEndDate.setHours(23, 59, 59, 999);
+      this.inventoryData = await firstValueFrom(this.transactionService.getInventoryValuation(queryStartDate, queryEndDate));
+    } catch (error) {
+      this.inventoryData = null;
+    }
+  }
+
+  private async loadAccountantSummary(): Promise<void> {
+    try {
+      const queryStartDate = new Date(this.startDate);
+      queryStartDate.setHours(0, 0, 0, 0);
+      const queryEndDate = new Date(this.endDate);
+      queryEndDate.setHours(23, 59, 59, 999);
+      this.accountantSummary = await firstValueFrom(this.transactionService.getAccountantSummary(queryStartDate, queryEndDate));
+    } catch (error) {
+      this.accountantSummary = null;
+    }
+  }
+
   private createEmptyReport(): any {
     return {
       Date: new Date(),
@@ -679,6 +726,12 @@ export class ReportsComponent implements OnInit {
         trendDirection: 'up' as const
       }
     ];
+  }
+
+  getMarginClass(margin: number): string {
+    if (margin > 50) return 'margin-good';
+    if (margin < 30) return 'margin-bad';
+    return 'margin-ok';
   }
 
   hasData(): boolean {

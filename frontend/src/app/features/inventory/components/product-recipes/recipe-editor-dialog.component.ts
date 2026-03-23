@@ -266,7 +266,7 @@ function smartDisplayUnit(baseUnit: string, baseQuantity: number): string {
     .recipe-dialog {
       display: flex;
       flex-direction: column;
-      max-height: 85vh;
+      max-height: 90vh;
       font-family: var(--font-ui);
       color: var(--text-primary);
       background: var(--bg-surface);
@@ -279,7 +279,7 @@ function smartDisplayUnit(baseUnit: string, baseQuantity: number): string {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 20px 24px;
+      padding: 14px 20px;
       border-bottom: 1px solid var(--border);
     }
 
@@ -291,9 +291,9 @@ function smartDisplayUnit(baseUnit: string, baseQuantity: number): string {
     }
 
     .dialog-product-img {
-      width: 48px;
-      height: 48px;
-      border-radius: 10px;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
       overflow: hidden;
       flex-shrink: 0;
     }
@@ -324,7 +324,7 @@ function smartDisplayUnit(baseUnit: string, baseQuantity: number): string {
 
     .dialog-product-name {
       font-family: var(--font-display);
-      font-size: 1.0625rem;
+      font-size: 0.9375rem;
       font-weight: 700;
       margin: 0;
       white-space: nowrap;
@@ -333,7 +333,7 @@ function smartDisplayUnit(baseUnit: string, baseQuantity: number): string {
     }
 
     .dialog-product-cat {
-      font-size: 0.75rem;
+      font-size: 0.6875rem;
       color: var(--text-muted);
     }
 
@@ -341,8 +341,8 @@ function smartDisplayUnit(baseUnit: string, baseQuantity: number): string {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 36px;
-      height: 36px;
+      width: 30px;
+      height: 30px;
       background: transparent;
       border: 1px solid var(--border);
       border-radius: 8px;
@@ -372,12 +372,12 @@ function smartDisplayUnit(baseUnit: string, baseQuantity: number): string {
       flex-direction: column;
       align-items: center;
       gap: 4px;
-      padding: 14px 8px;
+      padding: 10px 6px;
       background: var(--bg-surface);
     }
 
     .metric-label {
-      font-size: 0.5625rem;
+      font-size: 0.5rem;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.06em;
@@ -386,7 +386,7 @@ function smartDisplayUnit(baseUnit: string, baseQuantity: number): string {
 
     .metric-value {
       font-family: var(--font-display);
-      font-size: 0.9375rem;
+      font-size: 0.8125rem;
       font-weight: 700;
       letter-spacing: -0.01em;
     }
@@ -399,6 +399,7 @@ function smartDisplayUnit(baseUnit: string, baseQuantity: number): string {
       flex: 1;
       overflow-y: auto;
       min-height: 0;
+      padding: 14px 20px;
     }
 
     /* ---------- Recipe Section ---------- */
@@ -410,7 +411,7 @@ function smartDisplayUnit(baseUnit: string, baseQuantity: number): string {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 10px 24px;
+      padding: 6px 0;
       background: var(--bg-subtle);
       border-bottom: 1px solid var(--border);
     }
@@ -454,7 +455,7 @@ function smartDisplayUnit(baseUnit: string, baseQuantity: number): string {
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 10px 24px;
+      padding: 8px 10px;
       border-bottom: 1px solid var(--border);
       transition: background var(--transition-fast);
     }
@@ -476,8 +477,8 @@ function smartDisplayUnit(baseUnit: string, baseQuantity: number): string {
     }
 
     .line-avatar {
-      width: 28px;
-      height: 28px;
+      width: 26px;
+      height: 26px;
       border-radius: 6px;
       display: flex;
       align-items: center;
@@ -516,14 +517,15 @@ function smartDisplayUnit(baseUnit: string, baseQuantity: number): string {
 
     .line-qty-input {
       width: 72px;
-      padding: 6px 8px;
+      height: 28px;
+      padding: 0 8px;
       background: var(--bg-subtle);
       border: 1px solid var(--border);
       border-radius: 6px;
       color: var(--text-primary);
       font-family: var(--font-display);
       font-weight: 600;
-      font-size: 0.8125rem;
+      font-size: 0.75rem;
       outline: none;
       text-align: right;
       transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
@@ -567,7 +569,7 @@ function smartDisplayUnit(baseUnit: string, baseQuantity: number): string {
       flex-direction: column;
       align-items: center;
       gap: 6px;
-      padding: 28px 24px;
+      padding: 16px;
       text-align: center;
     }
 
@@ -591,7 +593,7 @@ function smartDisplayUnit(baseUnit: string, baseQuantity: number): string {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 10px 24px;
+      padding: 6px 0;
       background: var(--bg-subtle);
       border-bottom: 1px solid var(--border);
     }
@@ -612,8 +614,8 @@ function smartDisplayUnit(baseUnit: string, baseQuantity: number): string {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
       gap: 6px;
-      padding: 12px 24px;
-      max-height: 180px;
+      padding: 8px 0;
+      max-height: 140px;
       overflow-y: auto;
     }
 
@@ -622,8 +624,8 @@ function smartDisplayUnit(baseUnit: string, baseQuantity: number): string {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 4px;
-      padding: 8px 6px 6px;
+      gap: 3px;
+      padding: 6px 4px 5px;
       background: var(--bg-subtle);
       border: 1.5px solid var(--border);
       border-radius: 8px;
@@ -689,8 +691,8 @@ function smartDisplayUnit(baseUnit: string, baseQuantity: number): string {
     .add-qty-bar {
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      padding: 12px 24px;
+      gap: 8px;
+      padding: 10px 0;
       background: rgba(var(--accent-rgb), 0.03);
       border-top: 1px solid var(--border);
       animation: slideDown 150ms ease-out;
@@ -800,8 +802,9 @@ function smartDisplayUnit(baseUnit: string, baseQuantity: number): string {
 
     /* ---------- Line Unit Select ---------- */
     .line-unit-select {
-      padding: 4px 6px;
-      font-size: 0.6875rem;
+      height: 28px;
+      padding: 0 6px;
+      font-size: 0.75rem;
       font-weight: 600;
       font-family: var(--font-ui);
       background: var(--bg-subtle);
@@ -826,7 +829,7 @@ function smartDisplayUnit(baseUnit: string, baseQuantity: number): string {
     }
 
     .all-used {
-      padding: 20px 24px;
+      padding: 16px 0;
       text-align: center;
     }
 
@@ -841,7 +844,7 @@ function smartDisplayUnit(baseUnit: string, baseQuantity: number): string {
       display: flex;
       justify-content: flex-end;
       gap: 10px;
-      padding: 16px 24px;
+      padding: 10px 20px;
       border-top: 1px solid var(--border);
       background: var(--bg-subtle);
     }

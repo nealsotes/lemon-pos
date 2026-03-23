@@ -37,8 +37,7 @@ export interface ProductEditorDialogData {
       <!-- Body -->
       <div class="dialog-body">
         <form [formGroup]="productForm" (ngSubmit)="save()">
-          <!-- Section: Basic Info -->
-          <div class="form-section-label">Basic Information</div>
+          <!-- Row 1: Name + Category -->
           <div class="form-grid form-grid-2">
             <div class="form-group">
               <label for="name">Product Name *</label>
@@ -80,37 +79,17 @@ export interface ProductEditorDialogData {
             </div>
           </div>
 
-          <!-- Section: Pricing -->
-          <div class="form-section-label">Pricing</div>
-          <div class="form-group">
-            <label for="price">Price *</label>
-            <input type="number" id="price" formControlName="price" class="form-control" placeholder="0.00" step="0.01" min="0.01">
-            <small class="form-hint">12% VAT will be added at checkout</small>
-            <div class="error-message" *ngIf="productForm.get('price')?.invalid && productForm.get('price')?.touched">
-              <span *ngIf="productForm.get('price')?.errors?.['required']">Price is required</span>
-              <span *ngIf="productForm.get('price')?.errors?.['min']">Price must be greater than 0</span>
-            </div>
-          </div>
-
-          <div *ngIf="isBeverageCategory(productForm.get('category')?.value)" class="form-group">
-            <label class="form-section-label" style="margin-top: 0;">Temperature-Specific Prices (Optional)</label>
-            <div class="form-grid form-grid-2">
-              <div class="form-group">
-                <label for="hotPrice">Hot Price</label>
-                <input type="number" id="hotPrice" formControlName="hotPrice" class="form-control" placeholder="0.00" step="0.01" min="0.01">
-                <small class="form-hint">Leave empty to use base price</small>
-              </div>
-              <div class="form-group">
-                <label for="coldPrice">Iced Price</label>
-                <input type="number" id="coldPrice" formControlName="coldPrice" class="form-control" placeholder="0.00" step="0.01" min="0.01">
-                <small class="form-hint">Leave empty to use base price</small>
+          <!-- Row 2: Price + Stock + Low Stock Alert -->
+          <div class="form-grid form-grid-3">
+            <div class="form-group">
+              <label for="price">Price *</label>
+              <input type="number" id="price" formControlName="price" class="form-control" placeholder="0.00" step="0.01" min="0.01">
+              <div class="error-message" *ngIf="productForm.get('price')?.invalid && productForm.get('price')?.touched">
+                <span *ngIf="productForm.get('price')?.errors?.['required']">Price is required</span>
+                <span *ngIf="productForm.get('price')?.errors?.['min']">Price must be greater than 0</span>
               </div>
             </div>
-          </div>
 
-          <!-- Section: Stock -->
-          <div class="form-section-label">Stock</div>
-          <div class="form-grid form-grid-2">
             <div class="form-group">
               <label for="stock">Quantity *</label>
               <input type="number" id="stock" formControlName="stock" class="form-control" placeholder="0" min="0">
@@ -124,12 +103,22 @@ export interface ProductEditorDialogData {
               <label for="lowQuantityThreshold">Low Stock Alert</label>
               <input type="number" id="lowQuantityThreshold" formControlName="lowQuantityThreshold" class="form-control"
                 placeholder="10" min="0">
-              <small class="form-hint">Marked low when stock reaches this value</small>
             </div>
           </div>
 
-          <!-- Section: Image -->
-          <div class="form-section-label">Product Image</div>
+          <!-- Beverage hot/cold prices (conditional) -->
+          <div *ngIf="isBeverageCategory(productForm.get('category')?.value)" class="form-grid form-grid-2">
+            <div class="form-group">
+              <label for="hotPrice">Hot Price</label>
+              <input type="number" id="hotPrice" formControlName="hotPrice" class="form-control" placeholder="0.00" step="0.01" min="0.01">
+            </div>
+            <div class="form-group">
+              <label for="coldPrice">Iced Price</label>
+              <input type="number" id="coldPrice" formControlName="coldPrice" class="form-control" placeholder="0.00" step="0.01" min="0.01">
+            </div>
+          </div>
+
+          <!-- Image -->
           <div class="image-upload-section">
             <div class="image-type-selector">
               <label class="image-type-option">
@@ -152,10 +141,6 @@ export interface ProductEditorDialogData {
                   [title]="emoji">
                   {{ emoji }}
                 </button>
-              </div>
-              <div class="current-emoji">
-                <span class="emoji-label">Selected:</span>
-                <span class="emoji-display">{{ productForm.get('image')?.value || '📦' }}</span>
               </div>
             </div>
 
@@ -200,7 +185,6 @@ export interface ProductEditorDialogData {
               <input type="checkbox" formControlName="isActive" class="form-checkbox">
               <span>Active Product</span>
             </label>
-            <small class="form-hint">Inactive products won't appear in the catalog</small>
           </div>
         </form>
       </div>
@@ -231,13 +215,13 @@ export interface ProductEditorDialogData {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 20px 24px;
+      padding: 14px 20px;
       border-bottom: 1px solid var(--border);
     }
 
     .dialog-header h2 {
       font-family: var(--font-display);
-      font-size: 1.125rem;
+      font-size: 1rem;
       font-weight: 700;
       margin: 0;
     }
@@ -246,8 +230,8 @@ export interface ProductEditorDialogData {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 36px;
-      height: 36px;
+      width: 30px;
+      height: 30px;
       background: transparent;
       border: 1px solid var(--border);
       border-radius: 8px;
@@ -267,43 +251,32 @@ export interface ProductEditorDialogData {
     .dialog-body {
       flex: 1;
       overflow-y: auto;
-      padding: 24px;
+      padding: 16px 20px;
       min-height: 0;
     }
 
     /* ---------- Form ---------- */
-    .form-section-label {
-      font-size: 0.6875rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--accent);
-      margin-bottom: 8px;
-      margin-top: 20px;
-      padding-left: 2px;
-    }
-
-    .form-section-label:first-of-type {
-      margin-top: 0;
-    }
-
     .form-grid {
       display: grid;
-      gap: 12px;
+      gap: 10px;
     }
 
     .form-grid-2 {
       grid-template-columns: 1fr 1fr;
     }
 
+    .form-grid-3 {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+
     .form-group {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 3px;
     }
 
     .form-group label {
-      font-size: 0.6875rem;
+      font-size: 0.625rem;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.04em;
@@ -312,13 +285,13 @@ export interface ProductEditorDialogData {
 
     .form-control {
       padding: 0 12px;
-      height: 40px;
-      line-height: 40px;
+      height: 34px;
+      line-height: 34px;
       background: var(--bg-subtle, var(--background-secondary));
       border: 1px solid var(--border, var(--border-color));
-      border-radius: 6px;
+      border-radius: 5px;
       color: var(--text-primary);
-      font-size: 0.875rem;
+      font-size: 13px;
       font-family: var(--font-ui);
       outline: none;
       transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
@@ -345,8 +318,8 @@ export interface ProductEditorDialogData {
       background-position: right 10px center;
       background-color: var(--bg-subtle, var(--background-secondary));
       padding: 0 32px 0 12px;
-      height: 40px;
-      line-height: 40px;
+      height: 34px;
+      line-height: 34px;
       text-overflow: ellipsis;
       white-space: nowrap;
       min-width: 0;
@@ -373,7 +346,7 @@ export interface ProductEditorDialogData {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 38px;
+      width: 34px;
       flex-shrink: 0;
       background: var(--bg-subtle, var(--background-secondary));
       border: 1px solid var(--border, var(--border-color));
@@ -393,13 +366,8 @@ export interface ProductEditorDialogData {
       height: 18px;
     }
 
-    .form-hint {
-      font-size: 0.6875rem;
-      color: var(--text-muted);
-    }
-
     .error-message {
-      font-size: 0.6875rem;
+      font-size: 0.625rem;
       color: var(--danger, var(--error));
       font-weight: 500;
     }
@@ -408,11 +376,12 @@ export interface ProductEditorDialogData {
     .image-upload-section {
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      padding: 12px;
+      gap: 8px;
+      padding: 8px;
       background: var(--bg-subtle, var(--background-secondary));
       border: 1px dashed var(--border, var(--border-color));
       border-radius: 6px;
+      margin-top: 10px;
     }
 
     .image-type-selector {
@@ -433,18 +402,18 @@ export interface ProductEditorDialogData {
     .emoji-grid {
       display: grid;
       grid-template-columns: repeat(8, 1fr);
-      gap: 6px;
-      max-height: 140px;
+      gap: 4px;
+      max-height: 72px;
       overflow-y: auto;
-      padding: 8px;
+      padding: 4px;
       background: var(--bg-surface, var(--surface-color));
       border: 1px solid var(--border, var(--border-color));
       border-radius: 6px;
     }
 
     .emoji-btn {
-      font-size: 1.25rem;
-      padding: 6px;
+      font-size: 1rem;
+      padding: 3px;
       background: transparent;
       border: 1px solid transparent;
       border-radius: 4px;
@@ -461,24 +430,8 @@ export interface ProductEditorDialogData {
       border-color: var(--accent, var(--primary-color));
     }
 
-    .current-emoji {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 4px;
-    }
-
-    .emoji-label {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
-
-    .emoji-display {
-      font-size: 1.5rem;
-    }
-
     .file-upload-area {
-      padding: 20px;
+      padding: 12px;
       border: 2px dashed var(--border, var(--border-color));
       border-radius: 6px;
       text-align: center;
@@ -538,7 +491,7 @@ export interface ProductEditorDialogData {
 
     /* ---------- Active Toggle ---------- */
     .active-toggle {
-      margin-top: 16px;
+      margin-top: 8px;
     }
 
     .active-toggle label {
@@ -559,25 +512,25 @@ export interface ProductEditorDialogData {
       display: flex;
       justify-content: flex-end;
       gap: 10px;
-      padding: 16px 24px;
+      padding: 10px 20px;
       border-top: 1px solid var(--border);
       background: var(--bg-subtle);
     }
 
     /* ---------- Responsive ---------- */
     @media (max-width: 640px) {
-      .dialog-header { padding: 16px; }
+      .dialog-header { padding: 14px 16px; }
       .dialog-body { padding: 16px; }
       .form-grid-2 { grid-template-columns: 1fr; }
-      .dialog-footer { padding: 12px 16px; }
+      .form-grid-3 { grid-template-columns: 1fr; }
+      .dialog-footer { padding: 10px 16px; }
       .emoji-grid { grid-template-columns: repeat(6, 1fr); }
     }
 
     @media (pointer: coarse) {
       .form-control {
-        min-height: 44px;
-        padding: 12px 14px;
-        font-size: 1rem;
+        min-height: 40px;
+        font-size: 0.9375rem;
       }
 
       .form-select {

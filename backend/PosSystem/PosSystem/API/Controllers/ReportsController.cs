@@ -65,4 +65,31 @@ public class ReportsController : ControllerBase
         var report = await _reportingService.GetAllTimeProductSalesAsync();
         return Ok(report);
     }
+
+    [HttpGet("profit-loss")]
+    public async Task<ActionResult<object>> GetProfitLossReport(
+        [FromQuery] DateTime startDate,
+        [FromQuery] DateTime endDate)
+    {
+        var report = await _reportingService.GetProfitLossReportAsync(startDate, endDate);
+        return Ok(report);
+    }
+
+    [HttpGet("inventory-valuation")]
+    public async Task<ActionResult<object>> GetInventoryValuationReport(
+        [FromQuery] DateTime startDate,
+        [FromQuery] DateTime endDate)
+    {
+        var report = await _reportingService.GetInventoryValuationReportAsync(startDate, endDate);
+        return Ok(report);
+    }
+
+    [HttpGet("accountant-summary")]
+    public async Task<ActionResult<object>> GetAccountantSummaryReport(
+        [FromQuery] DateTime startDate,
+        [FromQuery] DateTime endDate)
+    {
+        var report = await _reportingService.GetAccountantSummaryAsync(startDate, endDate);
+        return Ok(report);
+    }
 }
