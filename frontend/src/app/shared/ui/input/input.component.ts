@@ -1,23 +1,36 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Optional, Self, forwardRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ControlValueAccessor, NG_VALUE_ACCESSOR, NgControl } from '@angular/forms';
 
 @Component({
   selector: 'app-input',
   standalone: true,
   imports: [CommonModule],
+  providers: [
+    {
+      provide: NG_VALUE_ACCESSOR,
+      useExisting: forwardRef(() => InputComponent),
+      multi: true
+    }
+  ],
   template: `
     <div class="input-wrapper">
-      <label *ngIf="label" class="input-label">{{ label }}</label>
-      <div class="input-field" [class.has-error]="error" [class.has-prefix]="prefixIcon">
+      <label *ngIf="label" class="input-label">
+        {{ label }}<span *ngIf="required" class="required-mark"> *</span>
+      </label>
+      <div class="input-field" [class.has-error]="showError" [class.has-prefix]="prefixIcon" [class.disabled]="disabled">
         <span *ngIf="prefixIcon" class="prefix-icon" [innerHTML]="prefixIcon"></span>
         <input
           [type]="type"
           [placeholder]="placeholder"
           [value]="value"
+          [disabled]="disabled"
           (input)="onInput($event)"
+          (blur)="onTouched()"
           class="input-control" />
       </div>
-      <span *ngIf="error" class="input-error">{{ error }}</span>
+      <span *ngIf="hint && !showError" class="input-hint">{{ hint }}</span>
+      <span *ngIf="showError" class="input-error">{{ errorMessage }}</span>
     </div>
   `,
   styles: [`
@@ -31,6 +44,10 @@ import { CommonModule } from '@angular/common';
       font-size: 13px;
       font-weight: 500;
       color: var(--text-primary);
+    }
+
+    .required-mark {
+      color: var(--danger);
     }
 
     .input-field {
@@ -92,21 +109,105 @@ import { CommonModule } from '@angular/common';
       font-size: 12px;
       color: var(--danger);
     }
+
+    .input-hint {
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+    }
+
+    .disabled .input-control {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    @media (pointer: coarse) {
+      .input-control {
+        min-height: 44px;
+        padding: 12px 14px;
+        font-size: 1rem;
+      }
+    }
   `]
 })
-export class InputComponent {
+export class InputComponent implements ControlValueAccessor {
   @Input() label = '';
   @Input() placeholder = '';
   @Input() type = 'text';
-  @Input() value = '';
-  @Input() error = '';
   @Input() prefixIcon = '';
+  @Input() required = false;
+  @Input() hint = '';
+  @Input() errorMessages: Record<string, string> = {};
 
-  @Output() valueChange = new EventEmitter<string>();
+  value = '';
+  disabled = false;
+
+  private onChange: (value: string) => void = () => {};
+  onTouched: () => void = () => {};
+
+  private defaultErrorMessages: Record<string, string> = {
+    required: 'This field is required',
+    email: 'Invalid email address'
+  };
+
+  constructor(@Optional() @Self() public ngControl: NgControl) {
+    if (this.ngControl) {
+      this.ngControl.valueAccessor = this;
+    }
+  }
+
+  writeValue(value: string): void {
+    this.value = value ?? '';
+  }
+
+  registerOnChange(fn: (value: string) => void): void {
+    this.onChange = fn;
+  }
+
+  registerOnTouched(fn: () => void): void {
+    this.onTouched = fn;
+  }
+
+  setDisabledState(isDisabled: boolean): void {
+    this.disabled = isDisabled;
+  }
 
   onInput(event: Event): void {
     const target = event.target as HTMLInputElement;
     this.value = target.value;
-    this.valueChange.emit(this.value);
+    this.onChange(this.value);
+  }
+
+  get showError(): boolean {
+    const control = this.ngControl?.control;
+    return !!(control && control.invalid && control.touched);
+  }
+
+  get errorMessage(): string {
+    const errors = this.ngControl?.control?.errors;
+    if (!errors) {
+      return '';
+    }
+
+    const firstKey = Object.keys(errors)[0];
+    const errorValue = errors[firstKey];
+
+    if (this.errorMessages[firstKey]) {
+      return this.errorMessages[firstKey];
+    }
+
+    switch (firstKey) {
+      case 'required':
+        return this.defaultErrorMessages['required'];
+      case 'minlength':
+        return `Must be at least ${errorValue.requiredLength} characters`;
+      case 'min':
+        return `Must be at least ${errorValue.min}`;
+      case 'max':
+        return `Must be at most ${errorValue.max}`;
+      case 'email':
+        return this.defaultErrorMessages['email'];
+      default:
+        return 'Invalid value';
+    }
   }
 }

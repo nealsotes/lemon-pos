@@ -1,14 +1,21 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
+import { FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Ingredient } from '../../../pos/models/ingredient.model';
 import { IngredientService } from '../../../pos/services/ingredient.service';
 import { StockMovementHistoryComponent } from './stock-movement-history.component';
+import { IngredientEditorDialogComponent } from './ingredient-editor-dialog.component';
 import { ProductRecipesComponent } from '../product-recipes/product-recipes.component';
 import { TopBarComponent } from '../../../../shared/ui/top-bar/top-bar.component';
 import { ToastService } from '../../../../shared/ui/toast/toast.service';
 import { ConfirmDialogService } from '../../../../shared/ui/confirm-dialog/confirm-dialog.service';
+import { DataTableComponent, TableColumn } from '../../../../shared/ui/data-table/data-table.component';
+import { CellDefDirective } from '../../../../shared/ui/data-table/cell-def.directive';
+import { BadgeComponent } from '../../../../shared/ui/badge/badge.component';
+import { ButtonComponent } from '../../../../shared/ui/button/button.component';
+import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/loading-spinner.component';
+import { SearchInputComponent } from '../../../../shared/ui/search-input/search-input.component';
 
 @Component({
   selector: 'app-inventory',
@@ -17,9 +24,14 @@ import { ConfirmDialogService } from '../../../../shared/ui/confirm-dialog/confi
     CommonModule,
     TopBarComponent,
     ProductRecipesComponent,
-    ReactiveFormsModule,
     FormsModule,
-    MatDialogModule
+    MatDialogModule,
+    LoadingSpinnerComponent,
+    DataTableComponent,
+    CellDefDirective,
+    BadgeComponent,
+    ButtonComponent,
+    SearchInputComponent
   ],
   templateUrl: './inventory.component.html',
   styleUrls: ['./inventory.component.css']
@@ -27,51 +39,32 @@ import { ConfirmDialogService } from '../../../../shared/ui/confirm-dialog/confi
 export class InventoryComponent implements OnInit {
   ingredients: Ingredient[] = [];
   filteredIngredients: Ingredient[] = [];
-  ingredientForm: FormGroup;
-  editingIngredient: Ingredient | null = null;
   isLoading = true;
-  showForm = false;
 
   activeTab: 'ingredients' | 'recipes' = 'ingredients';
   searchTerm: string = '';
 
-  displayedColumns: string[] = ['name', 'quantity', 'unit', 'supplier', 'expirationDate', 'lowStockThreshold', 'status', 'actions'];
-
-  units = ['kg', 'g', 'L', 'ml', 'pcs', 'pack', 'bottle', 'can'];
-
-  get isPieceUnit(): boolean {
-    const unit = this.ingredientForm.get('unit')?.value;
-    return unit === 'pcs' || unit === 'piece' || unit === 'pieces';
-  }
-
-  get totalCost(): number {
-    const quantity = parseFloat(this.ingredientForm.get('quantity')?.value || '0');
-    const unitCost = parseFloat(this.ingredientForm.get('unitCost')?.value || '0');
-    return quantity * unitCost;
-  }
+  tableColumns: TableColumn[] = [
+    { key: 'name', label: 'Ingredient', cellTemplate: 'ingredient' },
+    { key: 'quantity', label: 'On Hand', cellTemplate: 'onHand' },
+    { key: 'unitCost', label: 'Unit Cost', cellTemplate: 'unitCost' },
+    { key: 'totalValue', label: 'Total Value', cellTemplate: 'totalValue' },
+    { key: 'supplier', label: 'Supplier', cellTemplate: 'supplier' },
+    { key: 'expirationDate', label: 'Expiration', cellTemplate: 'expiration' },
+    { key: 'status', label: 'Status', cellTemplate: 'status' },
+    { key: 'actions', label: '', cellTemplate: 'actions', width: '100px', align: 'right' as const }
+  ];
 
   calculateTotalCost(ingredient: Ingredient): number {
     return (ingredient.unitCost || 0) * ingredient.quantity;
   }
 
   constructor(
-    private fb: FormBuilder,
     private ingredientService: IngredientService,
     private toast: ToastService,
     private confirmDialog: ConfirmDialogService,
     private dialog: MatDialog
-  ) {
-    this.ingredientForm = this.fb.group({
-      name: ['', [Validators.required, Validators.minLength(2)]],
-      quantity: ['', [Validators.required, Validators.min(0)]],
-      unit: ['', Validators.required],
-      supplier: [''],
-      expirationDate: [''],
-      lowStockThreshold: ['', [Validators.required, Validators.min(0)]],
-      unitCost: ['', [Validators.min(0)]],
-      isActive: [true]
-    });
-  }
+  ) { }
 
   ngOnInit(): void {
     this.loadIngredients();
@@ -92,23 +85,6 @@ export class InventoryComponent implements OnInit {
     });
   }
 
-  // KPI Calculations
-  getTotalInventoryValue(): number {
-    return this.ingredients.reduce((acc, i) => acc + (this.calculateTotalCost(i)), 0);
-  }
-
-  getExpiringSoonCount(): number {
-    return this.ingredients.filter(i => this.isExpiringSoon(i) && !this.isExpired(i)).length;
-  }
-
-  getExpiredCount(): number {
-    return this.ingredients.filter(i => this.isExpired(i)).length;
-  }
-
-  getActiveIngredientsCount(): number {
-    return this.ingredients.filter(i => i.isActive !== false).length;
-  }
-
   applyFilter(): void {
     const search = this.searchTerm.toLowerCase().trim();
     this.filteredIngredients = this.ingredients.filter(ingredient =>
@@ -119,133 +95,46 @@ export class InventoryComponent implements OnInit {
   }
 
   openAddForm(): void {
-    this.editingIngredient = null;
-    this.ingredientForm.reset({
-      name: '',
-      quantity: '',
-      unit: '',
-      supplier: '',
-      expirationDate: '',
-      lowStockThreshold: '',
-      unitCost: '',
-      isActive: true
-    });
-    this.showForm = true;
-    this.setupQuantityValidation();
+    this.openIngredientDialog(null);
   }
 
   openEditForm(ingredient: Ingredient): void {
-    this.editingIngredient = ingredient;
-    this.ingredientForm.patchValue({
-      name: ingredient.name,
-      quantity: ingredient.quantity,
-      unit: ingredient.unit,
-      supplier: ingredient.supplier || '',
-      expirationDate: ingredient.expirationDate ? ingredient.expirationDate.split('T')[0] : '',
-      lowStockThreshold: ingredient.lowStockThreshold,
-      unitCost: ingredient.unitCost || '',
-      isActive: ingredient.isActive
-    });
-    this.showForm = true;
-    this.setupQuantityValidation();
+    this.openIngredientDialog(ingredient);
   }
 
-  setupQuantityValidation(): void {
-    // Watch for unit changes and update quantity validation
-    this.ingredientForm.get('unit')?.valueChanges.subscribe(unit => {
-      const quantityControl = this.ingredientForm.get('quantity');
-      if (quantityControl) {
-        if (unit === 'pcs' || unit === 'piece' || unit === 'pieces') {
-          // For pieces, require whole numbers
-          quantityControl.setValidators([
-            Validators.required,
-            Validators.min(0),
-            (control) => {
-              const value = control.value;
-              if (value !== null && value !== '' && value % 1 !== 0) {
-                return { wholeNumber: true };
-              }
-              return null;
-            }
-          ]);
-        } else {
-          // For other units, allow decimals
-          quantityControl.setValidators([Validators.required, Validators.min(0)]);
-        }
-        quantityControl.updateValueAndValidity();
-      }
+  private openIngredientDialog(ingredient: Ingredient | null): void {
+    const dialogRef = this.dialog.open(IngredientEditorDialogComponent, {
+      width: '620px',
+      maxWidth: '95vw',
+      data: { ingredient },
+      disableClose: false
+    });
 
-      // Also validate threshold
-      const thresholdControl = this.ingredientForm.get('lowStockThreshold');
-      if (thresholdControl) {
-        if (unit === 'pcs' || unit === 'piece' || unit === 'pieces') {
-          thresholdControl.setValidators([
-            Validators.required,
-            Validators.min(0),
-            (control) => {
-              const value = control.value;
-              if (value !== null && value !== '' && value % 1 !== 0) {
-                return { wholeNumber: true };
-              }
-              return null;
-            }
-          ]);
-        } else {
-          thresholdControl.setValidators([Validators.required, Validators.min(0)]);
-        }
-        thresholdControl.updateValueAndValidity();
-      }
+    dialogRef.afterClosed().subscribe(formValue => {
+      if (!formValue) return;
+      this.saveIngredient(formValue, ingredient);
     });
   }
 
-  cancelEdit(): void {
-    this.showForm = false;
-    this.editingIngredient = null;
-    this.ingredientForm.reset();
-  }
-
-  saveIngredient(): void {
-    if (this.ingredientForm.invalid) {
-      this.toast.error('Please fill in all required fields correctly');
-      return;
-    }
-
-    const formValue = this.ingredientForm.value;
+  private saveIngredient(formValue: any, editingIngredient: Ingredient | null): void {
     const isPiece = formValue.unit === 'pcs' || formValue.unit === 'piece' || formValue.unit === 'pieces';
 
-    const ingredientData: any = {
-      name: formValue.name,
-      quantity: isPiece ? parseInt(formValue.quantity) : parseFloat(formValue.quantity),
-      unit: formValue.unit,
-      supplier: formValue.supplier && formValue.supplier.trim() ? formValue.supplier.trim() : null,
-      expirationDate: formValue.expirationDate ? new Date(formValue.expirationDate + 'T00:00:00').toISOString() : null,
-      lowStockThreshold: isPiece ? parseInt(formValue.lowStockThreshold) : parseFloat(formValue.lowStockThreshold),
-      isActive: formValue.isActive !== false
-    };
-
-    // Only include id for updates
-    if (this.editingIngredient) {
-      ingredientData.id = this.editingIngredient.id;
-    }
-
-    if (this.editingIngredient) {
-      // For update, send only the fields that can be updated
+    if (editingIngredient) {
       const updateData: any = {
         name: formValue.name,
-        quantity: parseFloat(formValue.quantity),
+        quantity: isPiece ? parseInt(formValue.quantity) : parseFloat(formValue.quantity),
         unit: formValue.unit,
         supplier: formValue.supplier && formValue.supplier.trim() ? formValue.supplier.trim() : null,
         expirationDate: formValue.expirationDate ? new Date(formValue.expirationDate + 'T00:00:00').toISOString() : null,
-        lowStockThreshold: parseFloat(formValue.lowStockThreshold),
+        lowStockThreshold: isPiece ? parseInt(formValue.lowStockThreshold) : parseFloat(formValue.lowStockThreshold),
         unitCost: formValue.unitCost ? parseFloat(formValue.unitCost) : null,
         isActive: formValue.isActive !== false
       };
 
-      this.ingredientService.updateIngredient(this.editingIngredient.id, updateData).subscribe({
+      this.ingredientService.updateIngredient(editingIngredient.id, updateData).subscribe({
         next: () => {
           this.toast.success('Ingredient updated successfully');
           this.loadIngredients();
-          this.cancelEdit();
         },
         error: (error) => {
           const errorMessage = error.error?.message || error.message || 'Unknown error';
@@ -253,14 +142,13 @@ export class InventoryComponent implements OnInit {
         }
       });
     } else {
-      // For create, don't send id, createdAt, updatedAt
       const createData: any = {
         name: formValue.name,
-        quantity: parseFloat(formValue.quantity),
+        quantity: isPiece ? parseInt(formValue.quantity) : parseFloat(formValue.quantity),
         unit: formValue.unit,
         supplier: formValue.supplier && formValue.supplier.trim() ? formValue.supplier.trim() : null,
         expirationDate: formValue.expirationDate ? new Date(formValue.expirationDate + 'T00:00:00').toISOString() : null,
-        lowStockThreshold: parseFloat(formValue.lowStockThreshold),
+        lowStockThreshold: isPiece ? parseInt(formValue.lowStockThreshold) : parseFloat(formValue.lowStockThreshold),
         unitCost: formValue.unitCost ? parseFloat(formValue.unitCost) : null,
         isActive: formValue.isActive !== false
       };
@@ -269,7 +157,6 @@ export class InventoryComponent implements OnInit {
         next: () => {
           this.toast.success('Ingredient added successfully');
           this.loadIngredients();
-          this.cancelEdit();
         },
         error: (error) => {
           let errorMessage = 'Unknown error';
@@ -331,7 +218,36 @@ export class InventoryComponent implements OnInit {
 
   formatDate(dateString?: string): string {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString();
+    return new Date(dateString).toLocaleDateString('en-PH', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  }
+
+  getDaysUntilExpiry(ingredient: Ingredient): number {
+    if (!ingredient.expirationDate) return 999;
+    const expDate = new Date(ingredient.expirationDate);
+    const today = new Date();
+    return Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  }
+
+  getStockLevel(ingredient: Ingredient): number {
+    if (ingredient.lowStockThreshold <= 0) return 100;
+    const ratio = ingredient.quantity / (ingredient.lowStockThreshold * 3);
+    return Math.min(Math.max(ratio * 100, 0), 100);
+  }
+
+  getIngredientColor(name: string): string {
+    const colors = [
+      '#7C3AED', '#6366F1', '#2563EB', '#0891B2', '#059669',
+      '#D97706', '#DC2626', '#DB2777', '#7C3AED', '#4F46E5'
+    ];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return colors[Math.abs(hash) % colors.length];
   }
 
   adjustQuantity(ingredient: Ingredient, adjustment: number): void {

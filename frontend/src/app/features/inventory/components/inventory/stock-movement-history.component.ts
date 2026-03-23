@@ -1,17 +1,20 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
-import { MatTableModule } from '@angular/material/table';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSelectModule } from '@angular/material/select';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
 import { FormsModule } from '@angular/forms';
 import { StockMovementService } from '../../services/stock-movement.service';
 import { StockMovement, MovementType, MovementTypeLabels } from '../../models/stock-movement.model';
 import { Ingredient } from '../../../pos/models/ingredient.model';
+import { ToastService } from '../../../../shared/ui/toast/toast.service';
+import { BadgeComponent } from '../../../../shared/ui/badge/badge.component';
+import { ButtonComponent } from '../../../../shared/ui/button/button.component';
+import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/loading-spinner.component';
+
+interface MovementTypeFilter {
+  value: MovementType | null;
+  label: string;
+  icon: string;
+}
 
 @Component({
   selector: 'app-stock-movement-history',
@@ -19,235 +22,626 @@ import { Ingredient } from '../../../pos/models/ingredient.model';
   imports: [
     CommonModule,
     MatDialogModule,
-    MatTableModule,
-    MatButtonModule,
-    MatIconModule,
-    MatFormFieldModule,
-    MatSelectModule,
-    MatDatepickerModule,
-    MatNativeDateModule,
-    FormsModule
+    FormsModule,
+    BadgeComponent,
+    ButtonComponent,
+    LoadingSpinnerComponent
   ],
   template: `
-    <div class="movement-history-dialog">
+    <div class="history-dialog">
+      <!-- Header -->
       <div class="dialog-header">
-        <h2 mat-dialog-title>Stock Movement History</h2>
-        <button mat-icon-button (click)="close()" class="close-btn">
-          <mat-icon>close</mat-icon>
+        <div class="header-info">
+          <div class="header-avatar" [style.background]="getColor(ingredient?.name || '')">
+            {{ (ingredient?.name || '?').charAt(0).toUpperCase() }}
+          </div>
+          <div class="header-text">
+            <h2>{{ ingredient?.name }}</h2>
+            <span class="header-sub">
+              {{ ingredient?.quantity | number:(isPiece ? '1.0-0' : '1.2-2') }} {{ ingredient?.unit }} on hand
+              <span class="header-dot">·</span>
+              {{ movements.length }} movement{{ movements.length !== 1 ? 's' : '' }}
+            </span>
+          </div>
+        </div>
+        <button class="dialog-close-btn" (click)="close()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
         </button>
       </div>
 
-      <div mat-dialog-content class="dialog-content">
-        <div class="ingredient-info" *ngIf="ingredient">
-          <h3>{{ ingredient.name }}</h3>
-          <p>Current Quantity: {{ ingredient.quantity }} {{ ingredient.unit }}</p>
+      <!-- Filter bar -->
+      <div class="filter-bar">
+        <div class="type-filters">
+          <button type="button"
+            *ngFor="let f of typeFilters"
+            class="type-chip"
+            [class.active]="selectedMovementType === f.value"
+            (click)="selectType(f.value)">
+            {{ f.label }}
+          </button>
         </div>
-
-        <div class="filters-section">
-          <mat-form-field appearance="outline">
-            <mat-label>Movement Type</mat-label>
-            <mat-select [(ngModel)]="selectedMovementType" (selectionChange)="loadMovements()">
-              <mat-option [value]="null">All Types</mat-option>
-              <mat-option [value]="MovementType.Purchase">Purchase</mat-option>
-              <mat-option [value]="MovementType.Sale">Sale</mat-option>
-              <mat-option [value]="MovementType.Adjustment">Adjustment</mat-option>
-              <mat-option [value]="MovementType.Waste">Waste</mat-option>
-              <mat-option [value]="MovementType.Return">Return</mat-option>
-            </mat-select>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>Start Date</mat-label>
-            <input matInput [matDatepicker]="startPicker" [(ngModel)]="startDate" (dateChange)="loadMovements()">
-            <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
-            <mat-datepicker #startPicker></mat-datepicker>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>End Date</mat-label>
-            <input matInput [matDatepicker]="endPicker" [(ngModel)]="endDate" (dateChange)="loadMovements()">
-            <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
-            <mat-datepicker #endPicker></mat-datepicker>
-          </mat-form-field>
-        </div>
-
-        <div class="table-container" *ngIf="!isLoading">
-          <table mat-table [dataSource]="movements" class="movements-table">
-            <ng-container matColumnDef="date">
-              <th mat-header-cell *matHeaderCellDef>Date</th>
-              <td mat-cell *matCellDef="let movement">{{ formatDate(movement.createdAt) }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="type">
-              <th mat-header-cell *matHeaderCellDef>Type</th>
-              <td mat-cell *matCellDef="let movement">
-                <span class="movement-type" [class]="'type-' + movement.movementType">
-                  {{ getMovementTypeLabel(movement.movementType) }}
-                </span>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="quantity">
-              <th mat-header-cell *matHeaderCellDef>Quantity</th>
-              <td mat-cell *matCellDef="let movement">
-                <span [class.negative]="movement.movementType === MovementType.Sale || movement.movementType === MovementType.Waste">
-                  {{ movement.movementType === MovementType.Sale || movement.movementType === MovementType.Waste ? '-' : '+' }}{{ movement.quantity }}
-                </span>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="unitCost">
-              <th mat-header-cell *matHeaderCellDef>Unit Cost</th>
-              <td mat-cell *matCellDef="let movement">
-                {{ movement.unitCost ? ('₱' + (movement.unitCost | number:'1.2-2')) : '-' }}
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="reason">
-              <th mat-header-cell *matHeaderCellDef>Reason</th>
-              <td mat-cell *matCellDef="let movement">{{ movement.reason || '-' }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="notes">
-              <th mat-header-cell *matHeaderCellDef>Notes</th>
-              <td mat-cell *matCellDef="let movement">{{ movement.notes || '-' }}</td>
-            </ng-container>
-
-            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-          </table>
-
-          <div class="empty-state" *ngIf="movements.length === 0">
-            <p>No stock movements found</p>
+        <div class="date-filters">
+          <div class="date-field">
+            <label>From</label>
+            <input type="date" [(ngModel)]="startDate" (change)="applyFilters()">
           </div>
-        </div>
-
-        <div class="loading" *ngIf="isLoading">
-          <p>Loading movements...</p>
+          <div class="date-field">
+            <label>To</label>
+            <input type="date" [(ngModel)]="endDate" (change)="applyFilters()">
+          </div>
+          <button class="clear-btn" *ngIf="startDate || endDate" (click)="clearDates()" title="Clear dates">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>
         </div>
       </div>
 
-      <div mat-dialog-actions class="dialog-actions">
-        <button mat-button (click)="close()">Close</button>
+      <!-- Body -->
+      <div class="dialog-body">
+        <app-loading-spinner *ngIf="isLoading" message="Loading movements..."></app-loading-spinner>
+
+        <ng-container *ngIf="!isLoading">
+          <!-- Movement list -->
+          <div class="movement-list" *ngIf="filteredMovements.length > 0">
+            <div class="movement-row" *ngFor="let m of filteredMovements; let i = index">
+              <div class="movement-icon" [class]="'icon-' + getTypeClass(m.movementType)">
+                <svg *ngIf="isIncoming(m.movementType)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="14" height="14">
+                  <path d="M12 19V5M5 12l7-7 7 7"/>
+                </svg>
+                <svg *ngIf="!isIncoming(m.movementType)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="14" height="14">
+                  <path d="M12 5v14M19 12l-7 7-7-7"/>
+                </svg>
+              </div>
+              <div class="movement-info">
+                <span class="movement-label">{{ getMovementTypeLabel(m.movementType) }}</span>
+                <span class="movement-meta">
+                  {{ formatDate(m.createdAt) }}
+                  <span *ngIf="m.reason"> · {{ m.reason }}</span>
+                </span>
+              </div>
+              <div class="movement-qty" [class.incoming]="isIncoming(m.movementType)" [class.outgoing]="!isIncoming(m.movementType)">
+                {{ isIncoming(m.movementType) ? '+' : '-' }}{{ m.quantity | number:(isPiece ? '1.0-0' : '1.2-2') }}
+                <span class="qty-unit">{{ ingredient?.unit }}</span>
+              </div>
+              <div class="movement-cost" *ngIf="m.unitCost">
+                &#8369;{{ m.unitCost | number:'1.2-2' }}
+              </div>
+              <div class="movement-cost muted" *ngIf="!m.unitCost">--</div>
+              <div class="movement-notes" *ngIf="m.notes" [title]="m.notes">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+                  <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Empty state -->
+          <div class="empty-state" *ngIf="filteredMovements.length === 0">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="36" height="36">
+              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+            </svg>
+            <p class="empty-title">No movements found</p>
+            <p class="empty-sub" *ngIf="selectedMovementType !== null || startDate || endDate">Try adjusting your filters</p>
+            <p class="empty-sub" *ngIf="selectedMovementType === null && !startDate && !endDate">Stock changes will appear here</p>
+          </div>
+        </ng-container>
+      </div>
+
+      <!-- Footer -->
+      <div class="dialog-footer">
+        <div class="footer-summary" *ngIf="!isLoading && filteredMovements.length > 0">
+          <span class="summary-item incoming">+{{ totalIncoming | number:(isPiece ? '1.0-0' : '1.2-2') }} in</span>
+          <span class="summary-item outgoing">-{{ totalOutgoing | number:(isPiece ? '1.0-0' : '1.2-2') }} out</span>
+          <span class="summary-item net" [class.incoming]="netChange >= 0" [class.outgoing]="netChange < 0">
+            {{ netChange >= 0 ? '+' : '' }}{{ netChange | number:(isPiece ? '1.0-0' : '1.2-2') }} net
+          </span>
+        </div>
+        <app-button variant="secondary" (click)="close()">Close</app-button>
       </div>
     </div>
   `,
   styles: [`
-    .movement-history-dialog {
-      min-width: 800px;
-      max-width: 1200px;
+    .history-dialog {
+      display: flex;
+      flex-direction: column;
+      max-height: 85vh;
+      font-family: var(--font-ui);
+      color: var(--text-primary);
+      background: var(--bg-surface);
+      border-radius: var(--radius-lg, 12px);
+      overflow: hidden;
     }
 
+    /* ---------- Header ---------- */
     .dialog-header {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      padding: 16px 24px;
-      border-bottom: 1px solid #e0e0e0;
+      justify-content: space-between;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
     }
 
-    .dialog-header h2 {
-      margin: 0;
-    }
-
-    .close-btn {
-      color: #666;
-    }
-
-    .dialog-content {
-      padding: 24px;
-      max-height: 600px;
-      overflow-y: auto;
-    }
-
-    .ingredient-info {
-      margin-bottom: 20px;
-      padding: 16px;
-      background: #f5f5f5;
-      border-radius: 4px;
-    }
-
-    .ingredient-info h3 {
-      margin: 0 0 8px 0;
-      font-size: 18px;
-    }
-
-    .ingredient-info p {
-      margin: 0;
-      color: #666;
-    }
-
-    .filters-section {
+    .header-info {
       display: flex;
-      gap: 16px;
-      margin-bottom: 20px;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .header-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .header-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .header-text h2 {
+      font-family: var(--font-display);
+      font-size: 1.0625rem;
+      font-weight: 700;
+      margin: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .header-sub {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .header-dot {
+      margin: 0 2px;
+      opacity: 0.5;
+    }
+
+    .dialog-close-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      flex-shrink: 0;
+    }
+
+    .dialog-close-btn:hover {
+      color: var(--text-primary);
+      border-color: var(--text-primary);
+      background: var(--bg-subtle);
+    }
+
+    /* ---------- Filter Bar ---------- */
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 24px;
+      background: var(--bg-subtle);
+      border-bottom: 1px solid var(--border);
       flex-wrap: wrap;
     }
 
-    .filters-section mat-form-field {
-      flex: 1;
-      min-width: 150px;
+    .type-filters {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
     }
 
-    .table-container {
-      margin-top: 20px;
+    .type-chip {
+      padding: 4px 12px;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      font-family: var(--font-ui);
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      white-space: nowrap;
     }
 
-    .movements-table {
-      width: 100%;
+    .type-chip:hover {
+      border-color: var(--accent);
+      color: var(--accent);
     }
 
-    .movement-type {
-      padding: 4px 8px;
+    .type-chip.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .date-filters {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .date-field {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .date-field label {
+      font-size: 0.625rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+    }
+
+    .date-field input {
+      padding: 5px 8px;
+      font-size: 0.75rem;
+      font-family: var(--font-ui);
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-primary);
+      outline: none;
+      transition: border-color var(--transition-fast);
+    }
+
+    .date-field input:focus {
+      border-color: var(--accent);
+    }
+
+    .clear-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      background: transparent;
+      border: 1px solid var(--border);
       border-radius: 4px;
-      font-size: 12px;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .clear-btn:hover {
+      color: var(--danger);
+      border-color: var(--danger);
+    }
+
+    /* ---------- Body ---------- */
+    .dialog-body {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 200px;
+    }
+
+    /* ---------- Movement List ---------- */
+    .movement-list {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .movement-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 24px;
+      border-bottom: 1px solid var(--border);
+      transition: background var(--transition-fast);
+    }
+
+    .movement-row:last-child {
+      border-bottom: none;
+    }
+
+    .movement-row:hover {
+      background: var(--bg-subtle);
+    }
+
+    .movement-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .icon-purchase {
+      background: rgba(22, 163, 74, 0.1);
+      color: var(--success);
+    }
+
+    .icon-sale {
+      background: rgba(217, 119, 6, 0.1);
+      color: var(--warning);
+    }
+
+    .icon-adjustment {
+      background: rgba(99, 102, 241, 0.1);
+      color: var(--info, #6366f1);
+    }
+
+    .icon-waste {
+      background: rgba(220, 38, 38, 0.1);
+      color: var(--danger);
+    }
+
+    .icon-return {
+      background: rgba(37, 99, 235, 0.1);
+      color: #2563eb;
+    }
+
+    .movement-info {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .movement-label {
+      font-weight: 600;
+      font-size: 0.8125rem;
+    }
+
+    .movement-meta {
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .movement-qty {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 0.875rem;
+      flex-shrink: 0;
+      text-align: right;
+      min-width: 80px;
+    }
+
+    .movement-qty.incoming {
+      color: var(--success);
+    }
+
+    .movement-qty.outgoing {
+      color: var(--danger);
+    }
+
+    .qty-unit {
+      font-size: 0.6875rem;
       font-weight: 500;
+      color: var(--text-muted);
+      margin-left: 2px;
     }
 
-    .type-0 { background: #e3f2fd; color: #1976d2; }
-    .type-1 { background: var(--surface-color)3e0; color: #f57c00; }
-    .type-2 { background: #f3e5f5; color: #7b1fa2; }
-    .type-3 { background: #ffebee; color: #c62828; }
-    .type-4 { background: #e8f5e9; color: #2e7d32; }
-
-    .negative {
-      color: #c62828;
+    .movement-cost {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+      text-align: right;
+      min-width: 64px;
     }
 
+    .movement-cost.muted {
+      color: var(--text-muted);
+      opacity: 0.5;
+    }
+
+    .movement-notes {
+      color: var(--text-muted);
+      opacity: 0.5;
+      flex-shrink: 0;
+    }
+
+    /* ---------- Empty State ---------- */
     .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 48px 24px;
       text-align: center;
-      padding: 40px;
-      color: #999;
     }
 
-    .loading {
-      text-align: center;
-      padding: 40px;
-      color: #666;
+    .empty-state svg {
+      color: var(--text-muted);
+      opacity: 0.2;
     }
 
-    .dialog-actions {
-      padding: 16px 24px;
-      border-top: 1px solid #e0e0e0;
-      justify-content: flex-end;
+    .empty-title {
+      font-weight: 600;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      margin: 4px 0 0;
+    }
+
+    .empty-sub {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin: 0;
+    }
+
+    /* ---------- Footer ---------- */
+    .dialog-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 24px;
+      border-top: 1px solid var(--border);
+      background: var(--bg-subtle);
+    }
+
+    .footer-summary {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .summary-item {
+      font-family: var(--font-display);
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .summary-item.incoming {
+      color: var(--success);
+      background: rgba(22, 163, 74, 0.08);
+    }
+
+    .summary-item.outgoing {
+      color: var(--danger);
+      background: rgba(220, 38, 38, 0.08);
+    }
+
+    .summary-item.net {
+      color: var(--text-secondary);
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+    }
+
+    .summary-item.net.incoming {
+      color: var(--success);
+      background: rgba(22, 163, 74, 0.08);
+      border-color: transparent;
+    }
+
+    .summary-item.net.outgoing {
+      color: var(--danger);
+      background: rgba(220, 38, 38, 0.08);
+      border-color: transparent;
+    }
+
+    /* ---------- Responsive ---------- */
+    @media (max-width: 640px) {
+      .dialog-header {
+        padding: 16px;
+      }
+
+      .filter-bar {
+        padding: 10px 16px;
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .movement-row {
+        padding: 10px 16px;
+        flex-wrap: wrap;
+      }
+
+      .movement-info {
+        flex-basis: calc(100% - 42px);
+      }
+
+      .movement-qty {
+        margin-left: 42px;
+        min-width: auto;
+      }
+
+      .movement-cost {
+        min-width: auto;
+      }
+
+      .dialog-footer {
+        padding: 12px 16px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+      }
+
+      .footer-summary {
+        justify-content: center;
+      }
+    }
+
+    @media (pointer: coarse) {
+      .type-chip {
+        padding: 6px 14px;
+        font-size: 0.75rem;
+      }
+
+      .dialog-close-btn {
+        width: 44px;
+        height: 44px;
+      }
     }
   `]
 })
 export class StockMovementHistoryComponent implements OnInit {
   ingredient: Ingredient | null = null;
   movements: StockMovement[] = [];
-  displayedColumns: string[] = ['date', 'type', 'quantity', 'unitCost', 'reason', 'notes'];
+  filteredMovements: StockMovement[] = [];
   isLoading = false;
   selectedMovementType: MovementType | null = null;
-  startDate: Date | null = null;
-  endDate: Date | null = null;
+  startDate: string = '';
+  endDate: string = '';
   MovementType = MovementType;
-  MovementTypeLabels = MovementTypeLabels;
+
+  typeFilters: MovementTypeFilter[] = [
+    { value: null, label: 'All', icon: '' },
+    { value: MovementType.Purchase, label: 'Purchase', icon: '' },
+    { value: MovementType.Sale, label: 'Sale', icon: '' },
+    { value: MovementType.Adjustment, label: 'Adjustment', icon: '' },
+    { value: MovementType.Waste, label: 'Waste', icon: '' },
+    { value: MovementType.Return, label: 'Return', icon: '' }
+  ];
+
+  get isPiece(): boolean {
+    const u = this.ingredient?.unit;
+    return u === 'pcs' || u === 'piece' || u === 'pieces';
+  }
+
+  get totalIncoming(): number {
+    return this.filteredMovements
+      .filter(m => this.isIncoming(m.movementType))
+      .reduce((sum, m) => sum + m.quantity, 0);
+  }
+
+  get totalOutgoing(): number {
+    return this.filteredMovements
+      .filter(m => !this.isIncoming(m.movementType))
+      .reduce((sum, m) => sum + m.quantity, 0);
+  }
+
+  get netChange(): number {
+    return this.totalIncoming - this.totalOutgoing;
+  }
 
   constructor(
     private dialogRef: MatDialogRef<StockMovementHistoryComponent>,
     @Inject(MAT_DIALOG_DATA) public data: { ingredient: Ingredient },
-    private stockMovementService: StockMovementService
+    private stockMovementService: StockMovementService,
+    private toast: ToastService
   ) {
     this.ingredient = data.ingredient;
   }
@@ -261,48 +655,88 @@ export class StockMovementHistoryComponent implements OnInit {
 
     this.isLoading = true;
     const start = this.startDate ? new Date(this.startDate) : undefined;
-    const end = this.endDate ? new Date(this.endDate) : undefined;
+    const end = this.endDate ? new Date(this.endDate + 'T23:59:59') : undefined;
 
-    this.stockMovementService.getMovementsByIngredient(this.ingredient.id).subscribe({
+    this.stockMovementService.getAllMovements(this.ingredient.id, start, end).subscribe({
       next: (movements) => {
-        let filtered = movements;
-
-        if (this.selectedMovementType !== null) {
-          filtered = filtered.filter(m => m.movementType === this.selectedMovementType);
-        }
-
-        if (start) {
-          filtered = filtered.filter(m => new Date(m.createdAt) >= start);
-        }
-
-        if (end) {
-          filtered = filtered.filter(m => new Date(m.createdAt) <= end);
-        }
-
-        this.movements = filtered;
+        this.movements = movements.sort((a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+        this.applyTypeFilter();
         this.isLoading = false;
       },
       error: (error) => {
+        this.toast.error('Failed to load stock movements');
         this.isLoading = false;
       }
     });
   }
 
-  formatDate(dateString: string): string {
-    const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  selectType(type: MovementType | null): void {
+    this.selectedMovementType = type;
+    this.applyTypeFilter();
   }
 
-  getMovementTypeLabel(movementType: number): string {
-    return MovementTypeLabels[movementType as MovementType] || 'Unknown';
+  applyFilters(): void {
+    this.loadMovements();
+  }
+
+  clearDates(): void {
+    this.startDate = '';
+    this.endDate = '';
+    this.loadMovements();
+  }
+
+  private applyTypeFilter(): void {
+    if (this.selectedMovementType === null) {
+      this.filteredMovements = this.movements;
+    } else {
+      this.filteredMovements = this.movements.filter(m => m.movementType === this.selectedMovementType);
+    }
+  }
+
+  isIncoming(type: MovementType): boolean {
+    return type === MovementType.Purchase || type === MovementType.Return || type === MovementType.Adjustment;
+  }
+
+  getTypeClass(type: MovementType): string {
+    switch (type) {
+      case MovementType.Purchase: return 'purchase';
+      case MovementType.Sale: return 'sale';
+      case MovementType.Adjustment: return 'adjustment';
+      case MovementType.Waste: return 'waste';
+      case MovementType.Return: return 'return';
+      default: return 'adjustment';
+    }
+  }
+
+  formatDate(dateString: string): string {
+    return new Date(dateString).toLocaleDateString('en-PH', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  getMovementTypeLabel(movementType: MovementType): string {
+    return MovementTypeLabels[movementType] || 'Unknown';
+  }
+
+  getColor(name: string): string {
+    const colors = [
+      '#7C3AED', '#6366F1', '#2563EB', '#0891B2', '#059669',
+      '#D97706', '#DC2626', '#DB2777', '#7C3AED', '#4F46E5'
+    ];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return colors[Math.abs(hash) % colors.length];
   }
 
   close(): void {
     this.dialogRef.close();
   }
 }
-
-
-
-
-

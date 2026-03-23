@@ -1,173 +1,55 @@
 <div class="recipes-container" [class.embedded]="!showHeader">
-  <!-- Page Header -->
-  <app-top-bar *ngIf="showHeader" title="Product Recipes">
-  </app-top-bar>
+  <app-top-bar *ngIf="showHeader" title="Product Recipes"></app-top-bar>
 
   <div class="recipes-content">
 
-    <!-- Product Selection Panel -->
-    <div class="panel selection-panel">
-      <div class="section-header">
-        <div class="section-title-group">
-          <h3 class="section-title">Select Product</h3>
-          <span class="section-subtitle">Choose a product to view or edit its recipe</span>
+    <!-- Product Card Selector -->
+    <div class="product-selector">
+      <div class="selector-header">
+        <div class="selector-title-group">
+          <h3 class="selector-title">Select Product</h3>
+          <span class="selector-subtitle">Click a product to manage its recipe</span>
         </div>
+        <app-search-input
+          placeholder="Search products..."
+          [value]="productSearchTerm"
+          (search)="productSearchTerm = $event">
+        </app-search-input>
       </div>
-      <div class="panel-body selection-body">
-        <div class="form-group product-picker">
-          <label for="product">Inventory Item</label>
-          <div class="select-wrapper">
-            <select id="product" class="form-control" [(ngModel)]="selectedProductId"
-              (ngModelChange)="onProductChange()" [disabled]="isLoadingProducts">
-              <option value="">Choose a product catalog item...</option>
-              <optgroup label="Products by Category">
-                <option *ngFor="let p of products" [value]="p.id">{{ p.name }} ({{ p.category }})</option>
-              </optgroup>
-            </select>
+
+      <app-loading-spinner *ngIf="isLoadingProducts" message="Loading products..."></app-loading-spinner>
+
+      <div class="product-card-grid" *ngIf="!isLoadingProducts">
+        <button type="button"
+          *ngFor="let p of filteredProducts"
+          class="product-card"
+          [class.has-recipe]="productRecipeCounts[p.id] > 0"
+          (click)="openRecipeDialog(p)">
+          <div class="product-card-img">
+            <img *ngIf="p.image" [src]="p.image" [alt]="p.name" loading="lazy">
+            <div *ngIf="!p.image" class="product-card-placeholder" [style.background]="getProductColor(p.name)">
+              {{ p.name.charAt(0).toUpperCase() }}
+            </div>
           </div>
+          <div class="product-card-body">
+            <span class="product-card-name">{{ p.name }}</span>
+            <span class="product-card-meta">{{ p.category }}</span>
+          </div>
+          <span class="product-card-price"
+            [innerHTML]="'&#8369;' + ((p.price || 0) | number:'1.2-2')">
+          </span>
+          <div class="product-card-recipe-badge" *ngIf="productRecipeCounts[p.id] > 0">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="10" height="10">
+              <path d="M20 6L9 17l-5-5"/>
+            </svg>
+            {{ productRecipeCounts[p.id] }}
+          </div>
+        </button>
+
+        <div class="empty-products" *ngIf="filteredProducts.length === 0">
+          <p>{{ productSearchTerm ? 'No products match your search' : 'No products found' }}</p>
         </div>
       </div>
     </div>
-
-    <!-- Empty State: No Product Selected -->
-    <div class="recipe-empty-state" *ngIf="!selectedProductId && !isLoadingProducts">
-      <div class="empty-state-mini">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M20 7h-4M4 7h4m0 0V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-6 4v6m4-6v6" />
-        </svg>
-        <p>Select a product above to start managing its ingredient components.</p>
-      </div>
-    </div>
-
-    <!-- Recipe Editor: Product Selected -->
-    <ng-container *ngIf="selectedProductId">
-
-      <!-- Recipe KPI Summary -->
-      <div class="kpi-strip">
-        <div class="kpi-card">
-          <div class="kpi-label">Ingredients</div>
-          <div class="kpi-value">{{ workingLines.length }}</div>
-          <div class="kpi-sub">Components in recipe</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Recipe Cost Est.</div>
-          <div class="kpi-value">₱{{ getRecipeCost() | number:'1.2-2' }}</div>
-          <div class="kpi-sub">Total cost per unit sold</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Product Price</div>
-          <div class="kpi-value">₱{{ (selectedProduct?.price || 0) | number:'1.2-2' }}</div>
-          <div class="kpi-sub">Listing price in POS</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Margin Est.</div>
-          <div class="kpi-value" [class.trend-down]="(selectedProduct?.price || 0) - getRecipeCost() < 0">
-            ₱{{ ((selectedProduct?.price || 0) - getRecipeCost()) | number:'1.2-2' }}
-          </div>
-          <div class="kpi-sub">Potential gross profit</div>
-        </div>
-      </div>
-
-      <!-- Main Recipe Panel -->
-      <div class="panel recipe-panel">
-        <div class="section-header">
-          <div class="section-title-group">
-            <h3 class="section-title">Ingredients for {{ selectedProduct?.name }}</h3>
-            <span class="section-subtitle">Amounts deducted from inventory upon successful transaction</span>
-          </div>
-
-          <div class="header-actions" *ngIf="hasChanges">
-            <span class="status-indicator">Unsaved changes</span>
-            <button class="btn btn-primary btn-sm" (click)="saveRecipe()" [disabled]="isSaving">
-              {{ isSaving ? 'Saving...' : 'Save Recipe' }}
-            </button>
-          </div>
-          <div class="header-actions" *ngIf="!hasChanges && workingLines.length > 0">
-            <span class="status-indicator saved">Up to date</span>
-          </div>
-        </div>
-
-        <!-- Add Ingredient Row -->
-        <div class="recipe-add-row-new">
-          <div class="add-grid">
-            <div class="form-group flex-2">
-              <label>Add Ingredient</label>
-              <select class="form-control" [(ngModel)]="addIngredientId">
-                <option value="">Search for ingredient...</option>
-                <option *ngFor="let i of ingredients" [value]="i.id">{{ i.name }} ({{ i.unit }})</option>
-              </select>
-            </div>
-            <div class="form-group flex-1">
-              <label>Qty per Unit</label>
-              <input type="number" class="form-control" [(ngModel)]="addQuantityPerUnit" placeholder="0.00"
-                (keydown.enter)="addLine()">
-            </div>
-            <div class="add-action">
-              <button class="btn btn-primary" (click)="addLine()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div class="panel-body">
-          <div class="loading-overlay" *ngIf="isLoadingRecipe">
-            <div class="loading-spinner">
-              <svg class="spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <circle cx="12" cy="12" r="10" stroke-width="2" />
-              </svg>
-            </div>
-          </div>
-
-          <div class="table-wrapper">
-            <table class="recipe-table-new">
-              <thead>
-                <tr>
-                  <th>Ingredient Component</th>
-                  <th>Quantity / Unit Sold</th>
-                  <th>Unit</th>
-                  <th>Est. Cost</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let line of workingLines; let i = index">
-                  <td>
-                    <div class="ingredient-info">
-                      <span class="ing-name">{{ line.ingredientName }}</span>
-                      <span class="ing-id">#{{ line.ingredientId.substring(0, 8) }}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <input type="number" class="table-input" [(ngModel)]="line.quantityPerUnit">
-                  </td>
-                  <td><span class="unit-tag">{{ line.unit }}</span></td>
-                  <td>
-                    <span class="line-cost">₱{{ getLineCost(line) | number:'1.2-2' }}</span>
-                  </td>
-                  <td class="actions-cell">
-                    <button class="row-delete-btn" (click)="removeLine(i)" title="Remove Ingredient">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14"
-                        height="14">
-                        <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-                      </svg>
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div class="recipe-empty-list" *ngIf="!isLoadingRecipe && workingLines.length === 0">
-            <div class="empty-state-mini">
-              <p>No ingredients defined for this product recipe yet.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-    </ng-container>
   </div>
 </div>

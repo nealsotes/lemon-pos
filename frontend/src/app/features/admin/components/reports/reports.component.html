@@ -33,19 +33,7 @@
 
   <div class="reports-body">
   <!-- Loading State -->
-  <div *ngIf="isLoading" class="loading-container">
-    <div class="loading-spinner">
-      <svg class="spinner" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-          stroke-dasharray="31.416" stroke-dashoffset="31.416">
-          <animate attributeName="stroke-dasharray" dur="2s" values="0 31.416;15.708 15.708;0 31.416"
-            repeatCount="indefinite" />
-          <animate attributeName="stroke-dashoffset" dur="2s" values="0;-15.708;-31.416" repeatCount="indefinite" />
-        </circle>
-      </svg>
-      <p class="loading-text">Loading reports...</p>
-    </div>
-  </div>
+  <app-loading-spinner *ngIf="isLoading" message="Loading reports..."></app-loading-spinner>
 
   <!-- Reports Content -->
   <div class="reports-content" *ngIf="!isLoading">
@@ -61,7 +49,7 @@
         </svg>
       </div>
       <p class="error-text">{{ errorMessage }}</p>
-      <button class="btn btn-primary" (click)="refreshReports()">Try Again</button>
+      <app-button variant="primary" (click)="refreshReports()">Try Again</app-button>
     </div>
 
     <!-- Empty State -->
@@ -80,39 +68,13 @@
         Start making sales to see your metrics here.
       </p>
       <div class="empty-actions">
-        <button class="btn btn-primary" routerLink="/products">Start Selling</button>
-        <button class="btn btn-secondary" (click)="refreshReports()">Refresh</button>
+        <app-button variant="primary" routerLink="/products">Start Selling</app-button>
+        <app-button variant="secondary" (click)="refreshReports()">Refresh</app-button>
       </div>
     </div>
 
     <!-- === KPI STRIP === -->
-    <div *ngIf="!errorMessage && hasData()" class="kpi-strip">
-      <div class="kpi-card">
-        <div class="kpi-label">Total Sales</div>
-        <div class="kpi-value">{{ formatCurrency(getTotalSales()) }}</div>
-        <div class="kpi-sub">{{ getDateRangeLabel() }}</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Transactions</div>
-        <div class="kpi-value">{{ getTransactionCount() }}</div>
-        <div class="kpi-sub">completed orders</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Avg. Order Value</div>
-        <div class="kpi-value">{{ formatCurrency(getAverageTransactionValue()) }}</div>
-        <div class="kpi-sub">per transaction</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Sales Growth</div>
-        <div class="kpi-value" [class.trend-up]="chartData.length > 0 && getTrendInsights().percentage > 0"
-          [class.trend-down]="chartData.length > 0 && getTrendInsights().percentage < 0">
-          <span *ngIf="chartData.length > 0">{{ getTrendInsights().percentage > 0 ? '+' : '' }}{{
-            getTrendInsights().percentage.toFixed(1) }}%</span>
-          <span *ngIf="chartData.length === 0">0.0%</span>
-        </div>
-        <div class="kpi-sub">vs previous period</div>
-      </div>
-    </div>
+    <app-kpi-strip *ngIf="!errorMessage && hasData()" [kpis]="kpiItems"></app-kpi-strip>
 
     <!-- === SALES TREND CHART === -->
     <div *ngIf="!errorMessage && hasData()" class="chart-section">

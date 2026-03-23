@@ -10,11 +10,15 @@ import { Transaction } from '../../../checkout/models/transaction.model';
 import { Product } from '../../../pos/models/product.model';
 import { TopBarComponent } from '../../../../shared/ui/top-bar/top-bar.component';
 import { ToastService } from '../../../../shared/ui/toast/toast.service';
+import { KpiStripComponent, KpiItem } from '../../../../shared/ui/kpi-strip/kpi-strip.component';
+import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/loading-spinner.component';
+import { ButtonComponent } from '../../../../shared/ui/button/button.component';
+import { BadgeComponent } from '../../../../shared/ui/badge/badge.component';
 
 @Component({
   selector: 'app-reports',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, TopBarComponent],
+  imports: [CommonModule, RouterModule, FormsModule, TopBarComponent, KpiStripComponent, LoadingSpinnerComponent, ButtonComponent, BadgeComponent],
   templateUrl: './reports.component.html',
   styleUrls: ['./reports.component.css']
 })
@@ -646,6 +650,35 @@ export class ReportsComponent implements OnInit {
   getTopProductName(): string {
     if (!this.topProducts || this.topProducts.length === 0) return 'N/A';
     return this.topProducts[0]?.name || 'N/A';
+  }
+
+  get kpiItems(): KpiItem[] {
+    return [
+      {
+        label: 'Total Sales',
+        value: this.formatCurrency(this.getTotalSales()),
+        trend: this.getDateRangeLabel(),
+        trendDirection: 'neutral' as const
+      },
+      {
+        label: 'Transactions',
+        value: this.getTransactionCount(),
+        trend: this.getDateRangeLabel(),
+        trendDirection: 'neutral' as const
+      },
+      {
+        label: 'Avg. Order Value',
+        value: this.formatCurrency(this.getAverageTransactionValue()),
+        trend: 'per transaction',
+        trendDirection: 'neutral' as const
+      },
+      {
+        label: 'Top Product',
+        value: this.getTopProductName(),
+        trend: 'best seller',
+        trendDirection: 'up' as const
+      }
+    ];
   }
 
   hasData(): boolean {

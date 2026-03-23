@@ -1,9 +1,9 @@
 export enum MovementType {
-  Purchase = 0,
-  Sale = 1,
-  Adjustment = 2,
-  Waste = 3,
-  Return = 4
+  Purchase = 'purchase',
+  Sale = 'sale',
+  Adjustment = 'adjustment',
+  Waste = 'waste',
+  Return = 'return'
 }
 
 export interface StockMovement {
@@ -25,11 +25,3 @@ export const MovementTypeLabels: Record<MovementType, string> = {
   [MovementType.Waste]: 'Waste',
   [MovementType.Return]: 'Return'
 };
-
-
-
-
-
-
-
-
