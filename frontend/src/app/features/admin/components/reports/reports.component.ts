@@ -14,11 +14,12 @@ import { KpiStripComponent, KpiItem } from '../../../../shared/ui/kpi-strip/kpi-
 import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/loading-spinner.component';
 import { ButtonComponent } from '../../../../shared/ui/button/button.component';
 import { BadgeComponent } from '../../../../shared/ui/badge/badge.component';
+import { FilterBarComponent } from '../../../../shared/ui/filter-bar/filter-bar.component';
 
 @Component({
   selector: 'app-reports',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, TopBarComponent, KpiStripComponent, LoadingSpinnerComponent, ButtonComponent, BadgeComponent],
+  imports: [CommonModule, RouterModule, FormsModule, TopBarComponent, KpiStripComponent, LoadingSpinnerComponent, ButtonComponent, BadgeComponent, FilterBarComponent],
   templateUrl: './reports.component.html',
   styleUrls: ['./reports.component.css']
 })
@@ -50,7 +51,14 @@ export class ReportsComponent implements OnInit {
   allTimeSearchQuery: string = '';
   allTimeSortBy: 'sales' | 'quantity' | 'name' = 'sales';
   allTimeCategories: string[] = [];
-  allTimeSelectedCategory: string = 'all';
+  allTimeSelectedCategory: string = '';
+
+  // Sort options for leaderboard filter bar
+  leaderboardSortOptions = [
+    { value: 'sales', label: 'Revenue' },
+    { value: 'quantity', label: 'Qty Sold' },
+    { value: 'name', label: 'Name' }
+  ];
 
   // Accounting report data
   profitLossData: any = null;
@@ -58,7 +66,7 @@ export class ReportsComponent implements OnInit {
   accountantSummary: any = null;
 
   // Tab navigation
-  activeTab: 'overview' | 'profitability' | 'inventory' | 'summary' = 'overview';
+  activeTab: 'overview' | 'leaderboard' | 'profitability' | 'inventory' | 'summary' = 'overview';
 
   constructor(
     private transactionService: TransactionService,
@@ -269,9 +277,35 @@ export class ReportsComponent implements OnInit {
     const maxSales = Math.max(...this.chartData.map(d => d.sales));
     if (maxSales === 0) return 0;
 
-    // Calculate height as percentage of max sales, with minimum height of 5%
     const height = (sales / maxSales) * 100;
-    return Math.max(height, 5);
+    return sales === 0 ? 2 : Math.max(height, 4);
+  }
+
+  getChartTotal(): number {
+    return this.chartData.reduce((sum, d) => sum + d.sales, 0);
+  }
+
+  getChartAverage(): number {
+    if (this.chartData.length === 0) return 0;
+    return this.getChartTotal() / this.chartData.length;
+  }
+
+  getChartPeak(): number {
+    if (this.chartData.length === 0) return 0;
+    return Math.max(...this.chartData.map(d => d.sales));
+  }
+
+  getChartMax(): number {
+    const peak = this.getChartPeak();
+    if (peak === 0) return 100;
+    const magnitude = Math.pow(10, Math.floor(Math.log10(peak)));
+    return Math.ceil(peak / magnitude) * magnitude;
+  }
+
+  formatCompact(value: number): string {
+    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+    if (value >= 1000) return `${(value / 1000).toFixed(value >= 10000 ? 0 : 1)}K`;
+    return value.toFixed(0);
   }
 
   private formatDisplayDate(date: Date): string {
@@ -939,7 +973,7 @@ export class ReportsComponent implements OnInit {
     let filtered = [...this.allTimeProductSales];
 
     // Category filter
-    if (this.allTimeSelectedCategory !== 'all') {
+    if (this.allTimeSelectedCategory) {
       filtered = filtered.filter(p => p.category === this.allTimeSelectedCategory);
     }
 
@@ -970,6 +1004,18 @@ export class ReportsComponent implements OnInit {
     this.allTimeSelectedCategory = category;
   }
 
+  onLeaderboardSearchChange(term: string): void {
+    this.allTimeSearchQuery = term;
+  }
+
+  onLeaderboardSortChange(value: string): void {
+    this.allTimeSortBy = value as 'sales' | 'quantity' | 'name';
+  }
+
+  onLeaderboardCategoryChange(category: string): void {
+    this.allTimeSelectedCategory = category;
+  }
+
   private updateAllTimeCategories(): void {
     const categories = Array.from(new Set(
       this.allTimeProductSales
@@ -980,8 +1026,8 @@ export class ReportsComponent implements OnInit {
     categories.sort((a, b) => a.localeCompare(b));
     this.allTimeCategories = categories;
 
-    if (this.allTimeSelectedCategory !== 'all' && !this.allTimeCategories.includes(this.allTimeSelectedCategory)) {
-      this.allTimeSelectedCategory = 'all';
+    if (this.allTimeSelectedCategory && !this.allTimeCategories.includes(this.allTimeSelectedCategory)) {
+      this.allTimeSelectedCategory = '';
     }
   }
 

@@ -14,17 +14,14 @@
             (change)="onEndDateChange($event)" class="date-input">
         </div>
       </div>
-      <button class="btn-outline" (click)="resetToToday()" [disabled]="!isCustomDateRange">Today</button>
+      <app-button variant="secondary" size="sm" (click)="resetToToday()" [disabled]="!isCustomDateRange">Today</app-button>
     </div>
-    <button class="header-btn compact-btn" (click)="refreshReports()" [disabled]="isLoading"
-      [title]="isLoading ? 'Loading...' : 'Refresh'">
-      <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M1 4v6h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-        <path d="M23 20v-6h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-        <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15" stroke="currentColor"
-          stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    <app-button variant="ghost" size="sm" (click)="refreshReports()" [disabled]="isLoading">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1 4v6h6M23 20v-6h-6"/>
+        <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/>
       </svg>
-    </button>
+    </app-button>
   </app-top-bar>
 
   <!-- Tabs -->
@@ -34,6 +31,16 @@
         <path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 4-4"/>
       </svg>
       Overview
+    </button>
+    <button class="tab" [class.active]="activeTab === 'leaderboard'" (click)="activeTab = 'leaderboard'">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 9H4.5a2.5 2.5 0 010-5C7 4 7 7 7 7"/>
+        <path d="M18 9h1.5a2.5 2.5 0 000-5C17 4 17 7 17 7"/>
+        <path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
+        <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
+        <path d="M18 2H6v7a6 6 0 0012 0V2z"/>
+      </svg>
+      Leaderboard
     </button>
     <button class="tab" [class.active]="activeTab === 'profitability'" (click)="activeTab = 'profitability'">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -105,13 +112,44 @@
             </div>
           </div>
           <div class="chart-body" *ngIf="chartData.length > 0">
-            <div class="chart-area">
-              <div *ngFor="let data of chartData" class="chart-col">
-                <div class="bar-wrapper">
-                  <div class="bar-value">{{ formatCurrency(data.sales) }}</div>
-                  <div class="chart-bar" [style.height.%]="getBarHeight(data.sales)"></div>
+            <div class="chart-summary">
+              <div class="chart-summary-item">
+                <span class="chart-summary-label">Total</span>
+                <span class="chart-summary-value">{{ formatCurrency(getChartTotal()) }}</span>
+              </div>
+              <div class="chart-summary-item">
+                <span class="chart-summary-label">Avg/Day</span>
+                <span class="chart-summary-value">{{ formatCurrency(getChartAverage()) }}</span>
+              </div>
+              <div class="chart-summary-item" *ngIf="getChartPeak() as peak">
+                <span class="chart-summary-label">Peak</span>
+                <span class="chart-summary-value">{{ formatCurrency(peak) }}</span>
+              </div>
+            </div>
+            <div class="chart-grid">
+              <div class="chart-y-axis">
+                <span class="y-label">{{ formatCompact(getChartMax()) }}</span>
+                <span class="y-label">{{ formatCompact(getChartMax() * 0.5) }}</span>
+                <span class="y-label">0</span>
+              </div>
+              <div class="chart-area">
+                <div class="grid-line" style="bottom: 100%"></div>
+                <div class="grid-line" style="bottom: 50%"></div>
+                <div class="grid-line" style="bottom: 0%"></div>
+                <div *ngFor="let data of chartData; let i = index" class="chart-col"
+                  [class.is-highest]="data.sales === getChartPeak()"
+                  [class.is-zero]="data.sales === 0">
+                  <div class="bar-wrapper">
+                    <div class="bar-tooltip">
+                      <span class="tooltip-value">{{ formatCurrency(data.sales) }}</span>
+                      <span class="tooltip-meta">{{ data.transactions }} txn{{ data.transactions !== 1 ? 's' : '' }}</span>
+                    </div>
+                    <div class="chart-bar" [style.height.%]="getBarHeight(data.sales)">
+                      <div class="bar-shine"></div>
+                    </div>
+                  </div>
+                  <span class="bar-label">{{ data.formattedDate }}</span>
                 </div>
-                <span class="bar-label">{{ data.formattedDate }}</span>
               </div>
             </div>
           </div>
@@ -166,35 +204,60 @@
           </div>
         </div>
 
-        <!-- All-Time Leaderboard -->
+      </ng-container>
+
+      <!-- ============================================ -->
+      <!-- TAB: LEADERBOARD                             -->
+      <!-- ============================================ -->
+      <ng-container *ngIf="!errorMessage && activeTab === 'leaderboard'">
+
+        <!-- Podium: Top 3 -->
+        <div class="podium" *ngIf="filteredAllTimeSales.length >= 3">
+          <div class="podium-card silver">
+            <div class="podium-rank">2</div>
+            <div class="podium-name">{{ filteredAllTimeSales[1].name }}</div>
+            <div class="podium-cat">{{ filteredAllTimeSales[1].category }}</div>
+            <div class="podium-revenue">{{ formatCurrency(filteredAllTimeSales[1].sales) }}</div>
+            <div class="podium-qty">{{ filteredAllTimeSales[1].quantity }} sold</div>
+          </div>
+          <div class="podium-card gold">
+            <div class="podium-crown">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5z"/></svg>
+            </div>
+            <div class="podium-rank">1</div>
+            <div class="podium-name">{{ filteredAllTimeSales[0].name }}</div>
+            <div class="podium-cat">{{ filteredAllTimeSales[0].category }}</div>
+            <div class="podium-revenue">{{ formatCurrency(filteredAllTimeSales[0].sales) }}</div>
+            <div class="podium-qty">{{ filteredAllTimeSales[0].quantity }} sold</div>
+          </div>
+          <div class="podium-card bronze">
+            <div class="podium-rank">3</div>
+            <div class="podium-name">{{ filteredAllTimeSales[2].name }}</div>
+            <div class="podium-cat">{{ filteredAllTimeSales[2].category }}</div>
+            <div class="podium-revenue">{{ formatCurrency(filteredAllTimeSales[2].sales) }}</div>
+            <div class="podium-qty">{{ filteredAllTimeSales[2].quantity }} sold</div>
+          </div>
+        </div>
+
+        <!-- Full Rankings -->
         <div class="card">
-          <div class="card-header">
-            <div class="card-title-group">
-              <h3 class="card-title">All-Time Leaderboard</h3>
-              <span class="card-subtitle">Lifetime product performance</span>
-            </div>
-            <div class="leaderboard-controls">
-              <div class="search-box">
-                <svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                <input type="text" [(ngModel)]="allTimeSearchQuery" placeholder="Search..." class="search-input">
-              </div>
-              <select [(ngModel)]="allTimeSortBy" class="sort-select">
-                <option value="sales">Revenue</option>
-                <option value="quantity">Qty Sold</option>
-                <option value="name">Name</option>
-              </select>
-            </div>
-          </div>
-          <div class="category-chips">
-            <button class="chip" [class.active]="allTimeSelectedCategory === 'all'" (click)="selectAllTimeCategory('all')">All</button>
-            <button *ngFor="let category of allTimeCategories" class="chip"
-              [class.active]="allTimeSelectedCategory === category"
-              (click)="selectAllTimeCategory(category)">{{ category }}</button>
-          </div>
+          <app-filter-bar
+            title="Full Rankings"
+            [subtitle]="filteredAllTimeSales.length + ' products · Lifetime performance'"
+            searchPlaceholder="Search products..."
+            [searchValue]="allTimeSearchQuery"
+            [sortOptions]="leaderboardSortOptions"
+            [sortValue]="allTimeSortBy"
+            [categories]="allTimeCategories"
+            [selectedCategory]="allTimeSelectedCategory"
+            (searchChange)="onLeaderboardSearchChange($event)"
+            (sortChange)="onLeaderboardSortChange($event)"
+            (categoryChange)="onLeaderboardCategoryChange($event)">
+          </app-filter-bar>
           <div class="card-list leaderboard-list">
             <div *ngIf="filteredAllTimeSales.length === 0" class="card-empty">No products found</div>
             <div *ngFor="let product of filteredAllTimeSales; let i = index" class="lb-item" [class.lb-top]="i < 3">
-              <span class="lb-rank">{{ i + 1 }}</span>
+              <span class="lb-rank" [class.rank-gold]="i === 0" [class.rank-silver]="i === 1" [class.rank-bronze]="i === 2">{{ i + 1 }}</span>
               <div class="lb-info">
                 <div class="lb-name-row">
                   <span class="lb-name">{{ product.name }}</span>
@@ -363,14 +426,14 @@
           </div>
 
           <div class="acct-export">
-            <button class="btn-export-sm" (click)="exportData('csv')">
-              <svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <app-button variant="secondary" size="sm" (click)="exportData('csv')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
               CSV
-            </button>
-            <button class="btn-export-sm" (click)="exportData('excel')">
-              <svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </app-button>
+            <app-button variant="secondary" size="sm" (click)="exportData('excel')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
               Excel
-            </button>
+            </app-button>
           </div>
         </div>
 
@@ -439,11 +502,11 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" (click)="closeTransactionModal()">Close</button>
-      <button class="btn btn-primary" (click)="printReceipt()">
-        <svg class="btn-icon" viewBox="0 0 24 24" fill="none"><path d="M6 9V2h12v7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 14h12v8H6z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <app-button variant="secondary" size="sm" (click)="closeTransactionModal()">Close</app-button>
+      <app-button variant="primary" size="sm" (click)="printReceipt()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 9V2h12v7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 14h12v8H6z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         Print
-      </button>
+      </app-button>
     </div>
   </div>
 </div>
