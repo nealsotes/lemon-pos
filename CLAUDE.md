@@ -30,7 +30,13 @@ dotnet ef migrations add <Name> --context PosSystemDbContext         # Add migra
 dotnet ef database update --context PosSystemDbContext               # Apply migrations
 ```
 
-Both must run simultaneously for local development. The frontend proxies `/api` requests to the backend via `proxy.conf.json`.
+Both must run simultaneously for local development. The frontend proxies `/api` and `/uploads` requests to the backend via `proxy.conf.json`.
+
+### Docker (local testing)
+```bash
+docker build -t quickserve-pos .         # Multi-stage build (SDK 8.0 + Node 20 → aspnet 8.0)
+docker run -p 8080:8080 quickserve-pos   # Serves frontend + API on :8080
+```
 
 ## Architecture
 
@@ -109,6 +115,7 @@ All components are **standalone** (no NgModules). State management uses Behavior
 - **Categories**: Stored as strings in DB (not enums, not foreign keys)
 - **PWA**: Service worker configured but currently disabled in `main.ts`; offline sync capability exists
 - **Thermal printing**: QZ Tray integration for receipt printing
+- **Bundle budgets**: 3MB initial warning, 10MB error; 100KB per component style
 
 ## Testing Conventions
 
@@ -136,7 +143,7 @@ Local dev uses `appsettings.json` with MySQL on `localhost:3307` (non-standard p
 
 - **Docker**: Multi-stage build (SDK 8.0 + Node 20 for Angular → aspnet 8.0 runtime)
 - **Railway**: `railway.toml` with RAILPACK builder. Frontend build output goes to `backend/.../wwwroot/`
-- Scripts in `scripts/`: build, deploy, test, and performance check utilities
+- Scripts in `scripts/`: PowerShell (`.ps1`) utilities for build, deploy, test, and performance checks
 
 ## Additional Documentation
 
