@@ -18,10 +18,9 @@
     </div>
   </app-top-bar>
 
-  <div class="page-body">
-  <!-- Tab navigation -->
-  <div class="inventory-nav">
-    <button type="button" class="nav-tab" [class.active]="activeTab === 'ingredients'"
+  <!-- Tabs -->
+  <div class="tab-bar">
+    <button class="tab" [class.active]="activeTab === 'ingredients'"
       (click)="activeTab = 'ingredients'">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18"/>
@@ -30,7 +29,7 @@
       Ingredients
       <span class="tab-count" *ngIf="activeTab === 'ingredients'">{{ ingredients.length }}</span>
     </button>
-    <button type="button" class="nav-tab" [class.active]="activeTab === 'recipes'" (click)="activeTab = 'recipes'">
+    <button class="tab" [class.active]="activeTab === 'recipes'" (click)="activeTab = 'recipes'">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
         <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
@@ -38,6 +37,8 @@
       Product Recipes
     </button>
   </div>
+
+  <div class="page-body">
 
   <!-- Loading State -->
   <app-loading-spinner *ngIf="isLoading" message="Loading inventory..."></app-loading-spinner>
