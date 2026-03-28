@@ -42,6 +42,7 @@ export class ProductManagementComponent implements OnInit {
   filteredProducts: Product[] = [];
   categories: string[] = [];
   isLoading = true;
+  selectedProducts: Product[] = [];
 
   // Filter and search properties
   searchTerm: string = '';
@@ -216,6 +217,37 @@ export class ProductManagementComponent implements OnInit {
       if (!formValue) return;
       this.saveProduct(formValue, product);
     });
+  }
+
+  onSelectionChange(selected: Product[]): void {
+    this.selectedProducts = selected;
+  }
+
+  async deleteSelectedProducts(): Promise<void> {
+    const count = this.selectedProducts.length;
+    if (count === 0) return;
+
+    const confirmed = await this.confirmService.confirm({
+      title: 'Delete Products',
+      message: `Are you sure you want to delete ${count} product${count > 1 ? 's' : ''}? This action cannot be undone.`,
+      confirmLabel: `Delete ${count} Product${count > 1 ? 's' : ''}`,
+      cancelLabel: 'Cancel',
+      variant: 'danger'
+    });
+
+    if (confirmed) {
+      const ids = this.selectedProducts.map(p => p.id);
+      this.productService.deleteProductsBulk(ids).subscribe({
+        next: () => {
+          this.toast.success(`${count} product${count > 1 ? 's' : ''} deleted successfully`);
+          this.selectedProducts = [];
+          this.loadProducts();
+        },
+        error: () => {
+          this.toast.error('Error deleting products');
+        }
+      });
+    }
   }
 
   async deleteProduct(product: Product): Promise<void> {

@@ -40,15 +40,28 @@
         (categoryChange)="onCategoryChange($event)">
       </app-filter-bar>
 
+      <!-- Bulk Action Bar -->
+      <div class="bulk-action-bar" *ngIf="selectedProducts.length > 0">
+        <span class="selection-count">{{ selectedProducts.length }} selected</span>
+        <app-button variant="danger" size="sm" (click)="deleteSelectedProducts()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+          </svg>
+          Delete Selected
+        </app-button>
+      </div>
+
       <app-data-table
         [columns]="tableColumns"
         [data]="filteredProducts"
         [clickable]="true"
+        [selectable]="true"
         emptyIcon="📦"
         [emptyTitle]="searchTerm ? 'No results' : 'No products yet'"
         [emptyMessage]="searchTerm ? 'No products match your search' : 'Add your first product to get started'"
         [emptyAction]="searchTerm ? '' : 'Add First Product'"
         (rowClick)="editProduct($event)"
+        (selectionChange)="onSelectionChange($event)"
         (emptyActionClick)="openAddProductDialog()">
 
         <ng-template cellDef="product" let-row>

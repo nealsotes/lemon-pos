@@ -70,6 +70,21 @@ public class ProductRepository : IProductRepository
         }
     }
 
+    public async Task DeleteBulkAsync(List<string> ids)
+    {
+        var products = await _context.Products
+            .Where(p => ids.Contains(p.Id) && p.IsActive)
+            .ToListAsync();
+
+        foreach (var product in products)
+        {
+            product.IsActive = false;
+            product.UpdatedAt = DateTime.UtcNow;
+        }
+
+        await _context.SaveChangesAsync();
+    }
+
     public async Task<IEnumerable<string>> GetCategoriesAsync()
     {
         return await _context.Products

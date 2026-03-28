@@ -66,6 +66,11 @@ public class ProductService : IProductService
         await _productRepository.DeleteAsync(id);
     }
 
+    public async Task DeleteProductsBulkAsync(List<string> ids)
+    {
+        await _productRepository.DeleteBulkAsync(ids);
+    }
+
     public async Task<IEnumerable<string>> GetCategoriesAsync()
     {
         return await _productRepository.GetCategoriesAsync();

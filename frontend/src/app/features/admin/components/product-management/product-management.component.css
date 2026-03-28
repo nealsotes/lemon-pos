@@ -45,6 +45,24 @@
   overflow: hidden;
 }
 
+/* ---------- Bulk Action Bar ---------- */
+.bulk-action-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+.selection-count {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
 /* ---------- Product Info Cell (data-table cell template) ---------- */
 .product-info-cell {
   display: flex;

@@ -241,6 +241,19 @@ public class ProductsController : ControllerBase
         return NoContent();
     }
 
+    [HttpDelete("bulk")]
+    [Authorize(Roles = "Owner,Admin")]
+    public async Task<IActionResult> DeleteProductsBulk([FromBody] BulkDeleteDto dto)
+    {
+        if (dto.Ids == null || dto.Ids.Count == 0)
+        {
+            return BadRequest("No product IDs provided.");
+        }
+
+        await _productService.DeleteProductsBulkAsync(dto.Ids);
+        return NoContent();
+    }
+
     [HttpGet("image/{fileName}")]
     [AllowAnonymous]
     public IActionResult GetImage(string fileName)

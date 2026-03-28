@@ -179,6 +179,32 @@ export class ProductService {
     }
   }
 
+  deleteProductsBulk(ids: string[]): Observable<void> {
+    if (this.offlineService.isOnline$.value) {
+      return this.http.request<void>('delete', `${this.apiUrl}/products/bulk`, { body: { ids } }).pipe(
+        tap(() => {
+          const idSet = new Set(ids);
+          const currentProducts = this.productsSubject.value;
+          const filteredProducts = currentProducts.filter(p => !idSet.has(p.id));
+          this.productsSubject.next(filteredProducts);
+          this.saveToLocalStorage('products', filteredProducts);
+          this.updateCategories();
+        }),
+        catchError(error => {
+          throw error;
+        })
+      );
+    } else {
+      const idSet = new Set(ids);
+      const currentProducts = this.productsSubject.value;
+      const filteredProducts = currentProducts.filter(p => !idSet.has(p.id));
+      this.productsSubject.next(filteredProducts);
+      this.saveToLocalStorage('products', filteredProducts);
+      this.updateCategories();
+      return of(void 0);
+    }
+  }
+
   private updateCategories(): void {
     const products = this.productsSubject.value;
     const categories = [...new Set(products.map(p => p.category).filter(c => c && c.trim() !== ''))];

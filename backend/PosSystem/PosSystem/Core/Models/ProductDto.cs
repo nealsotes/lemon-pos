@@ -17,4 +17,9 @@ public class ProductImageDto
 {
     public string ImageData { get; set; } = string.Empty;
     public string FileName { get; set; } = string.Empty;
+}
+
+public class BulkDeleteDto
+{
+    public List<string> Ids { get; set; } = new();
 } 
