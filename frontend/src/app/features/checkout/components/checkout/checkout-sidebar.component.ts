@@ -20,11 +20,16 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
   styleUrls: ['./checkout-sidebar.component.css'],
   template: `
     <!-- Checkout Sidebar Overlay -->
-    <div class="checkout-overlay" [class.active]="isOpen" (click)="closeCheckout()">
-      <div class="checkout-sidebar" (click)="$event.stopPropagation()">
+    <div class="checkout-overlay" [class.active]="isOpen" [class.inline]="inline" (click)="!inline && closeCheckout()">
+      <div class="checkout-sidebar" [class.inline]="inline" (click)="$event.stopPropagation()">
         <!-- Header -->
         <div class="checkout-header">
           <div class="header-left">
+            <button *ngIf="inline" class="back-btn" (click)="back.emit()" title="Back to Cart">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
             <h2>Checkout</h2>
             <div class="form-status" *ngIf="isFormDirty">
               <svg class="status-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -48,7 +53,7 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
                 <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </button>
-            <button class="close-btn" (click)="closeCheckout()">
+            <button *ngIf="!inline" class="close-btn" (click)="closeCheckout()">
               <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
@@ -410,8 +415,8 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
 
         <!-- Footer Actions -->
         <div class="checkout-footer">
-          <button class="btn btn-secondary" (click)="closeCheckout()">
-            Cancel
+          <button class="btn btn-secondary" (click)="inline ? back.emit() : closeCheckout()">
+            {{ inline ? 'Back to Cart' : 'Cancel' }}
           </button>
           <button 
             class="btn btn-primary" 
@@ -444,7 +449,9 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
 })
 export class CheckoutSidebarComponent implements OnInit {
   @Input() isOpen = false;
+  @Input() inline = false;
   @Output() close = new EventEmitter<void>();
+  @Output() back = new EventEmitter<void>();
   @Output() transactionComplete = new EventEmitter<any>();
 
   cartItems: CartItem[] = [];

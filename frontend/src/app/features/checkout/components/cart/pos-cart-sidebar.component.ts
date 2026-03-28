@@ -16,6 +16,7 @@ import { Subject, takeUntil } from 'rxjs';
 })
 export class POSCartSidebarComponent implements OnInit, OnDestroy {
     @Input() isOpen = false;
+    @Input() inline = false;
     @Output() close = new EventEmitter<void>();
     @Output() checkout = new EventEmitter<void>();
 

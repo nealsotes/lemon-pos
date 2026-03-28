@@ -454,6 +454,30 @@
   background: var(--border);
 }
 
+/* Inline mode — desktop split-pane */
+.cart-sidebar.inline {
+  position: static;
+  width: 100%;
+  height: 100%;
+  transform: none;
+  box-shadow: none;
+  z-index: auto;
+  border-left: none;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.cart-sidebar.inline .cart-content {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.cart-sidebar.inline .cart-items.scrollable {
+  max-height: none;
+}
+
 /* Mobile */
 @media (max-width: 768px) {
   .cart-sidebar {

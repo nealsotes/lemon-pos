@@ -1,9 +1,9 @@
-<div class="cart-sidebar-overlay" [class.active]="isOpen" (click)="closeSidebar()"></div>
+<div class="cart-sidebar-overlay" *ngIf="!inline" [class.active]="isOpen" (click)="closeSidebar()"></div>
 
-<div class="cart-sidebar" [class.open]="isOpen">
+<div class="cart-sidebar" [class.open]="isOpen" [class.inline]="inline">
     <div class="cart-header">
         <h2 class="cart-title">Order Cart</h2>
-        <button class="close-btn" (click)="closeSidebar()">
+        <button class="close-btn" *ngIf="!inline" (click)="closeSidebar()">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                     stroke-linejoin="round" />

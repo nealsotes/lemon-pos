@@ -823,6 +823,57 @@ input:checked + .slider:before {
   to { transform: rotate(360deg); }
 }
 
+/* Inline mode — desktop split-pane */
+.checkout-overlay.inline {
+  position: static;
+  width: 100%;
+  height: 100%;
+  background: none;
+  opacity: 1;
+  visibility: visible;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.checkout-sidebar.inline {
+  position: static;
+  width: 100%;
+  height: 100%;
+  right: auto;
+  box-shadow: none;
+  border-left: none;
+  contain: none;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.back-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color var(--transition-fast);
+  color: var(--text-secondary);
+}
+
+.back-btn:hover {
+  background: var(--bg-subtle);
+}
+
+.back-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .checkout-sidebar {

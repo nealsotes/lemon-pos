@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
+import { BreakpointObserver } from '@angular/cdk/layout';
 import { Product } from '../../models/product.model';
 import { CartItem } from '../../../checkout/models/cart-item.model';
 import { OpenOrder } from '../../../checkout/models/open-order.model';
@@ -58,17 +59,23 @@ export class ProductGridComponent implements OnInit, OnDestroy {
   // Checkout sidebar properties
   isCheckoutOpen = false;
 
+  // Desktop split-pane layout
+  isDesktop = false;
+  currentView: 'cart' | 'checkout' = 'cart';
+
   constructor(
     private productService: ProductService,
     private cartService: CartService,
     private cdr: ChangeDetectorRef,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private breakpointObserver: BreakpointObserver
   ) { }
 
   ngOnInit(): void {
     this.loadProducts();
     this.loadCategories();
     this.loadCart();
+    this.observeBreakpoint();
   }
 
   ngOnDestroy(): void {
@@ -76,6 +83,15 @@ export class ProductGridComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
+
+  private observeBreakpoint(): void {
+    this.breakpointObserver.observe('(min-width: 1024px)').pipe(
+      takeUntil(this.destroy$)
+    ).subscribe(result => {
+      this.isDesktop = result.matches;
+      this.cdr.markForCheck();
+    });
+  }
 
   private loadProducts(): void {
     this.isLoading = true;
@@ -218,14 +234,18 @@ export class ProductGridComponent implements OnInit, OnDestroy {
         if (result !== undefined && result !== null) {
           // User selected a temperature and potentially add-ons
           this.cartService.addToCart(product, 1, result.temperature, result.addOns);
-          this.openCartSidebar();
+          if (!this.isDesktop) {
+            this.openCartSidebar();
+          }
           this.showAddToCartFeedback(product);
         }
       });
     } else {
       // Non-beverage products don't need temperature selection
       this.cartService.addToCart(product, 1, null);
-      this.openCartSidebar();
+      if (!this.isDesktop) {
+        this.openCartSidebar();
+      }
       this.showAddToCartFeedback(product);
     }
   }
@@ -261,9 +281,17 @@ export class ProductGridComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Open checkout sidebar instead of navigating
-    this.isCheckoutOpen = true;
-    this.isCartOpen = false; // Close cart sidebar when opening checkout
+    if (this.isDesktop) {
+      this.currentView = 'checkout';
+    } else {
+      this.isCheckoutOpen = true;
+      this.isCartOpen = false;
+    }
+    requestAnimationFrame(() => this.cdr.markForCheck());
+  }
+
+  backToCart(): void {
+    this.currentView = 'cart';
     requestAnimationFrame(() => this.cdr.markForCheck());
   }
 
@@ -277,6 +305,10 @@ export class ProductGridComponent implements OnInit, OnDestroy {
   }
 
   onTransactionComplete(event: any): void {
+    // Don't reset to cart view here — the receipt sidebar is embedded
+    // in the checkout component and needs to stay visible.
+    // The view resets to cart when the user closes the receipt (via back/close).
+
     // Reload cart data to update counts and totals
     this.loadCart();
 

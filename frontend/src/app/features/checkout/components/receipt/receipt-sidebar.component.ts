@@ -16,7 +16,7 @@ import { ThermalPrinterService } from '../../services/thermal-printer.service';
       <div class="receipt-sidebar" (click)="$event.stopPropagation()">
         <!-- Header -->
         <div class="receipt-header">
-          <h2>Transaction Receipt</h2>
+          <h2>Receipt</h2>
           <button class="close-btn" (click)="closeReceipt()">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -26,165 +26,124 @@ import { ThermalPrinterService } from '../../services/thermal-printer.service';
 
         <!-- Receipt Content -->
         <div class="receipt-content" id="receipt-print" *ngIf="transaction">
-          <!-- Debug Info (remove in production) -->
-          <div *ngIf="false" style="background: #f0f0f0; padding: 10px; margin-bottom: 10px; font-size: 0.8rem;">
-            <p>Debug: Transaction ID: {{ transaction?.id }}</p>
-            <p>Debug: Items Count: {{ transaction?.items?.length || 0 }}</p>
-            <p>Debug: Total: {{ transaction?.total }}</p>
-          </div>
-          <!-- Store Header -->
-          <div class="store-header">
-            <h3>Lemon POS Advance</h3>
-            <p>Point of Sale Terminal</p>
-            <p>{{ formatDate(transaction?.timestamp) }}</p>
+          <!-- Success Banner -->
+          <div class="success-banner">
+            <div class="success-icon">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <span class="success-text">Transaction Complete</span>
+            <span class="success-amount">{{ formatPrice(getTotal()) }}</span>
           </div>
 
           <!-- Transaction Details -->
           <div class="transaction-details">
             <div class="detail-row">
-              <span>Receipt #:</span>
-              <span>{{ getReceiptNumber() }}</span>
+              <span>Receipt #</span>
+              <span class="detail-value">{{ getReceiptNumber() }}</span>
             </div>
             <div class="detail-row">
-              <span>Payment Method:</span>
-              <span>{{ getPaymentMethodDisplay(transaction?.paymentMethod) }}</span>
+              <span>Date</span>
+              <span class="detail-value">{{ formatDate(transaction?.timestamp) }}</span>
+            </div>
+            <div class="detail-row">
+              <span>Payment</span>
+              <span class="detail-value">{{ getPaymentMethodDisplay(transaction?.paymentMethod) }}</span>
             </div>
             <div class="detail-row" *ngIf="transaction?.serviceType">
-              <span>Service Type:</span>
-              <span>{{ transaction?.serviceType === 'dineIn' ? 'Dine-in' : 'Take-out' }}</span>
+              <span>Service</span>
+              <span class="detail-value">{{ transaction?.serviceType === 'dineIn' ? 'Dine-in' : 'Take-out' }}</span>
             </div>
             <div class="detail-row" *ngIf="transaction?.customerInfo?.name">
-              <span>Customer:</span>
-              <span>{{ transaction?.customerInfo?.name }}</span>
-            </div>
-            <div class="detail-row" *ngIf="transaction?.customerInfo?.phone">
-              <span>Phone:</span>
-              <span>{{ transaction?.customerInfo?.phone }}</span>
-            </div>
-            <div class="detail-row" *ngIf="transaction?.customerInfo?.email">
-              <span>Email:</span>
-              <span>{{ transaction?.customerInfo?.email }}</span>
+              <span>Customer</span>
+              <span class="detail-value">{{ transaction?.customerInfo?.name }}</span>
             </div>
           </div>
 
           <!-- Items List -->
           <div class="items-section">
-            <div class="items-header">
-              <span>Item</span>
-              <span>Qty</span>
-              <span>Price</span>
-              <span>Total</span>
-            </div>
-
-            <div *ngIf="!hasItems" class="no-items">
-              <p>No items in this transaction</p>
-              <p style="font-size: 0.7rem; color: #999; margin-top: 5px;">Transaction ID: {{ transaction?.id }}, Items Count: {{ transactionItems.length }}</p>
-            </div>
-
-            <div class="item-row" *ngFor="let item of transactionItems; trackBy: trackByItem; let i = index">
-              <div class="item-info">
-                <span class="item-name">
-                  {{ item.name || item.Name || 'Unknown Item' }}
-                  <span *ngIf="getTemperature(item)" class="temperature-badge" [class.hot]="isHot(item)" [class.cold]="isCold(item)">
-                    <span *ngIf="isHot(item)">🔥 hot</span>
-                    <span *ngIf="isCold(item)">❄️ Iced</span>
+            <div class="section-label">Items</div>
+            <div class="items-list">
+              <div class="item-row" *ngFor="let item of transactionItems; trackBy: trackByItem">
+                <div class="item-left">
+                  <span class="item-name">
+                    {{ item.name || item.Name || 'Unknown Item' }}
+                    <span *ngIf="getTemperature(item)" class="temperature-badge" [class.hot]="isHot(item)" [class.cold]="isCold(item)">
+                      {{ isHot(item) ? 'Hot' : 'Iced' }}
+                    </span>
                   </span>
-                </span>
-                <div class="item-addons" *ngIf="hasAddOns(item)">
-                  <span *ngFor="let addOn of getAddOns(item)" class="addon-item">
-                    <span *ngIf="addOn.quantity && addOn.quantity > 1">{{ addOn.quantity }}x </span>+ {{ addOn.name }} ({{ formatPrice(addOn.price * (addOn.quantity || 1)) }})
-                  </span>
+                  <div class="item-addons" *ngIf="hasAddOns(item)">
+                    <span *ngFor="let addOn of getAddOns(item)" class="addon-item">
+                      <span *ngIf="addOn.quantity && addOn.quantity > 1">{{ addOn.quantity }}x </span>+ {{ addOn.name }} ({{ formatPrice(addOn.price * (addOn.quantity || 1)) }})
+                    </span>
+                  </div>
+                  <span class="item-meta">{{ formatPrice(getItemBasePrice(item)) }} x {{ item.quantity || item.Quantity || 0 }}</span>
                 </div>
+                <span class="item-total">{{ formatPrice(getItemTotal(item)) }}</span>
               </div>
-              <span class="item-qty">{{ item.quantity || item.Quantity || 0 }}</span>
-              <span class="item-price">{{ formatPrice(getItemBasePrice(item)) }}</span>
-              <span class="item-total">{{ formatPrice(getItemTotal(item)) }}</span>
             </div>
           </div>
 
           <!-- Totals Section -->
           <div class="totals-section">
-            <!-- Calculate subtotal, discount, VAT, and total -->
-            <ng-container *ngIf="transaction">
-              <!-- Subtotal (sum of item prices before discount) -->
-              <div class="total-row">
-                <span>Subtotal:</span>
-                <span>{{ formatPrice(getSubtotal()) }}</span>
-              </div>
-              
-              <!-- Discount (if any) -->
-              <div class="total-row" *ngIf="getDiscountTotal() > 0">
-                <span>Discount <span *ngIf="getDiscountTypeLabel()">({{ getDiscountTypeLabel() }})</span>:</span>
-                <span>-{{ formatPrice(getDiscountTotal()) }}</span>
-              </div>
-              
-            </ng-container>
-            
-            <!-- Total -->
+            <div class="total-row" *ngIf="transaction">
+              <span>Subtotal</span>
+              <span>{{ formatPrice(getSubtotal()) }}</span>
+            </div>
+            <div class="total-row discount-row" *ngIf="getDiscountTotal() > 0">
+              <span>Discount <span *ngIf="getDiscountTypeLabel()">({{ getDiscountTypeLabel() }})</span></span>
+              <span>-{{ formatPrice(getDiscountTotal()) }}</span>
+            </div>
             <div class="total-row grand-total">
-              <span>Total:</span>
+              <span>Total</span>
               <span>{{ formatPrice(getTotal()) }}</span>
             </div>
 
             <!-- Cash Payment Details -->
-            <div *ngIf="transaction?.paymentMethod === 'cash' && transaction?.amountReceived" class="cash-payment-section">
+            <div *ngIf="transaction?.paymentMethod === 'cash' && transaction?.amountReceived" class="cash-details">
               <div class="total-row">
-                <span>Amount Received:</span>
+                <span>Received</span>
                 <span>{{ formatPrice(transaction?.amountReceived || transaction?.AmountReceived || 0) }}</span>
               </div>
-              <div class="total-row">
-                <span>Change:</span>
+              <div class="total-row change-row">
+                <span>Change</span>
                 <span class="change-amount">{{ formatPrice(getChange()) }}</span>
               </div>
             </div>
-
           </div>
 
           <!-- Notes -->
           <div class="notes-section" *ngIf="transaction?.notes">
-            <h4>Notes:</h4>
+            <div class="section-label">Notes</div>
             <p>{{ transaction?.notes }}</p>
-          </div>
-
-          <!-- Footer -->
-          <div class="receipt-footer">
-            <p>Thank you for your purchase!</p>
-            <p class="footer-note">Please keep this receipt for your records</p>
           </div>
         </div>
 
         <!-- Action Buttons -->
         <div class="receipt-actions">
-          <button class="btn btn-primary" (click)="printReceipt()" [disabled]="isPrinting || isOpeningDrawer">
-            <span *ngIf="isPrinting">Printing...</span>
-            <span *ngIf="!isPrinting">Print</span>
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M6 9V2a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7M6 9H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-2M6 9h12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            Print Receipt
-          </button>
-          <button class="btn btn-drawer" (click)="openCashDrawer()" [disabled]="isPrinting || isOpeningDrawer" title="Open Cash Drawer">
-            <span *ngIf="isOpeningDrawer">Opening...</span>
-            <span *ngIf="!isOpeningDrawer">Open Drawer</span>
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2H5a2 2 0 0 0-2-2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M12 12v6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M9 15h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-          <button class="btn btn-secondary" (click)="closeReceipt()">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            Close
-          </button>
-          <button class="btn btn-outline" (click)="startNewSale()">
+          <button class="btn btn-new-sale" (click)="startNewSale()">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
             New Sale
           </button>
+          <div class="actions-row">
+            <button class="btn btn-print" (click)="printReceipt()" [disabled]="isPrinting || isOpeningDrawer">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <rect x="6" y="14" width="12" height="8" rx="1" stroke="currentColor" stroke-width="2"/>
+              </svg>
+              {{ isPrinting ? 'Printing...' : 'Print' }}
+            </button>
+            <button class="btn btn-drawer" (click)="openCashDrawer()" [disabled]="isPrinting || isOpeningDrawer" title="Open Cash Drawer">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="2" y="6" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/>
+                <path d="M2 10h20M12 14v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              {{ isOpeningDrawer ? 'Opening...' : 'Drawer' }}
+            </button>
+          </div>
         </div>
       </div>
     </div>

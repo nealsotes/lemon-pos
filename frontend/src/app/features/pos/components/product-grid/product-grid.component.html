@@ -1,81 +1,103 @@
-<div class="pos-container">
-  <!-- Top Bar -->
-  <app-top-bar title="Point of Sale">
-    <button class="btn btn-ghost btn-sm" (click)="refreshData()" title="Refresh">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M1 4v6h6M23 20v-6h-6"/>
-        <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/>
-      </svg>
-    </button>
-    <button class="cart-toggle" (click)="openCartSidebar()">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4H6zm0 0h12M9 10a3 3 0 006 0"/>
-      </svg>
-      <span class="cart-badge" *ngIf="cartItemCount > 0">{{ cartItemCount }}</span>
-    </button>
-  </app-top-bar>
+<div class="pos-container" [class.desktop]="isDesktop">
+  <!-- Left: Main POS area -->
+  <div class="pos-main">
+    <!-- Top Bar -->
+    <app-top-bar title="Point of Sale">
+      <button class="btn btn-ghost btn-sm" (click)="refreshData()" title="Refresh">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M1 4v6h6M23 20v-6h-6"/>
+          <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/>
+        </svg>
+      </button>
+      <button class="cart-toggle" (click)="openCartSidebar()" *ngIf="!isDesktop">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4H6zm0 0h12M9 10a3 3 0 006 0"/>
+        </svg>
+        <span class="cart-badge" *ngIf="cartItemCount > 0">{{ cartItemCount }}</span>
+      </button>
+    </app-top-bar>
 
-  <!-- Filters: Search + Category Chips -->
-  <div class="pos-filters">
-    <app-search-input
-      placeholder="Search products..."
-      [value]="searchTerm"
-      (search)="onSearch($event)">
-    </app-search-input>
-    <app-chip-group
-      [chips]="categories"
-      [selected]="selectedCategory"
-      allLabel="All"
-      (selectedChange)="filterByCategory($event)">
-    </app-chip-group>
-  </div>
-
-  <!-- Loading -->
-  <div *ngIf="isLoading" class="loading-state">
-    <div class="spinner"></div>
-    <p>Loading products...</p>
-  </div>
-
-  <!-- Product Grid -->
-  <div *ngIf="!isLoading && paginatedProducts.length > 0" class="product-grid">
-    <div *ngFor="let product of paginatedProducts; trackBy: trackByProduct"
-         class="product-card"
-         [class.out-of-stock]="product.stock <= 0"
-         (click)="addToCart(product)">
-      <div class="card-image">
-        <img *ngIf="isImageLoaded(product)" [src]="product.image" [alt]="product.name" loading="lazy" (error)="onImageError($event, product)">
-        <span *ngIf="!isImageLoaded(product)" class="card-emoji">{{ isImageUrl(product.image) ? '&#x1F4F7;' : (product.image || '&#x1F4E6;') }}</span>
-        <span class="stock-badge badge-warning" *ngIf="isLowStock(product)">Low Stock</span>
-        <span class="stock-badge badge-danger" *ngIf="product.stock <= 0">Out of Stock</span>
-      </div>
-      <div class="card-body">
-        <span class="card-name">{{ product.name }}</span>
-        <span class="card-category">{{ product.category }}</span>
-        <span class="card-price">&#x20B1;{{ product.price | number:'1.2-2' }}</span>
-      </div>
-      <span class="stock-count">{{ product.stock }} left</span>
+    <!-- Filters: Search + Category Chips -->
+    <div class="pos-filters">
+      <app-search-input
+        placeholder="Search products..."
+        [value]="searchTerm"
+        (search)="onSearch($event)">
+      </app-search-input>
+      <app-chip-group
+        [chips]="categories"
+        [selected]="selectedCategory"
+        allLabel="All"
+        (selectedChange)="filterByCategory($event)">
+      </app-chip-group>
     </div>
+
+    <!-- Loading -->
+    <div *ngIf="isLoading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading products...</p>
+    </div>
+
+    <!-- Product Grid -->
+    <div *ngIf="!isLoading && paginatedProducts.length > 0" class="product-grid">
+      <div *ngFor="let product of paginatedProducts; trackBy: trackByProduct"
+           class="product-card"
+           [class.out-of-stock]="product.stock <= 0"
+           (click)="addToCart(product)">
+        <div class="card-image">
+          <img *ngIf="isImageLoaded(product)" [src]="product.image" [alt]="product.name" loading="lazy" (error)="onImageError($event, product)">
+          <span *ngIf="!isImageLoaded(product)" class="card-emoji">{{ isImageUrl(product.image) ? '&#x1F4F7;' : (product.image || '&#x1F4E6;') }}</span>
+          <span class="stock-badge badge-warning" *ngIf="isLowStock(product)">Low Stock</span>
+          <span class="stock-badge badge-danger" *ngIf="product.stock <= 0">Out of Stock</span>
+        </div>
+        <div class="card-body">
+          <span class="card-name">{{ product.name }}</span>
+          <span class="card-category">{{ product.category }}</span>
+          <span class="card-price">&#x20B1;{{ product.price | number:'1.2-2' }}</span>
+        </div>
+        <span class="stock-count">{{ product.stock }} left</span>
+      </div>
+    </div>
+
+    <!-- Load More -->
+    <div *ngIf="!isLoading && hasMoreProducts()" class="load-more">
+      <button class="btn btn-secondary btn-sm" (click)="loadMoreProducts()">Load More</button>
+    </div>
+
+    <!-- Empty State -->
+    <app-empty-state
+      *ngIf="!isLoading && filteredProducts.length === 0"
+      title="No products found"
+      [message]="searchTerm ? 'Try adjusting your search terms' : 'No products available in this category'"
+      actionLabel="Refresh Products"
+      (action)="refreshData()">
+    </app-empty-state>
   </div>
 
-  <!-- Load More -->
-  <div *ngIf="!isLoading && hasMoreProducts()" class="load-more">
-    <button class="btn btn-secondary btn-sm" (click)="loadMoreProducts()">Load More</button>
+  <!-- Right: Inline order panel (desktop only) -->
+  <div class="order-panel" *ngIf="isDesktop">
+    <app-pos-cart-sidebar
+      *ngIf="currentView === 'cart'"
+      [inline]="true"
+      [isOpen]="true"
+      (checkout)="proceedToCheckout()">
+    </app-pos-cart-sidebar>
+    <app-checkout-sidebar
+      *ngIf="currentView === 'checkout'"
+      [inline]="true"
+      [isOpen]="true"
+      (back)="backToCart()"
+      (close)="backToCart()"
+      (transactionComplete)="onTransactionComplete($event)">
+    </app-checkout-sidebar>
   </div>
 
-  <!-- Empty State -->
-  <app-empty-state
-    *ngIf="!isLoading && filteredProducts.length === 0"
-    title="No products found"
-    [message]="searchTerm ? 'Try adjusting your search terms' : 'No products available in this category'"
-    actionLabel="Refresh Products"
-    (action)="refreshData()">
-  </app-empty-state>
-
-  <!-- Cart Sidebar -->
-  <app-pos-cart-sidebar [isOpen]="isCartOpen" (close)="closeCartSidebar()" (checkout)="proceedToCheckout()">
-  </app-pos-cart-sidebar>
-
-  <!-- Checkout Sidebar -->
-  <app-checkout-sidebar [isOpen]="isCheckoutOpen" (close)="closeCheckout()"
-    (transactionComplete)="onTransactionComplete($event)"></app-checkout-sidebar>
+  <!-- Mobile overlays -->
+  <ng-container *ngIf="!isDesktop">
+    <app-pos-cart-sidebar [isOpen]="isCartOpen" (close)="closeCartSidebar()" (checkout)="proceedToCheckout()">
+    </app-pos-cart-sidebar>
+    <app-checkout-sidebar [isOpen]="isCheckoutOpen" (close)="closeCheckout()"
+      (transactionComplete)="onTransactionComplete($event)">
+    </app-checkout-sidebar>
+  </ng-container>
 </div>
