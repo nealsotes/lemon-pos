@@ -45,7 +45,7 @@ export class ProductGridComponent implements OnInit, OnDestroy {
 
   // Performance optimization properties
   private destroy$ = new Subject<void>();
-  private readonly ITEMS_PER_PAGE = 20;
+  private readonly ITEMS_PER_PAGE = 50;
   private readonly VISIBLE_ITEMS = 12;
   currentPage = 1;
   totalPages = 1;
