@@ -2,6 +2,13 @@
   <!-- Page Header -->
   <app-top-bar title="Reports">
     <div class="date-range-picker">
+      <div class="date-presets">
+        <button class="preset-btn" [class.active]="activeDatePreset === 'today'" (click)="setDatePreset('today')">Today</button>
+        <button class="preset-btn" [class.active]="activeDatePreset === '7d'" (click)="setDatePreset('7d')">7 Days</button>
+        <button class="preset-btn" [class.active]="activeDatePreset === '30d'" (click)="setDatePreset('30d')">30 Days</button>
+        <button class="preset-btn" [class.active]="activeDatePreset === 'thisMonth'" (click)="setDatePreset('thisMonth')">This Month</button>
+        <button class="preset-btn" [class.active]="activeDatePreset === 'lastMonth'" (click)="setDatePreset('lastMonth')">Last Month</button>
+      </div>
       <div class="date-inputs">
         <div class="date-input-group">
           <label for="startDate">From</label>
@@ -14,7 +21,6 @@
             (change)="onEndDateChange($event)" class="date-input">
         </div>
       </div>
-      <app-button variant="secondary" size="sm" (click)="resetToToday()" [disabled]="!isCustomDateRange">Today</app-button>
     </div>
     <app-button variant="ghost" size="sm" (click)="refreshReports()" [disabled]="isLoading">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -26,13 +32,13 @@
 
   <!-- Tabs -->
   <div class="tab-bar">
-    <button class="tab" [class.active]="activeTab === 'overview'" (click)="activeTab = 'overview'">
+    <button class="tab" [class.active]="activeTab === 'dashboard'" (click)="activeTab = 'dashboard'">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 4-4"/>
       </svg>
-      Overview
+      Dashboard
     </button>
-    <button class="tab" [class.active]="activeTab === 'leaderboard'" (click)="activeTab = 'leaderboard'">
+    <button class="tab" [class.active]="activeTab === 'sales'" (click)="activeTab = 'sales'">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M6 9H4.5a2.5 2.5 0 010-5C7 4 7 7 7 7"/>
         <path d="M18 9h1.5a2.5 2.5 0 000-5C17 4 17 7 17 7"/>
@@ -40,29 +46,22 @@
         <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
         <path d="M18 2H6v7a6 6 0 0012 0V2z"/>
       </svg>
-      Leaderboard
+      Sales
     </button>
-    <button class="tab" [class.active]="activeTab === 'profitability'" (click)="activeTab = 'profitability'">
+    <button class="tab" [class.active]="activeTab === 'costs'" (click)="activeTab = 'costs'">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
       </svg>
-      Profitability
+      Costs
     </button>
-    <button class="tab" [class.active]="activeTab === 'inventory'" (click)="activeTab = 'inventory'">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
-        <path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/>
-      </svg>
-      Inventory
-    </button>
-    <button class="tab" [class.active]="activeTab === 'summary'" (click)="activeTab = 'summary'">
+    <button class="tab" [class.active]="activeTab === 'export'" (click)="activeTab = 'export'">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
         <polyline points="14,2 14,8 20,8"/>
         <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
         <polyline points="10,9 9,9 8,9"/>
       </svg>
-      Summary
+      Export
     </button>
   </div>
 
@@ -96,33 +95,42 @@
       </div>
 
       <!-- ============================================ -->
-      <!-- TAB: OVERVIEW                                -->
+      <!-- TAB: DASHBOARD                               -->
       <!-- ============================================ -->
-      <ng-container *ngIf="!errorMessage && activeTab === 'overview'">
+      <ng-container *ngIf="!errorMessage && activeTab === 'dashboard'">
+        <!-- KPI Strip -->
         <app-kpi-strip *ngIf="hasData()" [kpis]="kpiItems"></app-kpi-strip>
 
-        <!-- Period Comparison Badges -->
-        <div class="comparison-strip" *ngIf="periodComparison && hasData()">
-          <div class="comp-item">
-            <span class="comp-label">Sales</span>
-            <span class="comp-badge" [class]="getChangeClass(periodComparison.salesChangePercent)">
-              {{ formatChange(periodComparison.salesChangePercent) }}
-            </span>
-            <span class="comp-sub">vs prev period</span>
+        <!-- Sparkline row (below KPI strip) -->
+        <div class="sparkline-row" *ngIf="hasData() && getSparklineData().length > 0">
+          <div class="sparkline-container">
+            <span class="sparkline-label">7-day trend</span>
+            <div class="sparkline-bars">
+              <div *ngFor="let val of getSparklineData()" class="sparkline-bar"
+                [style.height.%]="(val / getSparklineMax()) * 100 || 2"></div>
+            </div>
           </div>
-          <div class="comp-item">
-            <span class="comp-label">Transactions</span>
-            <span class="comp-badge" [class]="getChangeClass(periodComparison.transactionsChangePercent)">
-              {{ formatChange(periodComparison.transactionsChangePercent) }}
-            </span>
-            <span class="comp-sub">vs prev period</span>
+          <!-- Margin health bar -->
+          <div class="margin-health" *ngIf="profitLossData">
+            <span class="sparkline-label">Margin health</span>
+            <div class="health-bar-track">
+              <div class="health-bar-fill" [style.width.%]="profitLossData.marginPercent"></div>
+              <div class="health-bar-marker" [style.left.%]="profitLossData.marginPercent"></div>
+            </div>
+            <div class="health-bar-labels">
+              <span>0%</span><span>50%</span><span>100%</span>
+            </div>
           </div>
-          <div class="comp-item">
-            <span class="comp-label">Avg Order</span>
-            <span class="comp-badge" [class]="getChangeClass(periodComparison.avgOrderChangePercent)">
-              {{ formatChange(periodComparison.avgOrderChangePercent) }}
-            </span>
-            <span class="comp-sub">vs prev period</span>
+        </div>
+
+        <!-- Insights Strip -->
+        <div class="insights-strip" *ngIf="insights.length > 0 && hasData()">
+          <div *ngFor="let insight of insights" class="insight-card" [attr.data-level]="insight.level">
+            <span class="insight-icon">{{ insight.icon }}</span>
+            <div class="insight-body">
+              <div class="insight-headline">{{ insight.headline }}</div>
+              <div class="insight-detail">{{ insight.detail }}</div>
+            </div>
           </div>
         </div>
 
@@ -182,6 +190,60 @@
             <p>No sales data for this period</p>
           </div>
         </div>
+
+        <!-- Profit Snapshot + Quick Stats -->
+        <div *ngIf="hasData()" class="two-col-row">
+          <!-- Profit Snapshot -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Profit Snapshot</h3>
+              <span class="tooltip-icon" [title]="METRIC_TOOLTIPS['grossProfit']">&#9432;</span>
+            </div>
+            <div class="card-list" *ngIf="profitLossData">
+              <div class="list-row">
+                <span class="row-name">Revenue</span>
+                <span class="row-value">{{ formatCurrency(profitLossData.grossRevenue) }}</span>
+              </div>
+              <div class="list-row">
+                <span class="row-name">Cost of Goods <span class="tooltip-icon" [title]="METRIC_TOOLTIPS['costOfGoods']">&#9432;</span></span>
+                <span class="row-value cogs">-{{ formatCurrency(profitLossData.cogs) }}</span>
+              </div>
+              <div class="list-row profit-row">
+                <span class="row-name"><strong>Gross Profit</strong></span>
+                <span class="row-value profit"><strong>{{ formatCurrency(profitLossData.grossProfit) }}</strong></span>
+              </div>
+            </div>
+            <div *ngIf="!profitLossData" class="card-empty">No profit data available</div>
+          </div>
+
+          <!-- Quick Stats -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Quick Stats</h3>
+            </div>
+            <div class="card-list">
+              <div class="list-row">
+                <span class="row-name">Best Seller</span>
+                <span class="row-value">{{ getTopProductName() }}</span>
+              </div>
+              <div class="list-row" *ngIf="categoryBreakdown.length > 0">
+                <span class="row-name">Top Category</span>
+                <span class="row-value">{{ categoryBreakdown[0].category }}</span>
+              </div>
+              <div class="list-row" *ngFor="let p of paymentBreakdown">
+                <span class="row-name">{{ p.method === 'cash' ? 'Cash' : p.method === 'gcash' ? 'GCash' : p.method }}</span>
+                <span class="row-value">{{ getPaymentPercent(p.total) | number:'1.0-0' }}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </ng-container>
+
+      <!-- ============================================ -->
+      <!-- TAB: SALES                                   -->
+      <!-- ============================================ -->
+      <ng-container *ngIf="!errorMessage && activeTab === 'sales'">
 
         <!-- Category + Payment Breakdown -->
         <div *ngIf="hasData() && (categoryBreakdown.length > 0 || paymentBreakdown.length > 0)" class="two-col-row">
@@ -268,12 +330,12 @@
           </div>
         </div>
 
-      </ng-container>
-
-      <!-- ============================================ -->
-      <!-- TAB: LEADERBOARD                             -->
-      <!-- ============================================ -->
-      <ng-container *ngIf="!errorMessage && activeTab === 'leaderboard'">
+        <!-- Divider + Leaderboard -->
+        <div class="section-divider" *ngIf="allTimeProductSales.length > 0">
+          <span class="divider-line"></span>
+          <span class="lifetime-badge">Lifetime data &mdash; not affected by date filter</span>
+          <span class="divider-line"></span>
+        </div>
 
         <!-- Podium: Top 3 -->
         <div class="podium" *ngIf="filteredAllTimeSales.length >= 3">
@@ -304,7 +366,7 @@
         </div>
 
         <!-- Full Rankings -->
-        <div class="card">
+        <div class="card" *ngIf="allTimeProductSales.length > 0">
           <app-filter-bar
             title="Full Rankings"
             [subtitle]="filteredAllTimeSales.length + ' products · Lifetime performance'"
@@ -341,125 +403,139 @@
       </ng-container>
 
       <!-- ============================================ -->
-      <!-- TAB: PROFITABILITY                           -->
+      <!-- TAB: COSTS                                   -->
       <!-- ============================================ -->
-      <ng-container *ngIf="!errorMessage && activeTab === 'profitability'">
-        <div *ngIf="profitLossData" class="card">
-          <div class="card-header">
-            <h3 class="card-title">Profit & Loss</h3>
-            <span class="card-subtitle">{{ getDateRangeLabel() }}</span>
-          </div>
-          <div class="pnl-kpis">
-            <div class="pnl-kpi">
-              <span class="pnl-kpi-label">Revenue</span>
-              <span class="pnl-kpi-value">{{ formatCurrency(profitLossData.grossRevenue) }}</span>
+      <ng-container *ngIf="!errorMessage && activeTab === 'costs'">
+
+        <!-- SECTION: Profit & Loss (collapsible) -->
+        <div class="collapsible-section" [class.expanded]="costsExpanded['pnl']">
+          <div class="collapsible-header" (click)="toggleCostsSection('pnl')">
+            <div class="collapsible-left">
+              <span class="collapsible-chevron">{{ costsExpanded['pnl'] ? '&#9660;' : '&#9654;' }}</span>
+              <span class="collapsible-title">Profit &amp; Loss</span>
+              <span class="collapsible-desc">Revenue, cost of goods, margins by period</span>
             </div>
-            <div class="pnl-kpi">
-              <span class="pnl-kpi-label">COGS</span>
-              <span class="pnl-kpi-value cogs">{{ formatCurrency(profitLossData.cogs) }}</span>
-            </div>
-            <div class="pnl-kpi">
-              <span class="pnl-kpi-label">Gross Profit</span>
-              <span class="pnl-kpi-value profit">{{ formatCurrency(profitLossData.grossProfit) }}</span>
-            </div>
-            <div class="pnl-kpi">
-              <span class="pnl-kpi-label">Margin</span>
-              <span class="pnl-kpi-value" [class]="getMarginClass(profitLossData.marginPercent)">{{ profitLossData.marginPercent | number:'1.1-1' }}%</span>
+            <div class="collapsible-summary" *ngIf="profitLossData">
+              <span class="summary-stat profit">{{ formatCurrency(profitLossData.grossProfit) }} profit</span>
+              <span class="summary-stat-sep">&middot;</span>
+              <span class="summary-stat">{{ profitLossData.marginPercent | number:'1.1-1' }}% margin</span>
             </div>
           </div>
-          <div class="pnl-table" *ngIf="profitLossData.breakdown?.length > 0">
-            <div class="pnl-table-head">
-              <span>Period</span><span>Revenue</span><span>COGS</span><span>Profit</span><span>Margin</span>
+          <div class="collapsible-body" *ngIf="costsExpanded['pnl']">
+            <div *ngIf="profitLossData">
+              <div class="pnl-kpis">
+                <div class="pnl-kpi">
+                  <span class="pnl-kpi-label">Revenue <span class="tooltip-icon" [title]="METRIC_TOOLTIPS['revenue']">&#9432;</span></span>
+                  <span class="pnl-kpi-value">{{ formatCurrency(profitLossData.grossRevenue) }}</span>
+                </div>
+                <div class="pnl-kpi">
+                  <span class="pnl-kpi-label">Cost of Goods <span class="tooltip-icon" [title]="METRIC_TOOLTIPS['costOfGoods']">&#9432;</span></span>
+                  <span class="pnl-kpi-value cogs">{{ formatCurrency(profitLossData.cogs) }}</span>
+                </div>
+                <div class="pnl-kpi">
+                  <span class="pnl-kpi-label">Gross Profit <span class="tooltip-icon" [title]="METRIC_TOOLTIPS['grossProfit']">&#9432;</span></span>
+                  <span class="pnl-kpi-value profit">{{ formatCurrency(profitLossData.grossProfit) }}</span>
+                </div>
+                <div class="pnl-kpi">
+                  <span class="pnl-kpi-label">Margin <span class="tooltip-icon" [title]="METRIC_TOOLTIPS['grossMargin']">&#9432;</span></span>
+                  <span class="pnl-kpi-value" [class]="getMarginClass(profitLossData.marginPercent)">{{ profitLossData.marginPercent | number:'1.1-1' }}%</span>
+                </div>
+              </div>
+              <div class="pnl-table" *ngIf="profitLossData.breakdown?.length > 0">
+                <div class="pnl-table-head">
+                  <span>Period</span><span>Revenue</span><span>Cost of Goods</span><span>Profit</span><span>Margin</span>
+                </div>
+                <div class="pnl-table-row" *ngFor="let row of profitLossData.breakdown">
+                  <span class="pnl-period">{{ row.period }}</span>
+                  <span>{{ formatCurrency(row.revenue) }}</span>
+                  <span class="cogs">{{ formatCurrency(row.cogs) }}</span>
+                  <span class="profit">{{ formatCurrency(row.grossProfit) }}</span>
+                  <span [class]="getMarginClass(row.marginPercent)">{{ row.marginPercent | number:'1.1-1' }}%</span>
+                </div>
+              </div>
             </div>
-            <div class="pnl-table-row" *ngFor="let row of profitLossData.breakdown">
-              <span class="pnl-period">{{ row.period }}</span>
-              <span>{{ formatCurrency(row.revenue) }}</span>
-              <span class="cogs">{{ formatCurrency(row.cogs) }}</span>
-              <span class="profit">{{ formatCurrency(row.grossProfit) }}</span>
-              <span [class]="getMarginClass(row.marginPercent)">{{ row.marginPercent | number:'1.1-1' }}%</span>
-            </div>
+            <div *ngIf="!profitLossData" class="card-empty-state"><p>No profitability data available for this period.</p></div>
           </div>
         </div>
 
-        <div *ngIf="!profitLossData" class="card-empty-state">
-          <p>No profitability data available for this period.</p>
-        </div>
-      </ng-container>
-
-      <!-- ============================================ -->
-      <!-- TAB: INVENTORY                               -->
-      <!-- ============================================ -->
-      <ng-container *ngIf="!errorMessage && activeTab === 'inventory'">
-        <!-- Sub-tab navigation -->
-        <div class="inv-subtab-nav">
-          <button class="inv-subtab" [class.active]="inventorySubTab === 'overview'" (click)="setInventorySubTab('overview')">Overview</button>
-          <button class="inv-subtab" [class.active]="inventorySubTab === 'activity'" (click)="setInventorySubTab('activity')">Activity</button>
-          <button class="inv-subtab" [class.active]="inventorySubTab === 'suppliers'" (click)="setInventorySubTab('suppliers')">Suppliers</button>
-          <button class="inv-subtab" [class.active]="inventorySubTab === 'consumption'" (click)="setInventorySubTab('consumption')">Consumption</button>
-        </div>
-
-        <!-- SUB-TAB: OVERVIEW (existing) -->
-        <ng-container *ngIf="inventorySubTab === 'overview'">
-          <div *ngIf="inventoryData" class="card">
-            <div class="card-header">
-              <h3 class="card-title">Inventory Valuation</h3>
-              <span class="card-subtitle">{{ getDateRangeLabel() }}</span>
+        <!-- SECTION: Inventory Valuation (collapsible) -->
+        <div class="collapsible-section" [class.expanded]="costsExpanded['inventory']">
+          <div class="collapsible-header" (click)="toggleCostsSection('inventory')">
+            <div class="collapsible-left">
+              <span class="collapsible-chevron">{{ costsExpanded['inventory'] ? '&#9660;' : '&#9654;' }}</span>
+              <span class="collapsible-title">Inventory Valuation</span>
+              <span class="collapsible-desc">Current stock value and movements</span>
             </div>
-            <div class="pnl-kpis">
-              <div class="pnl-kpi">
-                <span class="pnl-kpi-label">Total Value</span>
-                <span class="pnl-kpi-value">{{ formatCurrency(inventoryData.totalValue) }}</span>
-              </div>
-              <div class="pnl-kpi">
-                <span class="pnl-kpi-label">Period Change</span>
-                <span class="pnl-kpi-value" [class.profit]="inventoryData.periodChange >= 0" [class.cogs]="inventoryData.periodChange < 0">
-                  {{ inventoryData.periodChange >= 0 ? '+' : '' }}{{ formatCurrency(inventoryData.periodChange) }}
-                </span>
-              </div>
-              <div class="pnl-kpi">
-                <span class="pnl-kpi-label">Waste / Shrinkage</span>
-                <span class="pnl-kpi-value cogs">{{ formatCurrency(inventoryData.wasteAndShrinkage) }}</span>
-              </div>
-              <div class="pnl-kpi">
-                <span class="pnl-kpi-label">Low Stock</span>
-                <span class="pnl-kpi-value" [class.cogs]="inventoryData.lowStockCount > 0">{{ inventoryData.lowStockCount }}</span>
-              </div>
+            <div class="collapsible-summary" *ngIf="inventoryData">
+              <span class="summary-stat">{{ formatCurrency(inventoryData.totalValue) }} value</span>
+              <span class="summary-stat-sep">&middot;</span>
+              <span class="summary-stat" [class.cogs]="inventoryData.lowStockCount > 0">{{ inventoryData.lowStockCount }} low stock</span>
             </div>
-            <div class="inv-two-col">
-              <div class="inv-sub-panel" *ngIf="inventoryData.topIngredients?.length > 0">
-                <div class="inv-sub-title">Top Ingredients by Value</div>
-                <div class="inv-table-head"><span>Ingredient</span><span>On Hand</span><span>Value</span><span>%</span></div>
-                <div class="inv-table-row" *ngFor="let ing of inventoryData.topIngredients">
-                  <span class="inv-name">{{ ing.name }}</span>
-                  <span class="inv-qty">{{ ing.onHand | number:'1.0-1' }} {{ ing.unit }}</span>
-                  <span>{{ formatCurrency(ing.totalValue) }}</span>
-                  <div class="inv-pct">
-                    <div class="inv-pct-bar" [style.width.%]="ing.percentOfTotal"></div>
-                    <span>{{ ing.percentOfTotal | number:'1.1-1' }}%</span>
+          </div>
+          <div class="collapsible-body" *ngIf="costsExpanded['inventory']">
+            <div *ngIf="inventoryData">
+              <div class="pnl-kpis">
+                <div class="pnl-kpi">
+                  <span class="pnl-kpi-label">Total Value</span>
+                  <span class="pnl-kpi-value">{{ formatCurrency(inventoryData.totalValue) }}</span>
+                </div>
+                <div class="pnl-kpi">
+                  <span class="pnl-kpi-label">Period Change <span class="tooltip-icon" [title]="METRIC_TOOLTIPS['periodChange']">&#9432;</span></span>
+                  <span class="pnl-kpi-value" [class.profit]="inventoryData.periodChange >= 0" [class.cogs]="inventoryData.periodChange < 0">
+                    {{ inventoryData.periodChange >= 0 ? '+' : '' }}{{ formatCurrency(inventoryData.periodChange) }}
+                  </span>
+                </div>
+                <div class="pnl-kpi">
+                  <span class="pnl-kpi-label">Waste / Shrinkage <span class="tooltip-icon" [title]="METRIC_TOOLTIPS['waste']">&#9432;</span></span>
+                  <span class="pnl-kpi-value cogs">{{ formatCurrency(inventoryData.wasteAndShrinkage) }}</span>
+                </div>
+                <div class="pnl-kpi">
+                  <span class="pnl-kpi-label">Low Stock <span class="tooltip-icon" [title]="METRIC_TOOLTIPS['lowStock']">&#9432;</span></span>
+                  <span class="pnl-kpi-value" [class.cogs]="inventoryData.lowStockCount > 0">{{ inventoryData.lowStockCount }}</span>
+                </div>
+              </div>
+              <div class="inv-two-col">
+                <div class="inv-sub-panel" *ngIf="inventoryData.topIngredients?.length > 0">
+                  <div class="inv-sub-title">Top Ingredients by Value</div>
+                  <div class="inv-table-head"><span>Ingredient</span><span>On Hand</span><span>Value</span><span>%</span></div>
+                  <div class="inv-table-row" *ngFor="let ing of inventoryData.topIngredients">
+                    <span class="inv-name">{{ ing.name }}</span>
+                    <span class="inv-qty">{{ ing.onHand | number:'1.0-1' }} {{ ing.unit }}</span>
+                    <span>{{ formatCurrency(ing.totalValue) }}</span>
+                    <div class="inv-pct">
+                      <div class="inv-pct-bar" [style.width.%]="ing.percentOfTotal"></div>
+                      <span>{{ ing.percentOfTotal | number:'1.1-1' }}%</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="inv-sub-panel" *ngIf="inventoryData.movementSummary?.length > 0">
+                  <div class="inv-sub-title">Stock Movements</div>
+                  <div class="inv-table-head"><span>Type</span><span>Count</span><span>Cost</span></div>
+                  <div class="inv-table-row" *ngFor="let mov of inventoryData.movementSummary">
+                    <span>{{ mov.type }}</span><span>{{ mov.count }}</span><span>{{ formatCurrency(mov.totalCost) }}</span>
                   </div>
                 </div>
               </div>
-              <div class="inv-sub-panel" *ngIf="inventoryData.movementSummary?.length > 0">
-                <div class="inv-sub-title">Stock Movements</div>
-                <div class="inv-table-head"><span>Type</span><span>Count</span><span>Cost</span></div>
-                <div class="inv-table-row" *ngFor="let mov of inventoryData.movementSummary">
-                  <span>{{ mov.type }}</span><span>{{ mov.count }}</span><span>{{ formatCurrency(mov.totalCost) }}</span>
-                </div>
-              </div>
             </div>
+            <div *ngIf="!inventoryData" class="card-empty-state"><p>No inventory data available.</p></div>
           </div>
-          <div *ngIf="!inventoryData" class="card-empty-state">
-            <p>No inventory data available.</p>
-          </div>
-        </ng-container>
+        </div>
 
-        <!-- SUB-TAB: ACTIVITY -->
-        <ng-container *ngIf="inventorySubTab === 'activity'">
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">Stock Movement Activity</h3>
-              <span class="card-subtitle">{{ getDateRangeLabel() }}</span>
+        <!-- SECTION: Stock Activity (collapsible) -->
+        <div class="collapsible-section" [class.expanded]="costsExpanded['activity']">
+          <div class="collapsible-header" (click)="toggleCostsSection('activity')">
+            <div class="collapsible-left">
+              <span class="collapsible-chevron">{{ costsExpanded['activity'] ? '&#9660;' : '&#9654;' }}</span>
+              <span class="collapsible-title">Stock Activity</span>
+              <span class="collapsible-desc">Movement ledger with filters</span>
             </div>
+            <div class="collapsible-summary">
+              <span class="summary-stat incoming">+{{ formatCurrency(activityTotalIn) }} in</span>
+              <span class="summary-stat-sep">&middot;</span>
+              <span class="summary-stat outgoing">-{{ formatCurrency(activityTotalOut) }} out</span>
+            </div>
+          </div>
+          <div class="collapsible-body" *ngIf="costsExpanded['activity']">
             <!-- Filters -->
             <div class="activity-filters">
               <div class="activity-type-chips">
@@ -501,153 +577,212 @@
               <p>No movements found for this period.</p>
             </div>
           </div>
-        </ng-container>
+        </div>
 
-        <!-- SUB-TAB: SUPPLIERS -->
-        <ng-container *ngIf="inventorySubTab === 'suppliers'">
-          <div *ngIf="supplierData" class="card">
-            <div class="card-header">
-              <h3 class="card-title">Supplier Breakdown</h3>
-              <span class="card-subtitle">{{ getDateRangeLabel() }}</span>
+        <!-- SECTION: Suppliers (collapsible) -->
+        <div class="collapsible-section" [class.expanded]="costsExpanded['suppliers']">
+          <div class="collapsible-header" (click)="toggleCostsSection('suppliers')">
+            <div class="collapsible-left">
+              <span class="collapsible-chevron">{{ costsExpanded['suppliers'] ? '&#9660;' : '&#9654;' }}</span>
+              <span class="collapsible-title">Suppliers</span>
+              <span class="collapsible-desc">Spend by supplier and cost comparison</span>
             </div>
-            <!-- Supplier spend table -->
-            <div class="inv-sub-panel" *ngIf="supplierData.supplierSummary?.length > 0">
-              <div class="inv-sub-title">Spend by Supplier</div>
-              <div class="inv-table-head"><span>Supplier</span><span>Purchases</span><span>Total Spent</span><span>Ingredients</span><span>Avg/Purchase</span></div>
-              <div class="inv-table-row" *ngFor="let s of supplierData.supplierSummary">
-                <span class="inv-name">{{ s.supplier }}</span>
-                <span>{{ s.purchaseCount }}</span>
-                <span class="inv-name">{{ formatCurrency(s.totalSpent) }}</span>
-                <span class="inv-ingredients-list">{{ s.ingredients?.join(', ') }}</span>
-                <span>{{ formatCurrency(s.avgCostPerPurchase) }}</span>
+            <div class="collapsible-summary" *ngIf="supplierData?.supplierSummary?.length">
+              <span class="summary-stat">{{ supplierData.supplierSummary.length }} supplier{{ supplierData.supplierSummary.length !== 1 ? 's' : '' }}</span>
+            </div>
+          </div>
+          <div class="collapsible-body" *ngIf="costsExpanded['suppliers']">
+            <div *ngIf="supplierData">
+              <div class="inv-sub-panel" *ngIf="supplierData.supplierSummary?.length > 0">
+                <div class="inv-sub-title">Spend by Supplier</div>
+                <div class="inv-table-head"><span>Supplier</span><span>Purchases</span><span>Total Spent</span><span>Ingredients</span><span>Avg/Purchase</span></div>
+                <div class="inv-table-row" *ngFor="let s of supplierData.supplierSummary">
+                  <span class="inv-name">{{ s.supplier }}</span>
+                  <span>{{ s.purchaseCount }}</span>
+                  <span class="inv-name">{{ formatCurrency(s.totalSpent) }}</span>
+                  <span class="inv-ingredients-list">{{ s.ingredients?.join(', ') }}</span>
+                  <span>{{ formatCurrency(s.avgCostPerPurchase) }}</span>
+                </div>
+              </div>
+              <div class="inv-sub-panel" *ngIf="supplierData.costComparison?.length > 0" style="margin-top: 16px;">
+                <div class="inv-sub-title">Cost Comparison (multi-supplier ingredients)</div>
+                <ng-container *ngFor="let comp of supplierData.costComparison">
+                  <div class="cost-comp-header">{{ comp.ingredientName }}</div>
+                  <div class="inv-table-head"><span>Supplier</span><span>Unit Cost</span><span>Last Purchase</span><span>Qty Purchased</span></div>
+                  <div class="inv-table-row" *ngFor="let sup of comp.suppliers; let first = first">
+                    <span class="inv-name">
+                      {{ sup.supplier }}
+                      <span class="cheapest-badge" *ngIf="first">Cheapest</span>
+                    </span>
+                    <span>{{ formatCurrency(sup.unitCost) }}</span>
+                    <span>{{ sup.lastPurchaseDate | date:'MMM d' }}</span>
+                    <span>{{ sup.qtyPurchased | number:'1.2-2' }}</span>
+                  </div>
+                </ng-container>
               </div>
             </div>
-            <!-- Cost comparison -->
-            <div class="inv-sub-panel" *ngIf="supplierData.costComparison?.length > 0" style="margin-top: 16px;">
-              <div class="inv-sub-title">Cost Comparison (multi-supplier ingredients)</div>
-              <ng-container *ngFor="let comp of supplierData.costComparison">
-                <div class="cost-comp-header">{{ comp.ingredientName }}</div>
-                <div class="inv-table-head"><span>Supplier</span><span>Unit Cost</span><span>Last Purchase</span><span>Qty Purchased</span></div>
-                <div class="inv-table-row" *ngFor="let sup of comp.suppliers; let first = first">
-                  <span class="inv-name">
-                    {{ sup.supplier }}
-                    <span class="cheapest-badge" *ngIf="first">Cheapest</span>
-                  </span>
-                  <span>{{ formatCurrency(sup.unitCost) }}</span>
-                  <span>{{ sup.lastPurchaseDate | date:'MMM d' }}</span>
-                  <span>{{ sup.qtyPurchased | number:'1.2-2' }}</span>
-                </div>
-              </ng-container>
-            </div>
-            <div *ngIf="!supplierData.supplierSummary?.length && !supplierData.costComparison?.length" class="card-empty-state">
+            <div *ngIf="!supplierData?.supplierSummary?.length && !supplierData?.costComparison?.length" class="card-empty-state">
               <p>No supplier data for this period.</p>
             </div>
           </div>
-          <div *ngIf="!supplierData" class="card-empty-state">
-            <p>No supplier data available.</p>
-          </div>
-        </ng-container>
+        </div>
 
-        <!-- SUB-TAB: CONSUMPTION -->
-        <ng-container *ngIf="inventorySubTab === 'consumption'">
-          <div *ngIf="consumptionData" class="card">
-            <div class="card-header">
-              <h3 class="card-title">Ingredient Consumption</h3>
-              <span class="card-subtitle">{{ getDateRangeLabel() }}</span>
+        <!-- SECTION: Consumption (collapsible) -->
+        <div class="collapsible-section" [class.expanded]="costsExpanded['consumption']">
+          <div class="collapsible-header" (click)="toggleCostsSection('consumption')">
+            <div class="collapsible-left">
+              <span class="collapsible-chevron">{{ costsExpanded['consumption'] ? '&#9660;' : '&#9654;' }}</span>
+              <span class="collapsible-title">Consumption</span>
+              <span class="collapsible-desc">Ingredient usage ranking</span>
             </div>
-            <div class="pnl-kpis">
-              <div class="pnl-kpi">
-                <span class="pnl-kpi-label">Total Consumed</span>
-                <span class="pnl-kpi-value cogs">{{ formatCurrency(consumptionData.totalConsumedCost) }}</span>
-              </div>
-              <div class="pnl-kpi">
-                <span class="pnl-kpi-label">Top Ingredient</span>
-                <span class="pnl-kpi-value">{{ consumptionData.topIngredientName }}</span>
-              </div>
-              <div class="pnl-kpi">
-                <span class="pnl-kpi-label">Ingredients Used</span>
-                <span class="pnl-kpi-value">{{ consumptionData.ingredientsUsedCount }}</span>
-              </div>
+            <div class="collapsible-summary" *ngIf="consumptionData">
+              <span class="summary-stat">{{ formatCurrency(consumptionData.totalConsumedCost) }} consumed</span>
             </div>
-            <div class="inv-sub-panel" *ngIf="consumptionData.items?.length > 0">
-              <div class="inv-sub-title">Consumption Ranking</div>
-              <div class="inv-table-head"><span>#</span><span>Ingredient</span><span>Qty Used</span><span>Cost</span><span>% of Total</span><span>Avg Daily</span></div>
-              <div class="inv-table-row" *ngFor="let item of consumptionData.items; let i = index">
-                <span class="rank-num">{{ i + 1 }}</span>
-                <span class="inv-name">{{ item.ingredientName }}</span>
-                <span>{{ item.qtyUsed | number:'1.2-2' }} {{ item.unit }}</span>
-                <span>{{ formatCurrency(item.costConsumed) }}</span>
-                <div class="inv-pct">
-                  <div class="inv-pct-bar" [style.width.%]="item.percentOfTotal"></div>
-                  <span>{{ item.percentOfTotal | number:'1.1-1' }}%</span>
+          </div>
+          <div class="collapsible-body" *ngIf="costsExpanded['consumption']">
+            <div *ngIf="consumptionData">
+              <div class="pnl-kpis">
+                <div class="pnl-kpi">
+                  <span class="pnl-kpi-label">Total Consumed</span>
+                  <span class="pnl-kpi-value cogs">{{ formatCurrency(consumptionData.totalConsumedCost) }}</span>
                 </div>
-                <span>{{ item.avgDaily | number:'1.2-2' }}/day</span>
+                <div class="pnl-kpi">
+                  <span class="pnl-kpi-label">Top Ingredient</span>
+                  <span class="pnl-kpi-value">{{ consumptionData.topIngredientName }}</span>
+                </div>
+                <div class="pnl-kpi">
+                  <span class="pnl-kpi-label">Ingredients Used</span>
+                  <span class="pnl-kpi-value">{{ consumptionData.ingredientsUsedCount }}</span>
+                </div>
+              </div>
+              <div class="inv-sub-panel" *ngIf="consumptionData.items?.length > 0">
+                <div class="inv-sub-title">Consumption Ranking</div>
+                <div class="inv-table-head"><span>#</span><span>Ingredient</span><span>Qty Used</span><span>Cost</span><span>% of Total</span><span>Avg Daily</span></div>
+                <div class="inv-table-row" *ngFor="let item of consumptionData.items; let i = index">
+                  <span class="rank-num">{{ i + 1 }}</span>
+                  <span class="inv-name">{{ item.ingredientName }}</span>
+                  <span>{{ item.qtyUsed | number:'1.2-2' }} {{ item.unit }}</span>
+                  <span>{{ formatCurrency(item.costConsumed) }}</span>
+                  <div class="inv-pct">
+                    <div class="inv-pct-bar" [style.width.%]="item.percentOfTotal"></div>
+                    <span>{{ item.percentOfTotal | number:'1.1-1' }}%</span>
+                  </div>
+                  <span>{{ item.avgDaily | number:'1.2-2' }}/day</span>
+                </div>
               </div>
             </div>
-            <div *ngIf="!consumptionData.items?.length" class="card-empty-state">
-              <p>No consumption data for this period.</p>
-            </div>
+            <div *ngIf="!consumptionData?.items?.length" class="card-empty-state"><p>No consumption data for this period.</p></div>
           </div>
-          <div *ngIf="!consumptionData" class="card-empty-state">
-            <p>No consumption data available.</p>
-          </div>
-        </ng-container>
+        </div>
       </ng-container>
 
       <!-- ============================================ -->
-      <!-- TAB: SUMMARY                                 -->
+      <!-- TAB: EXPORT                                  -->
       <!-- ============================================ -->
-      <ng-container *ngIf="!errorMessage && activeTab === 'summary'">
+      <ng-container *ngIf="!errorMessage && activeTab === 'export'">
+
+        <!-- Accountant Summary -->
         <div *ngIf="accountantSummary" class="card accountant-card">
           <div class="card-header">
             <h3 class="card-title">Accountant Summary</h3>
-            <span class="card-subtitle">{{ getDateRangeLabel() }}</span>
-          </div>
-
-          <div class="acct-section">
-            <div class="acct-section-label">Sales Summary</div>
-            <div class="acct-row"><span>Gross Revenue</span><span>{{ formatCurrency(accountantSummary.grossRevenue) }}</span></div>
-            <div class="acct-row negative"><span>Less: Discounts</span><span>({{ formatCurrency(accountantSummary.totalDiscounts) }})</span></div>
-            <div class="acct-row"><span>Net Revenue</span><span>{{ formatCurrency(accountantSummary.netRevenue) }}</span></div>
-            <div class="acct-row negative"><span>Cost of Goods Sold</span><span>({{ formatCurrency(accountantSummary.cogs) }})</span></div>
-            <div class="acct-row bold"><span>Gross Profit</span><span>{{ formatCurrency(accountantSummary.grossProfit) }}</span></div>
-            <div class="acct-row bold"><span>Gross Margin</span><span [class]="getMarginClass(accountantSummary.grossMarginPercent)">{{ accountantSummary.grossMarginPercent | number:'1.1-1' }}%</span></div>
-          </div>
-
-          <div class="acct-section">
-            <div class="acct-section-label">Transaction Breakdown</div>
-            <div class="acct-row"><span>Total Transactions</span><span>{{ accountantSummary.transactionCount }}</span></div>
-            <div class="acct-row"><span>Average Ticket</span><span>{{ formatCurrency(accountantSummary.averageTicket) }}</span></div>
-            <div class="acct-row" *ngFor="let pm of accountantSummary.paymentMethodBreakdown">
-              <span>{{ pm.method === 'cash' ? 'Cash' : pm.method === 'gcash' ? 'GCash' : pm.method }} Payments</span>
-              <span>{{ pm.count }} ({{ formatCurrency(pm.total) }})</span>
+            <div class="export-header-actions">
+              <span class="card-subtitle">{{ getDateRangeLabel() }}</span>
+              <app-button variant="secondary" size="sm" (click)="printSummary()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 9V2h12v7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 14h12v8H6z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                Print
+              </app-button>
             </div>
           </div>
 
-          <div class="acct-section" *ngIf="accountantSummary.categoryBreakdown?.length > 0">
-            <div class="acct-section-label">Sales by Category</div>
-            <div class="acct-row" *ngFor="let cat of accountantSummary.categoryBreakdown">
-              <span>{{ cat.category }}</span>
-              <span>{{ formatCurrency(cat.total) }} ({{ cat.percent | number:'1.1-1' }}%)</span>
+          <div class="acct-grid">
+            <div class="acct-section">
+              <div class="acct-section-label">Sales Summary</div>
+              <div class="acct-row"><span>Gross Revenue</span><span>{{ formatCurrency(accountantSummary.grossRevenue) }}</span></div>
+              <div class="acct-row negative"><span>Less: Discounts</span><span>({{ formatCurrency(accountantSummary.totalDiscounts) }})</span></div>
+              <div class="acct-row"><span>Net Revenue <span class="tooltip-icon" [title]="METRIC_TOOLTIPS['netRevenue']">&#9432;</span></span><span>{{ formatCurrency(accountantSummary.netRevenue) }}</span></div>
+              <div class="acct-row negative"><span>Cost of Goods <span class="tooltip-icon" [title]="METRIC_TOOLTIPS['costOfGoods']">&#9432;</span></span><span>({{ formatCurrency(accountantSummary.cogs) }})</span></div>
+              <div class="acct-row bold"><span>Gross Profit</span><span>{{ formatCurrency(accountantSummary.grossProfit) }}</span></div>
+              <div class="acct-row bold"><span>Gross Margin</span><span [class]="getMarginClass(accountantSummary.grossMarginPercent)">{{ accountantSummary.grossMarginPercent | number:'1.1-1' }}%</span></div>
+            </div>
+
+            <div class="acct-section">
+              <div class="acct-section-label">Transaction Breakdown</div>
+              <div class="acct-row"><span>Total Transactions</span><span>{{ accountantSummary.transactionCount }}</span></div>
+              <div class="acct-row"><span>Average Ticket <span class="tooltip-icon" [title]="METRIC_TOOLTIPS['averageTicket']">&#9432;</span></span><span>{{ formatCurrency(accountantSummary.averageTicket) }}</span></div>
+              <div class="acct-row" *ngFor="let pm of accountantSummary.paymentMethodBreakdown">
+                <span>{{ pm.method === 'cash' ? 'Cash' : pm.method === 'gcash' ? 'GCash' : pm.method }} Payments</span>
+                <span>{{ pm.count }} ({{ formatCurrency(pm.total) }})</span>
+              </div>
+            </div>
+
+            <div class="acct-section" *ngIf="accountantSummary.categoryBreakdown?.length > 0">
+              <div class="acct-section-label">Sales by Category</div>
+              <div class="acct-row" *ngFor="let cat of accountantSummary.categoryBreakdown">
+                <span>{{ cat.category }}</span>
+                <span>{{ formatCurrency(cat.total) }} ({{ cat.percent | number:'1.1-1' }}%)</span>
+              </div>
+            </div>
+
+            <div class="acct-section">
+              <div class="acct-section-label">Inventory Snapshot</div>
+              <div class="acct-row"><span>Current Inventory Value</span><span>{{ formatCurrency(accountantSummary.currentInventoryValue) }}</span></div>
+              <div class="acct-row"><span>Ingredients Consumed</span><span>{{ formatCurrency(accountantSummary.ingredientsConsumed) }}</span></div>
+              <div class="acct-row"><span>Waste / Shrinkage <span class="tooltip-icon" [title]="METRIC_TOOLTIPS['waste']">&#9432;</span></span><span class="cogs">{{ formatCurrency(accountantSummary.wasteAndShrinkage) }}</span></div>
             </div>
           </div>
+        </div>
 
-          <div class="acct-section">
-            <div class="acct-section-label">Inventory Snapshot</div>
-            <div class="acct-row"><span>Current Inventory Value</span><span>{{ formatCurrency(accountantSummary.currentInventoryValue) }}</span></div>
-            <div class="acct-row"><span>Ingredients Consumed</span><span>{{ formatCurrency(accountantSummary.ingredientsConsumed) }}</span></div>
-            <div class="acct-row"><span>Waste / Shrinkage</span><span class="cogs">{{ formatCurrency(accountantSummary.wasteAndShrinkage) }}</span></div>
+        <!-- Download Reports -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Download Reports</h3>
+            <span class="card-subtitle">Export data for the selected date range</span>
           </div>
-
-          <div class="acct-export">
-            <app-button variant="secondary" size="sm" (click)="exportData('csv')">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-              CSV
-            </app-button>
-            <app-button variant="secondary" size="sm" (click)="exportData('excel')">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-              Excel
-            </app-button>
+          <div class="export-grid">
+            <div class="export-card export-card-primary">
+              <div class="export-card-icon">&#128202;</div>
+              <div class="export-card-info">
+                <div class="export-card-title">Full Report</div>
+                <div class="export-card-desc">Complete summary — all sections in one file</div>
+              </div>
+              <div class="export-card-actions">
+                <app-button variant="secondary" size="sm" (click)="exportSection('full', 'csv')">CSV</app-button>
+                <app-button variant="secondary" size="sm" (click)="exportSection('full', 'excel')">Excel</app-button>
+              </div>
+            </div>
+            <div class="export-card">
+              <div class="export-card-icon">&#128722;</div>
+              <div class="export-card-info">
+                <div class="export-card-title">Sales Detail</div>
+                <div class="export-card-desc">Transaction-level data with items, payments, timestamps</div>
+              </div>
+              <div class="export-card-actions">
+                <app-button variant="secondary" size="sm" (click)="exportSection('sales', 'csv')">CSV</app-button>
+                <app-button variant="secondary" size="sm" (click)="exportSection('sales', 'excel')">Excel</app-button>
+              </div>
+            </div>
+            <div class="export-card">
+              <div class="export-card-icon">&#128176;</div>
+              <div class="export-card-info">
+                <div class="export-card-title">Profit &amp; Loss</div>
+                <div class="export-card-desc">Period breakdown with revenue, costs, margins</div>
+              </div>
+              <div class="export-card-actions">
+                <app-button variant="secondary" size="sm" (click)="exportSection('pnl', 'csv')">CSV</app-button>
+                <app-button variant="secondary" size="sm" (click)="exportSection('pnl', 'excel')">Excel</app-button>
+              </div>
+            </div>
+            <div class="export-card">
+              <div class="export-card-icon">&#128230;</div>
+              <div class="export-card-info">
+                <div class="export-card-title">Inventory &amp; Stock</div>
+                <div class="export-card-desc">Movements, consumption, supplier costs</div>
+              </div>
+              <div class="export-card-actions">
+                <app-button variant="secondary" size="sm" (click)="exportSection('inventory', 'csv')">CSV</app-button>
+                <app-button variant="secondary" size="sm" (click)="exportSection('inventory', 'excel')">Excel</app-button>
+              </div>
+            </div>
           </div>
         </div>
 

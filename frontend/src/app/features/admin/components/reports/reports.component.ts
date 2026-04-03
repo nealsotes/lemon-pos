@@ -84,8 +84,39 @@ export class ReportsComponent implements OnInit, OnDestroy {
   ingredientsMap: Map<string, { name: string; unit: string }> = new Map();
 
   // Tab navigation
-  activeTab: 'overview' | 'leaderboard' | 'profitability' | 'inventory' | 'summary' = 'overview';
-  inventorySubTab: 'overview' | 'activity' | 'suppliers' | 'consumption' = 'overview';
+  activeTab: 'dashboard' | 'sales' | 'costs' | 'export' = 'dashboard';
+
+  // Costs tab collapsible sections
+  costsExpanded: Record<string, boolean> = {
+    pnl: true,
+    inventory: true,
+    activity: false,
+    suppliers: false,
+    consumption: false
+  };
+
+  // Date presets
+  activeDatePreset: string = 'today';
+
+  // Insights
+  insights: { level: 'positive' | 'warning' | 'alert' | 'info'; icon: string; headline: string; detail: string }[] = [];
+
+  // Metric tooltips
+  readonly METRIC_TOOLTIPS: Record<string, string> = {
+    revenue: 'Total sales amount before subtracting costs',
+    transactions: 'Number of completed orders',
+    avgOrderValue: 'Average amount spent per order',
+    grossMargin: 'Percentage of revenue kept after ingredient costs. Higher is better.',
+    costOfGoods: 'Cost of ingredients used to make the products you sold',
+    grossProfit: 'Revenue minus cost of goods \u2014 what you actually earned',
+    netRevenue: 'Revenue after discounts are subtracted',
+    periodChange: 'How much inventory value changed during this period',
+    waste: 'Value of ingredients lost to waste, spoilage, or unaccounted use',
+    lowStock: 'Number of ingredients below their minimum stock level',
+    averageTicket: 'Average revenue per transaction',
+    avgDaily: 'Average quantity used per day in this period',
+    percentOfTotal: "This item's share of the total cost"
+  };
 
   constructor(
     private transactionService: TransactionService,
@@ -127,6 +158,7 @@ export class ReportsComponent implements OnInit, OnDestroy {
       // Ensure dates are properly set
       if (this.startDate instanceof Date && this.endDate instanceof Date) {
         this.isCustomDateRange = true;
+        this.activeDatePreset = '';
         this.selectedDateRange = `${this.formatDisplayDate(this.startDate)} - ${this.formatDisplayDate(this.endDate)}`;
         this.loadAllData();
       }
@@ -378,6 +410,10 @@ export class ReportsComponent implements OnInit, OnDestroy {
       await this.loadPeriodComparison();
       await this.loadCategoryBreakdown();
       this.loadPaymentBreakdown();
+      await this.loadSupplierBreakdown();
+      await this.loadConsumption();
+      await this.loadActivityMovements();
+      this.generateInsights();
 
       clearTimeout(timeoutId);
       this.isLoading = false;
@@ -692,19 +728,6 @@ export class ReportsComponent implements OnInit, OnDestroy {
     });
   }
 
-  setInventorySubTab(tab: 'overview' | 'activity' | 'suppliers' | 'consumption'): void {
-    this.inventorySubTab = tab;
-    if (tab === 'activity' && this.activityMovements.length === 0) {
-      this.loadActivityMovements();
-    }
-    if (tab === 'suppliers' && !this.supplierData) {
-      this.loadSupplierBreakdown();
-    }
-    if (tab === 'consumption' && !this.consumptionData) {
-      this.loadConsumption();
-    }
-  }
-
   private async loadAccountantSummary(): Promise<void> {
     try {
       const queryStartDate = new Date(this.startDate);
@@ -920,30 +943,32 @@ export class ReportsComponent implements OnInit, OnDestroy {
   }
 
   get kpiItems(): KpiItem[] {
+    const pc = this.periodComparison;
+    const prevLabel = pc ? this.getPreviousPeriodLabel() : '';
     return [
       {
-        label: 'Total Sales',
+        label: 'Revenue',
         value: this.formatCurrency(this.getTotalSales()),
-        trend: this.getDateRangeLabel(),
-        trendDirection: 'neutral' as const
+        trend: pc ? `${pc.salesChangePercent > 0 ? '+' : ''}${pc.salesChangePercent.toFixed(1)}% vs ${prevLabel}` : this.getDateRangeLabel(),
+        trendDirection: pc ? (pc.salesChangePercent > 0 ? 'up' as const : pc.salesChangePercent < 0 ? 'down' as const : 'neutral' as const) : 'neutral' as const
       },
       {
         label: 'Transactions',
         value: this.getTransactionCount(),
-        trend: this.getDateRangeLabel(),
-        trendDirection: 'neutral' as const
+        trend: pc ? `${pc.transactionsChangePercent > 0 ? '+' : ''}${pc.transactionsChangePercent.toFixed(1)}% vs ${prevLabel}` : this.getDateRangeLabel(),
+        trendDirection: pc ? (pc.transactionsChangePercent > 0 ? 'up' as const : pc.transactionsChangePercent < 0 ? 'down' as const : 'neutral' as const) : 'neutral' as const
       },
       {
-        label: 'Avg. Order Value',
+        label: 'Avg Order Value',
         value: this.formatCurrency(this.getAverageTransactionValue()),
-        trend: 'per transaction',
-        trendDirection: 'neutral' as const
+        trend: pc ? `${pc.avgOrderChangePercent > 0 ? '+' : ''}${pc.avgOrderChangePercent.toFixed(1)}% vs ${prevLabel}` : 'per transaction',
+        trendDirection: pc ? (pc.avgOrderChangePercent > 0 ? 'up' as const : pc.avgOrderChangePercent < 0 ? 'down' as const : 'neutral' as const) : 'neutral' as const
       },
       {
-        label: 'Top Product',
-        value: this.getTopProductName(),
-        trend: 'best seller',
-        trendDirection: 'up' as const
+        label: 'Gross Margin',
+        value: this.profitLossData ? `${this.profitLossData.marginPercent.toFixed(1)}%` : 'N/A',
+        trend: this.profitLossData ? `${this.formatCurrency(this.profitLossData.grossProfit)} profit` : '',
+        trendDirection: this.profitLossData ? (this.profitLossData.marginPercent > 50 ? 'up' as const : this.profitLossData.marginPercent < 30 ? 'down' as const : 'neutral' as const) : 'neutral' as const
       }
     ];
   }
@@ -956,6 +981,215 @@ export class ReportsComponent implements OnInit, OnDestroy {
 
   hasData(): boolean {
     return this.getTransactionCount() > 0 || this.topProducts.length > 0 || this.recentTransactions.length > 0;
+  }
+
+  // --- Insights generation ---
+  generateInsights(): void {
+    const insights: typeof this.insights = [];
+    const pc = this.periodComparison;
+    const pnl = this.profitLossData;
+    const inv = this.inventoryData;
+
+    if (pc) {
+      // Revenue change
+      if (pc.salesChangePercent > 5) {
+        insights.push({ level: 'positive', icon: '\ud83d\udcc8', headline: `Revenue up ${pc.salesChangePercent.toFixed(1)}% this period`, detail: `${this.formatCurrency(pc.currentSales)} vs ${this.formatCurrency(pc.previousSales)} in the previous period (${this.getPreviousPeriodLabel()})` });
+      } else if (pc.salesChangePercent < -15) {
+        insights.push({ level: 'alert', icon: '\ud83d\udea8', headline: `Revenue down ${Math.abs(pc.salesChangePercent).toFixed(1)}%`, detail: `${this.formatCurrency(pc.currentSales)} vs ${this.formatCurrency(pc.previousSales)} previously. Review product availability and traffic.` });
+      } else if (pc.salesChangePercent < -5) {
+        insights.push({ level: 'warning', icon: '\u26a0\ufe0f', headline: `Revenue dipped ${Math.abs(pc.salesChangePercent).toFixed(1)}%`, detail: `${this.formatCurrency(pc.currentSales)} vs ${this.formatCurrency(pc.previousSales)} in the previous period` });
+      }
+
+      // Transaction count
+      if (pc.transactionsChangePercent > 5) {
+        insights.push({ level: 'positive', icon: '\ud83d\udcc8', headline: `Transaction volume up ${pc.transactionsChangePercent.toFixed(1)}%`, detail: `${pc.currentTransactions} orders vs ${pc.previousTransactions} previously` });
+      }
+    }
+
+    if (pnl) {
+      // Margin health
+      if (pnl.marginPercent < 30) {
+        insights.push({ level: 'alert', icon: '\ud83d\udea8', headline: `Gross margin critically low at ${pnl.marginPercent.toFixed(1)}%`, detail: 'Review ingredient costs and product pricing urgently' });
+      } else if (pnl.marginPercent >= 30 && pnl.marginPercent < 50) {
+        insights.push({ level: 'warning', icon: '\u26a0\ufe0f', headline: `Gross margin at ${pnl.marginPercent.toFixed(1)}%`, detail: 'Consider reviewing pricing or ingredient costs to improve profitability' });
+      }
+    }
+
+    if (inv) {
+      // Waste
+      if (inv.wasteAndShrinkage > 0) {
+        insights.push({ level: 'warning', icon: '\ud83d\uddd1\ufe0f', headline: `Waste cost: ${this.formatCurrency(inv.wasteAndShrinkage)}`, detail: 'Review waste entries in the Costs tab to identify causes' });
+      }
+      // Low stock
+      if (inv.lowStockCount > 3) {
+        insights.push({ level: 'alert', icon: '\ud83d\udce6', headline: `${inv.lowStockCount} ingredients are low on stock`, detail: 'Check inventory levels and reorder soon' });
+      } else if (inv.lowStockCount > 0) {
+        insights.push({ level: 'info', icon: '\u2139\ufe0f', headline: `${inv.lowStockCount} ingredient${inv.lowStockCount > 1 ? 's' : ''} running low`, detail: 'Monitor stock levels' });
+      }
+    }
+
+    // All clear
+    if (insights.length === 0 && this.hasData()) {
+      insights.push({ level: 'positive', icon: '\u2705', headline: 'All clear', detail: 'All metrics look stable for this period' });
+    }
+
+    this.insights = insights;
+  }
+
+  getPreviousPeriodLabel(): string {
+    const durationMs = this.endDate.getTime() - this.startDate.getTime();
+    const prevEnd = new Date(this.startDate.getTime() - 1);
+    const prevStart = new Date(prevEnd.getTime() - durationMs);
+    return `${this.formatDisplayDate(prevStart)} \u2013 ${this.formatDisplayDate(prevEnd)}`;
+  }
+
+  // --- Date presets ---
+  setDatePreset(preset: string): void {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    this.activeDatePreset = preset;
+
+    switch (preset) {
+      case 'today':
+        this.startDate = new Date(today);
+        this.endDate = new Date(today);
+        this.isCustomDateRange = false;
+        break;
+      case '7d':
+        this.endDate = new Date(today);
+        this.startDate = new Date(today);
+        this.startDate.setDate(this.startDate.getDate() - 6);
+        this.isCustomDateRange = true;
+        break;
+      case '30d':
+        this.endDate = new Date(today);
+        this.startDate = new Date(today);
+        this.startDate.setDate(this.startDate.getDate() - 29);
+        this.isCustomDateRange = true;
+        break;
+      case 'thisMonth':
+        this.startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+        this.endDate = new Date(today);
+        this.isCustomDateRange = true;
+        break;
+      case 'lastMonth':
+        this.startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        this.endDate = new Date(today.getFullYear(), today.getMonth(), 0);
+        this.isCustomDateRange = true;
+        break;
+    }
+    this.selectedDateRange = this.getDateRangeLabel();
+    this.loadAllData();
+  }
+
+  // --- Costs tab collapsible toggle ---
+  toggleCostsSection(section: string): void {
+    this.costsExpanded[section] = !this.costsExpanded[section];
+    // Lazy-load data when expanding
+    if (this.costsExpanded[section]) {
+      if (section === 'activity' && this.activityMovements.length === 0) {
+        this.loadActivityMovements();
+      }
+      if (section === 'suppliers' && !this.supplierData) {
+        this.loadSupplierBreakdown();
+      }
+      if (section === 'consumption' && !this.consumptionData) {
+        this.loadConsumption();
+      }
+    }
+  }
+
+  // --- Sparkline data (last 7 data points from salesTrendData) ---
+  getSparklineData(): number[] {
+    if (!this.chartData || this.chartData.length === 0) return [];
+    const data = this.chartData.slice(-7).map((d: any) => d.sales);
+    return data;
+  }
+
+  getSparklineMax(): number {
+    const data = this.getSparklineData();
+    if (data.length === 0) return 1;
+    return Math.max(...data, 1);
+  }
+
+  // --- Per-section export ---
+  exportSection(section: 'full' | 'sales' | 'pnl' | 'inventory', format: 'csv' | 'excel'): void {
+    try {
+      let csvContent = '';
+      const dateLabel = this.getDateRangeLabel();
+
+      switch (section) {
+        case 'full':
+          this.exportData(format);
+          return;
+        case 'sales':
+          csvContent = this.buildSalesCSV(dateLabel);
+          break;
+        case 'pnl':
+          csvContent = this.buildPnlCSV(dateLabel);
+          break;
+        case 'inventory':
+          csvContent = this.buildInventoryCSV(dateLabel);
+          break;
+      }
+
+      if (format === 'csv') {
+        this.downloadFile(csvContent, `${section}_${this.getExportDate()}.csv`, 'text/csv');
+      } else {
+        const html = `<html><head><meta charset="utf-8"></head><body><pre>${csvContent}</pre></body></html>`;
+        this.downloadFile(html, `${section}_${this.getExportDate()}.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      }
+      this.toast.success(`${section.toUpperCase()} export completed!`);
+    } catch (error) {
+      this.toast.error('Export failed. Please try again.');
+    }
+  }
+
+  private buildSalesCSV(dateLabel: string): string {
+    let csv = `Sales Detail Report\nDate Range,${dateLabel}\nGenerated,${new Date().toLocaleString('en-PH')}\n\n`;
+    csv += 'TRANSACTIONS\nID,Timestamp,Items,Total,Status\n';
+    this.recentTransactions.forEach(t => {
+      csv += `${t.id},${this.formatDateTime(t.timestamp)},${t.items.length},${t.total},${t.status}\n`;
+    });
+    csv += '\nTOP PRODUCTS\nRank,Name,Category,Sales,Quantity\n';
+    this.topProducts.forEach((p, i) => {
+      csv += `${i + 1},${p.name},${p.category},${p.sales},${p.quantity}\n`;
+    });
+    return csv;
+  }
+
+  private buildPnlCSV(dateLabel: string): string {
+    let csv = `Profit & Loss Report\nDate Range,${dateLabel}\n\n`;
+    if (this.profitLossData) {
+      csv += `Gross Revenue,${this.profitLossData.grossRevenue}\nTotal Discounts,${this.profitLossData.totalDiscounts || 0}\nNet Revenue,${this.profitLossData.netRevenue || this.profitLossData.grossRevenue}\nCost of Goods,${this.profitLossData.cogs}\nGross Profit,${this.profitLossData.grossProfit}\nMargin %,${this.profitLossData.marginPercent}\n`;
+      if (this.profitLossData.breakdown?.length) {
+        csv += '\nPERIOD BREAKDOWN\nPeriod,Revenue,Cost of Goods,Profit,Margin %\n';
+        this.profitLossData.breakdown.forEach((r: any) => {
+          csv += `${r.period},${r.revenue},${r.cogs},${r.grossProfit},${r.marginPercent}\n`;
+        });
+      }
+    }
+    return csv;
+  }
+
+  private buildInventoryCSV(dateLabel: string): string {
+    let csv = `Inventory & Stock Report\nDate Range,${dateLabel}\n\n`;
+    if (this.inventoryData) {
+      csv += `Total Value,${this.inventoryData.totalValue}\nPeriod Change,${this.inventoryData.periodChange}\nWaste,${this.inventoryData.wasteAndShrinkage}\nLow Stock Count,${this.inventoryData.lowStockCount}\n`;
+    }
+    if (this.consumptionData?.items?.length) {
+      csv += '\nCONSUMPTION\nIngredient,Qty Used,Unit,Cost,% of Total,Avg Daily\n';
+      this.consumptionData.items.forEach((item: any) => {
+        csv += `${item.ingredientName},${item.qtyUsed},${item.unit},${item.costConsumed},${item.percentOfTotal},${item.avgDaily}\n`;
+      });
+    }
+    if (this.supplierData?.supplierSummary?.length) {
+      csv += '\nSUPPLIER SPEND\nSupplier,Purchases,Total Spent,Avg/Purchase\n';
+      this.supplierData.supplierSummary.forEach((s: any) => {
+        csv += `${s.supplier},${s.purchaseCount},${s.totalSpent},${s.avgCostPerPurchase}\n`;
+      });
+    }
+    return csv;
   }
 
   // Export functionality
@@ -1327,6 +1561,10 @@ export class ReportsComponent implements OnInit, OnDestroy {
     if (!transaction) return 0;
     const anyTransaction = transaction as any;
     return anyTransaction.amountReceived || anyTransaction.AmountReceived || 0;
+  }
+
+  printSummary(): void {
+    window.print();
   }
 
   async printReceipt(): Promise<void> {
