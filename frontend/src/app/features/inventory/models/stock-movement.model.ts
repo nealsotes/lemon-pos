@@ -15,6 +15,7 @@ export interface StockMovement {
   reason?: string;
   notes?: string;
   createdBy?: string;
+  lotId?: string;
   createdAt: string; // ISO date string
 }
 

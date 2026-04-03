@@ -1,12 +1,10 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
-import { catchError, tap, timeout } from 'rxjs/operators';
 import { Transaction, CustomerInfo } from '../models/transaction.model';
 import { CartItem } from '../models/cart-item.model';
 import { OfflineService } from '../../../core/services/offline.service';
-import { map } from 'rxjs/operators';
-import { switchMap } from 'rxjs/operators';
+import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
+import { catchError, map, switchMap, tap, timeout } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment.prod';
 
 @Injectable({
@@ -303,6 +301,42 @@ export class TransactionService {
     );
   }
 
+  getSupplierBreakdown(startDate: Date, endDate: Date): Observable<any> {
+    const params: any = {};
+    if (startDate) params.startDate = startDate.toISOString();
+    if (endDate) params.endDate = endDate.toISOString();
+    return this.http.get<any>(`${this.apiUrl}/reports/supplier-breakdown`, { params }).pipe(
+      catchError(() => of(null))
+    );
+  }
+
+  getCategoryReport(startDate: Date, endDate: Date): Observable<any> {
+    const params: any = {};
+    if (startDate) params.startDate = startDate.toISOString();
+    if (endDate) params.endDate = endDate.toISOString();
+    return this.http.get<any>(`${this.apiUrl}/reports/category`, { params }).pipe(
+      catchError(() => of([]))
+    );
+  }
+
+  getPeriodComparison(startDate: Date, endDate: Date): Observable<any> {
+    const params: any = {};
+    if (startDate) params.startDate = startDate.toISOString();
+    if (endDate) params.endDate = endDate.toISOString();
+    return this.http.get<any>(`${this.apiUrl}/reports/period-comparison`, { params }).pipe(
+      catchError(() => of(null))
+    );
+  }
+
+  getConsumption(startDate: Date, endDate: Date): Observable<any> {
+    const params: any = {};
+    if (startDate) params.startDate = startDate.toISOString();
+    if (endDate) params.endDate = endDate.toISOString();
+    return this.http.get<any>(`${this.apiUrl}/reports/consumption`, { params }).pipe(
+      catchError(() => of(null))
+    );
+  }
+
   getRecentTransactions(count: number = 5): Observable<Transaction[]> {
     return this.transactionsSubject.asObservable().pipe(
       map(transactions => {
@@ -490,7 +524,4 @@ export class TransactionService {
     return this.loadTransactions();
   }
 }
-
-
-
 

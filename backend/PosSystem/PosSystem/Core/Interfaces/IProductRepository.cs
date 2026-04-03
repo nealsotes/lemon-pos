@@ -13,4 +13,5 @@ public interface IProductRepository
     Task DeleteBulkAsync(List<string> ids);
     Task<IEnumerable<string>> GetCategoriesAsync();
     Task<IEnumerable<Product>> GetByCategoryAsync(string category);
+    Task<int> DecrementStockAsync(string productId, int quantity);
 } 

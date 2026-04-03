@@ -15,6 +15,7 @@ public class PosSystemDbContext : DbContext
     public DbSet<StockMovement> StockMovements { get; set; }
     public DbSet<ProductIngredient> ProductIngredients { get; set; }
     public DbSet<User> Users { get; set; }
+    public DbSet<IngredientLot> IngredientLots { get; set; }
     public DbSet<ApplicationSettings> ApplicationSettings { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -124,10 +125,28 @@ public class PosSystemDbContext : DbContext
             entity.Property(e => e.Reason).HasMaxLength(200);
             entity.Property(e => e.Notes).HasMaxLength(500);
             entity.Property(e => e.CreatedBy).HasMaxLength(100);
-            
+            entity.Property(e => e.LotId).HasMaxLength(255);
+
             // Index for faster queries
             entity.HasIndex(e => e.IngredientId);
             entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => e.LotId);
+        });
+
+        // IngredientLot configuration
+        modelBuilder.Entity<IngredientLot>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.IngredientId).IsRequired();
+            entity.Property(e => e.UnitCost).HasPrecision(18, 2);
+            entity.Property(e => e.InitialQuantity).HasPrecision(18, 4);
+            entity.Property(e => e.RemainingQuantity).HasPrecision(18, 4);
+            entity.Property(e => e.Supplier).HasMaxLength(100);
+            entity.Property(e => e.LotNumber).HasMaxLength(50);
+            entity.Property(e => e.Notes).HasMaxLength(500);
+
+            entity.HasIndex(e => new { e.IngredientId, e.ReceivedAt });
+            entity.HasIndex(e => new { e.IngredientId, e.IsActive });
         });
 
         // User configuration

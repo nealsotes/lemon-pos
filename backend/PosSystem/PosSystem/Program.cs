@@ -1,13 +1,13 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Pomelo.EntityFrameworkCore.MySql;
+using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
+using PosSystem.API.Middleware;
 using PosSystem.Core.Interfaces;
 using PosSystem.Infrastructure.Data;
-using PosSystem.Infrastructure.Services;
-using PosSystem.API.Middleware;
-using Microsoft.EntityFrameworkCore;
 using PosSystem.Infrastructure.Repositories;
-using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
-using Pomelo.EntityFrameworkCore.MySql;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
+using PosSystem.Infrastructure.Services;
 using System;
 using System.Data;
 using System.Data.Common;
@@ -194,6 +194,7 @@ builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ITransactionService, TransactionService>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<IReportingService, ReportingService>();
+builder.Services.AddScoped<IIngredientLotService, IngredientLotService>();
 builder.Services.AddScoped<IIngredientService, IngredientService>();
 builder.Services.AddScoped<IStockMovementService, StockMovementService>();
 builder.Services.AddScoped<IRecipeService, RecipeService>();
@@ -202,8 +203,11 @@ builder.Services.AddScoped<IRecipeService, RecipeService>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 builder.Services.AddScoped<IIngredientRepository, IngredientRepository>();
+builder.Services.AddScoped<IIngredientLotRepository, IngredientLotRepository>();
 builder.Services.AddScoped<IStockMovementRepository, StockMovementRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IProductIngredientRepository, ProductIngredientRepository>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // Register Infrastructure Services
 builder.Services.AddScoped<IOfflineDataService, OfflineDataService>();
@@ -494,6 +498,76 @@ using (var scope = app.Services.CreateScope())
     catch
     {
         // Table might already exist, ignore error
+    }
+
+    // Add LotId column to StockMovements if missing
+    try
+    {
+        await context.Database.ExecuteSqlRawAsync(@"
+            ALTER TABLE `StockMovements` ADD COLUMN `LotId` VARCHAR(255) NULL;
+        ");
+        await context.Database.ExecuteSqlRawAsync(@"
+            CREATE INDEX `IX_StockMovements_LotId` ON `StockMovements` (`LotId`);
+        ");
+    }
+    catch
+    {
+        // Column might already exist
+    }
+
+    // Ensure IngredientLots table exists
+    try
+    {
+        await context.Database.ExecuteSqlRawAsync(@"
+            CREATE TABLE IF NOT EXISTS `IngredientLots` (
+                `Id` VARCHAR(255) NOT NULL,
+                `IngredientId` VARCHAR(255) NOT NULL,
+                `Supplier` VARCHAR(100) NULL,
+                `UnitCost` DECIMAL(18,2) NOT NULL,
+                `InitialQuantity` DECIMAL(18,4) NOT NULL,
+                `RemainingQuantity` DECIMAL(18,4) NOT NULL,
+                `ExpirationDate` DATETIME(6) NULL,
+                `ReceivedAt` DATETIME(6) NOT NULL,
+                `LotNumber` VARCHAR(50) NULL,
+                `Notes` VARCHAR(500) NULL,
+                `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
+                PRIMARY KEY (`Id`),
+                INDEX `IX_IngredientLots_IngredientId_ReceivedAt` (`IngredientId`, `ReceivedAt`),
+                INDEX `IX_IngredientLots_IngredientId_IsActive` (`IngredientId`, `IsActive`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        ");
+    }
+    catch
+    {
+        // Table might already exist
+    }
+
+    // Seed legacy lots for existing ingredients that have quantity but no lots
+    try
+    {
+        await context.Database.ExecuteSqlRawAsync(@"
+            INSERT INTO `IngredientLots` (`Id`, `IngredientId`, `Supplier`, `UnitCost`, `InitialQuantity`, `RemainingQuantity`, `ExpirationDate`, `ReceivedAt`, `LotNumber`, `Notes`, `IsActive`)
+            SELECT
+                UUID(),
+                i.`Id`,
+                i.`Supplier`,
+                COALESCE(i.`UnitCost`, 0),
+                i.`Quantity`,
+                i.`Quantity`,
+                i.`ExpirationDate`,
+                i.`CreatedAt`,
+                'LEGACY-001',
+                'Migrated from initial inventory',
+                1
+            FROM `Ingredients` i
+            WHERE i.`Quantity` > 0
+              AND i.`IsActive` = 1
+              AND NOT EXISTS (SELECT 1 FROM `IngredientLots` l WHERE l.`IngredientId` = i.`Id`);
+        ");
+    }
+    catch
+    {
+        // Seed might have already run
     }
 
     // Ensure Users table exists

@@ -102,10 +102,10 @@
                   </div>
                 </div>
                 <div class="quick-adjust">
-                  <button class="adjust-btn" (click)="adjustQuantity(row, -1); $event.stopPropagation()" title="Decrease">
+                  <button class="adjust-btn" (click)="adjustQuantity(row, -1); $event.stopPropagation()" title="Remove stock">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14"/></svg>
                   </button>
-                  <button class="adjust-btn add" (click)="adjustQuantity(row, 1); $event.stopPropagation()" title="Increase">
+                  <button class="adjust-btn add" (click)="adjustQuantity(row, 1); $event.stopPropagation()" title="Add stock">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
                   </button>
                 </div>
@@ -143,6 +143,11 @@
 
             <ng-template cellDef="actions" let-row>
               <div class="row-actions">
+                <button class="action-btn-mini" (click)="viewLots(row); $event.stopPropagation()" title="Lots">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                  </svg>
+                </button>
                 <button class="action-btn-mini" (click)="viewStockHistory(row); $event.stopPropagation()" title="History">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />

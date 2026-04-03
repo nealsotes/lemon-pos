@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -6,6 +6,8 @@ import { Ingredient } from '../../../pos/models/ingredient.model';
 import { IngredientService } from '../../../pos/services/ingredient.service';
 import { StockMovementHistoryComponent } from './stock-movement-history.component';
 import { IngredientEditorDialogComponent } from './ingredient-editor-dialog.component';
+import { StockAdjustmentDialogComponent, StockAdjustmentResult } from './stock-adjustment-dialog.component';
+import { IngredientLotsDialogComponent } from './ingredient-lots-dialog.component';
 import { ProductRecipesComponent } from '../product-recipes/product-recipes.component';
 import { TopBarComponent } from '../../../../shared/ui/top-bar/top-bar.component';
 import { ToastService } from '../../../../shared/ui/toast/toast.service';
@@ -16,6 +18,8 @@ import { BadgeComponent } from '../../../../shared/ui/badge/badge.component';
 import { ButtonComponent } from '../../../../shared/ui/button/button.component';
 import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/loading-spinner.component';
 import { SearchInputComponent } from '../../../../shared/ui/search-input/search-input.component';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 
 @Component({
   selector: 'app-inventory',
@@ -36,7 +40,8 @@ import { SearchInputComponent } from '../../../../shared/ui/search-input/search-
   templateUrl: './inventory.component.html',
   styleUrls: ['./inventory.component.css']
 })
-export class InventoryComponent implements OnInit {
+export class InventoryComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   ingredients: Ingredient[] = [];
   filteredIngredients: Ingredient[] = [];
   isLoading = true;
@@ -72,7 +77,7 @@ export class InventoryComponent implements OnInit {
 
   loadIngredients(): void {
     this.isLoading = true;
-    this.ingredientService.getAllIngredients().subscribe({
+    this.ingredientService.getAllIngredients().pipe(takeUntil(this.destroy$)).subscribe({
       next: (ingredients) => {
         this.ingredients = ingredients;
         this.filteredIngredients = ingredients;
@@ -110,7 +115,7 @@ export class InventoryComponent implements OnInit {
       disableClose: false
     });
 
-    dialogRef.afterClosed().subscribe(formValue => {
+    dialogRef.afterClosed().pipe(takeUntil(this.destroy$)).subscribe(formValue => {
       if (!formValue) return;
       this.saveIngredient(formValue, ingredient);
     });
@@ -131,7 +136,7 @@ export class InventoryComponent implements OnInit {
         isActive: formValue.isActive !== false
       };
 
-      this.ingredientService.updateIngredient(editingIngredient.id, updateData).subscribe({
+      this.ingredientService.updateIngredient(editingIngredient.id, updateData).pipe(takeUntil(this.destroy$)).subscribe({
         next: () => {
           this.toast.success('Ingredient updated successfully');
           this.loadIngredients();
@@ -153,7 +158,7 @@ export class InventoryComponent implements OnInit {
         isActive: formValue.isActive !== false
       };
 
-      this.ingredientService.createIngredient(createData).subscribe({
+      this.ingredientService.createIngredient(createData).pipe(takeUntil(this.destroy$)).subscribe({
         next: () => {
           this.toast.success('Ingredient added successfully');
           this.loadIngredients();
@@ -183,7 +188,7 @@ export class InventoryComponent implements OnInit {
     });
 
     if (confirmed) {
-      this.ingredientService.deleteIngredient(ingredient.id).subscribe({
+      this.ingredientService.deleteIngredient(ingredient.id).pipe(takeUntil(this.destroy$)).subscribe({
         next: () => {
           this.toast.success('Ingredient deleted successfully');
           this.loadIngredients();
@@ -250,42 +255,42 @@ export class InventoryComponent implements OnInit {
     return colors[Math.abs(hash) % colors.length];
   }
 
-  adjustQuantity(ingredient: Ingredient, adjustment: number): void {
-    const newQuantity = ingredient.quantity + adjustment;
-    if (newQuantity < 0) {
-      this.toast.error('Cannot reduce quantity below 0');
-      return;
-    }
-
-    this.ingredientService.adjustQuantity(ingredient.id, adjustment).subscribe({
-      next: () => {
-        this.toast.success(`Quantity ${adjustment >= 0 ? 'increased' : 'decreased'} by ${Math.abs(adjustment)}`);
-        this.loadIngredients();
-      },
-      error: (error) => {
-        let errorMessage = 'Unknown error';
-        if (error.error?.message) {
-          errorMessage = error.error.message;
-        } else if (error.message) {
-          errorMessage = error.message;
-        }
-        this.toast.error('Error adjusting quantity: ' + errorMessage);
-      }
+  adjustQuantity(ingredient: Ingredient, defaultAdjustment?: number): void {
+    const dialogRef = this.dialog.open(StockAdjustmentDialogComponent, {
+      width: '480px',
+      maxWidth: '95vw',
+      data: { ingredient, defaultAdjustment }
     });
-  }
 
-  openAdjustQuantityDialog(ingredient: Ingredient): void {
-    // Simple prompt for now - could be enhanced with a proper dialog component
-    const adjustment = prompt(`Adjust quantity for "${ingredient.name}"\nCurrent: ${ingredient.quantity} ${ingredient.unit}\n\nEnter adjustment amount (negative to reduce, positive to add):`);
+    dialogRef.afterClosed().pipe(takeUntil(this.destroy$)).subscribe((result: StockAdjustmentResult | undefined) => {
+      if (!result) return;
 
-    if (adjustment !== null && adjustment !== '') {
-      const adjustmentValue = parseFloat(adjustment);
-      if (isNaN(adjustmentValue)) {
-        this.toast.error('Please enter a valid number');
-        return;
-      }
-      this.adjustQuantity(ingredient, adjustmentValue);
-    }
+      this.ingredientService.adjustQuantity(
+        ingredient.id,
+        result.adjustment,
+        result.movementType,
+        result.reason,
+        result.notes || undefined,
+        result.supplier,
+        result.unitCost,
+        result.expirationDate,
+        result.lotNumber
+      ).pipe(takeUntil(this.destroy$)).subscribe({
+        next: () => {
+          this.toast.success(`${result.reason}: ${Math.abs(result.adjustment)} ${ingredient.unit}`);
+          this.loadIngredients();
+        },
+        error: (error) => {
+          let errorMessage = 'Unknown error';
+          if (error.error?.message) {
+            errorMessage = error.error.message;
+          } else if (error.message) {
+            errorMessage = error.message;
+          }
+          this.toast.error('Error adjusting quantity: ' + errorMessage);
+        }
+      });
+    });
   }
 
   viewStockHistory(ingredient: Ingredient): void {
@@ -296,9 +301,19 @@ export class InventoryComponent implements OnInit {
       disableClose: false
     });
   }
+
+  viewLots(ingredient: Ingredient): void {
+    this.dialog.open(IngredientLotsDialogComponent, {
+      width: '800px',
+      maxWidth: '95vw',
+      data: { ingredient },
+      disableClose: false
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 }
-
-
-
-
 

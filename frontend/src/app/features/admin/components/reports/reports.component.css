@@ -674,3 +674,366 @@
   .lb-name-row { flex-direction: column; gap: 0; }
   .list-row { padding: 8px 14px; }
 }
+
+/* ==========================================================================
+   Period Comparison Strip
+   ========================================================================== */
+
+.comparison-strip {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.comp-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.comp-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  min-width: 50px;
+}
+
+.comp-badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.comp-badge.change-up {
+  background: rgba(22, 163, 74, 0.1);
+  color: var(--success);
+}
+
+.comp-badge.change-down {
+  background: rgba(220, 38, 38, 0.1);
+  color: var(--danger);
+}
+
+.comp-badge.change-flat {
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+}
+
+.comp-sub {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* Category Bar */
+.cat-row {
+  padding: 8px 16px;
+}
+
+.cat-bar-track {
+  width: 100%;
+  height: 6px;
+  background: var(--bg-subtle);
+  border-radius: 3px;
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+.cat-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* Payment Grid */
+.payment-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  padding: 16px;
+}
+
+.payment-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 12px;
+  background: var(--bg-subtle);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.payment-method {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: capitalize;
+  color: var(--text-muted);
+}
+
+.payment-amount {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: var(--font-display);
+}
+
+.payment-pct {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+@media (max-width: 768px) {
+  .comparison-strip {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .comp-item {
+    padding: 6px 10px;
+  }
+}
+
+/* ==========================================================================
+   Inventory Sub-Tabs
+   ========================================================================== */
+
+.inv-subtab-nav {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+  padding: 0 4px;
+}
+
+.inv-subtab {
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+  font-family: inherit;
+}
+
+.inv-subtab:hover {
+  color: var(--text-primary);
+}
+
+.inv-subtab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+
+/* Activity sub-tab */
+.activity-filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.activity-type-chips {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.activity-chip {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all var(--transition-fast);
+}
+
+.activity-chip:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.activity-chip.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.activity-search {
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-family: inherit;
+  outline: none;
+  min-width: 160px;
+}
+
+.activity-search:focus {
+  border-color: var(--accent);
+}
+
+.activity-search::placeholder {
+  color: var(--text-muted);
+}
+
+.activity-table {
+  overflow-x: auto;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.activity-table-head {
+  display: grid;
+  grid-template-columns: 120px 1fr 80px 100px 80px 80px 1fr;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--bg-surface);
+  z-index: 1;
+}
+
+.activity-table-row {
+  display: grid;
+  grid-template-columns: 120px 1fr 80px 100px 80px 80px 1fr;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 12px;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+}
+
+.activity-table-row:hover {
+  background: var(--bg-subtle);
+}
+
+.activity-date {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.activity-ingredient {
+  font-weight: 600;
+}
+
+.activity-type-badge {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: capitalize;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.activity-type-badge[data-type="purchase"] { background: rgba(22,163,74,0.1); color: var(--success); }
+.activity-type-badge[data-type="sale"] { background: rgba(217,119,6,0.1); color: var(--warning); }
+.activity-type-badge[data-type="waste"] { background: rgba(220,38,38,0.1); color: var(--danger); }
+.activity-type-badge[data-type="return"] { background: rgba(37,99,235,0.1); color: #2563eb; }
+.activity-type-badge[data-type="adjustment"] { background: rgba(99,102,241,0.1); color: #6366f1; }
+
+.activity-qty.incoming { color: var(--success); font-weight: 600; }
+.activity-qty.outgoing { color: var(--danger); font-weight: 600; }
+
+.activity-notes {
+  font-size: 11px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.activity-footer {
+  display: flex;
+  gap: 16px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.activity-summary.incoming { color: var(--success); }
+.activity-summary.outgoing { color: var(--danger); }
+
+/* Supplier sub-tab */
+.inv-ingredients-list {
+  font-size: 11px;
+  color: var(--text-muted);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cost-comp-header {
+  padding: 10px 16px 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+}
+
+.cheapest-badge {
+  display: inline-block;
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(22,163,74,0.1);
+  color: var(--success);
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+/* Consumption sub-tab */
+.rank-num {
+  font-weight: 700;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+@media (max-width: 768px) {
+  .activity-table-head,
+  .activity-table-row {
+    grid-template-columns: 90px 1fr 60px 80px;
+  }
+
+  .activity-table-head span:nth-child(5),
+  .activity-table-head span:nth-child(6),
+  .activity-table-head span:nth-child(7),
+  .activity-table-row span:nth-child(5),
+  .activity-table-row span:nth-child(6),
+  .activity-table-row span:nth-child(7) {
+    display: none;
+  }
+
+  .inv-subtab { padding: 6px 10px; font-size: 11px; }
+}

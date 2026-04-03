@@ -1,7 +1,5 @@
 using PosSystem.Core.Interfaces;
 using PosSystem.Core.Models;
-using PosSystem.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
 
 namespace PosSystem.Infrastructure.Services;
 
@@ -10,18 +8,27 @@ public class TransactionService : ITransactionService
     private readonly ITransactionRepository _transactionRepository;
     private readonly IProductRepository _productRepository;
     private readonly IInventoryService _inventoryService;
-    private readonly PosSystemDbContext _context;
+    private readonly IIngredientLotService _lotService;
+    private readonly IIngredientRepository _ingredientRepository;
+    private readonly IProductIngredientRepository _productIngredientRepository;
+    private readonly IUnitOfWork _unitOfWork;
 
     public TransactionService(
         ITransactionRepository transactionRepository,
         IProductRepository productRepository,
         IInventoryService inventoryService,
-        PosSystemDbContext context)
+        IIngredientLotService lotService,
+        IIngredientRepository ingredientRepository,
+        IProductIngredientRepository productIngredientRepository,
+        IUnitOfWork unitOfWork)
     {
         _transactionRepository = transactionRepository;
         _productRepository = productRepository;
         _inventoryService = inventoryService;
-        _context = context;
+        _lotService = lotService;
+        _ingredientRepository = ingredientRepository;
+        _productIngredientRepository = productIngredientRepository;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<IEnumerable<Transaction>> GetAllTransactionsAsync()
@@ -37,7 +44,7 @@ public class TransactionService : ITransactionService
     public async Task<Transaction> CreateTransactionAsync(Transaction transaction)
     {
         // Use a database transaction to ensure atomicity
-        using var dbTransaction = await _context.Database.BeginTransactionAsync();
+        using var dbTransaction = await _unitOfWork.BeginTransactionAsync();
         try
         {
             // Group items by product ID to handle multiple quantities of the same product
@@ -61,14 +68,10 @@ public class TransactionService : ITransactionService
                 }
             }
 
-            // Update stock for all products using raw SQL to ensure it works
-            // This approach directly updates the database and is more reliable
+            // Update stock for all products using atomic decrement
             foreach (var productQty in productQuantities)
             {
-                // First verify stock is sufficient
-                var product = await _context.Products
-                    .FirstOrDefaultAsync(p => p.Id == productQty.ProductId && p.IsActive);
-                
+                var product = await _productRepository.GetByIdAsync(productQty.ProductId);
                 if (product == null)
                 {
                     throw new ArgumentException($"Product with ID {productQty.ProductId} not found");
@@ -79,21 +82,11 @@ public class TransactionService : ITransactionService
                     throw new InvalidOperationException($"Insufficient stock for product {product.Name}. Current: {product.Stock}, Required: {productQty.TotalQuantity}");
                 }
 
-                // Use raw SQL to update stock directly - this ensures the update happens
-                // Using ExecuteSqlInterpolatedAsync for parameterized queries (prevents SQL injection)
-                var quantity = productQty.TotalQuantity;
-                var productId = productQty.ProductId;
-                var now = DateTime.UtcNow;
-                
-                var rowsAffected = await _context.Database.ExecuteSqlInterpolatedAsync(
-                    $"UPDATE Products SET Stock = Stock - {quantity}, UpdatedAt = {now} WHERE Id = {productId} AND IsActive = 1 AND Stock >= {quantity}"
-                );
+                var rowsAffected = await _productRepository.DecrementStockAsync(productQty.ProductId, productQty.TotalQuantity);
 
                 if (rowsAffected == 0)
                 {
-                    // Re-check stock in case it changed
-                    var currentProduct = await _context.Products
-                        .FirstOrDefaultAsync(p => p.Id == productQty.ProductId && p.IsActive);
+                    var currentProduct = await _productRepository.GetByIdAsync(productQty.ProductId);
                     var errorMsg = $"Failed to update stock for product {product.Name}. Current stock: {currentProduct?.Stock ?? 0}, Required: {productQty.TotalQuantity}";
                     throw new InvalidOperationException(errorMsg);
                 }
@@ -103,9 +96,7 @@ public class TransactionService : ITransactionService
             var ingredientRequirements = new Dictionary<string, decimal>();
             foreach (var productQty in productQuantities)
             {
-                var recipeLines = await _context.ProductIngredients
-                    .Where(pi => pi.ProductId == productQty.ProductId)
-                    .ToListAsync();
+                var recipeLines = await _productIngredientRepository.GetByProductIdAsync(productQty.ProductId);
                 foreach (var line in recipeLines)
                 {
                     var required = line.QuantityPerUnit * productQty.TotalQuantity;
@@ -119,8 +110,7 @@ public class TransactionService : ITransactionService
             // Validate ingredient availability
             foreach (var kv in ingredientRequirements)
             {
-                var ingredient = await _context.Ingredients
-                    .FirstOrDefaultAsync(i => i.Id == kv.Key && i.IsActive);
+                var ingredient = await _ingredientRepository.GetByIdAsync(kv.Key);
                 if (ingredient == null)
                     throw new InvalidOperationException($"Ingredient with ID {kv.Key} not found.");
                 if (ingredient.Quantity < kv.Value)
@@ -128,31 +118,22 @@ public class TransactionService : ITransactionService
                         $"Insufficient ingredient: {ingredient.Name}. Required: {kv.Value} {ingredient.Unit}, Available: {ingredient.Quantity}");
             }
 
-            // Deduct ingredients (raw SQL for consistency within transaction)
+            // Deduct ingredients using FIFO lot tracking
             foreach (var kv in ingredientRequirements)
             {
                 var ingredientId = kv.Key;
                 var required = kv.Value;
-                var rowsAffected = await _context.Database.ExecuteSqlInterpolatedAsync(
-                    $"UPDATE Ingredients SET Quantity = Quantity - {required}, UpdatedAt = {DateTime.UtcNow} WHERE Id = {ingredientId} AND IsActive = 1 AND Quantity >= {required}");
-                if (rowsAffected == 0)
+
+                try
                 {
-                    var ingredient = await _context.Ingredients.FirstOrDefaultAsync(i => i.Id == ingredientId);
+                    await _lotService.DeductFifoAsync(ingredientId, required, MovementType.Sale, "POS Sale");
+                }
+                catch (InvalidOperationException)
+                {
+                    var ingredient = await _ingredientRepository.GetByIdAsync(ingredientId);
                     throw new InvalidOperationException(
                         $"Insufficient ingredient: {ingredient?.Name ?? ingredientId}. Required: {required}, Available: {ingredient?.Quantity ?? 0}");
                 }
-
-                // Optional: create StockMovement (Sale) for audit
-                var movement = new StockMovement
-                {
-                    Id = Guid.NewGuid().ToString(),
-                    IngredientId = ingredientId,
-                    MovementType = MovementType.Sale,
-                    Quantity = -required,
-                    Reason = "POS Sale",
-                    CreatedAt = DateTime.UtcNow
-                };
-                _context.StockMovements.Add(movement);
             }
 
             // Calculate total if not provided (includes service fee if already in total, otherwise calculate from items)
@@ -166,34 +147,24 @@ public class TransactionService : ITransactionService
             }
             else
             {
-                // Ensure service fee is included in total (if service fee is set but not in total, add it)
-                // We trust the frontend's total mostly, but ensure calculation consistency
-                // If total is less than net subtotal (without service fee), it might be missing service fee
-                
-                // Allow a small margin of error for floating point calculations
                 var expectedTotal = netSubtotal + transaction.ServiceFee;
-                if (Math.Abs(transaction.Total - expectedTotal) > 0.05m) 
+                if (Math.Abs(transaction.Total - expectedTotal) > 0.05m)
                 {
-                    // If the provided total significantly differs from calculation, rely on calculation
                     transaction.Total = expectedTotal;
                 }
             }
 
-            // Add transaction
+            // Add transaction via repository (which handles timestamp and save)
             transaction.Timestamp = DateTime.UtcNow;
-            _context.Transactions.Add(transaction);
-            
-            // Save all changes together (products and transaction) in one call
-            await _context.SaveChangesAsync();
+            await _transactionRepository.AddAsync(transaction);
 
             // Commit the transaction
             await dbTransaction.CommitAsync();
 
             return transaction;
         }
-        catch (Exception ex)
+        catch
         {
-            // Rollback on any error
             await dbTransaction.RollbackAsync();
             throw;
         }
@@ -244,4 +215,4 @@ public class TransactionService : ITransactionService
             TopProducts = topProducts
         };
     }
-} 
+}

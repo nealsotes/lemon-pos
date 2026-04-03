@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Ingredient } from '../models/ingredient.model';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { Ingredient } from '../models/ingredient.model';
 import { environment } from '../../../../environments/environment.prod';
 
 @Injectable({
@@ -52,8 +52,8 @@ export class IngredientService {
     );
   }
 
-  adjustQuantity(id: string, adjustment: number): Observable<Ingredient> {
-    return this.http.post<Ingredient>(`${this.apiUrl}/${id}/adjust-quantity`, { adjustment }).pipe(
+  adjustQuantity(id: string, adjustment: number, movementType?: string, reason?: string, notes?: string, supplier?: string, unitCost?: number, expirationDate?: string, lotNumber?: string): Observable<Ingredient> {
+    return this.http.post<Ingredient>(`${this.apiUrl}/${id}/adjust-quantity`, { adjustment, movementType, reason, notes, supplier, unitCost, expirationDate, lotNumber }).pipe(
       catchError(this.handleError)
     );
   }
@@ -76,8 +76,4 @@ export class IngredientService {
     return throwError(() => ({ message: errorMessage, error: error.error }));
   }
 }
-
-
-
-
 

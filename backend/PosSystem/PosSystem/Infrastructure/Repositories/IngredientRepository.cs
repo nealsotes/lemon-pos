@@ -65,5 +65,12 @@ public class IngredientRepository : IIngredientRepository
             .OrderBy(i => i.Quantity)
             .ToListAsync();
     }
+
+    public async Task<IEnumerable<Ingredient>> GetAllIncludingInactiveAsync()
+    {
+        return await _context.Ingredients
+            .OrderBy(i => i.Name)
+            .ToListAsync();
+    }
 }
 

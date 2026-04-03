@@ -63,21 +63,7 @@ public class IngredientsController : ControllerBase
                 return BadRequest(new { message = "Validation failed", errors = errors });
             }
 
-            var ingredient = new Ingredient
-            {
-                Name = ingredientDto.Name,
-                Quantity = ingredientDto.Quantity,
-                Unit = ingredientDto.Unit,
-                Supplier = string.IsNullOrWhiteSpace(ingredientDto.Supplier) ? null : ingredientDto.Supplier,
-                ExpirationDate = ingredientDto.ExpirationDate,
-                LowStockThreshold = ingredientDto.LowStockThreshold,
-                UnitCost = ingredientDto.UnitCost,
-                LastPurchaseDate = ingredientDto.LastPurchaseDate,
-                LastPurchaseCost = ingredientDto.LastPurchaseCost,
-                IsActive = ingredientDto.IsActive
-            };
-
-            var createdIngredient = await _ingredientService.CreateIngredientAsync(ingredient);
+            var createdIngredient = await _ingredientService.CreateIngredientAsync(ingredientDto);
             return CreatedAtAction(nameof(GetIngredient), new { id = createdIngredient.Id }, createdIngredient);
         }
         catch (ArgumentException ex)
@@ -104,22 +90,7 @@ public class IngredientsController : ControllerBase
                 return BadRequest(new { message = "Validation failed", errors = errors });
             }
 
-            var ingredient = new Ingredient
-            {
-                Id = id,
-                Name = ingredientDto.Name,
-                Quantity = ingredientDto.Quantity,
-                Unit = ingredientDto.Unit,
-                Supplier = string.IsNullOrWhiteSpace(ingredientDto.Supplier) ? null : ingredientDto.Supplier,
-                ExpirationDate = ingredientDto.ExpirationDate,
-                LowStockThreshold = ingredientDto.LowStockThreshold,
-                UnitCost = ingredientDto.UnitCost,
-                LastPurchaseDate = ingredientDto.LastPurchaseDate,
-                LastPurchaseCost = ingredientDto.LastPurchaseCost,
-                IsActive = ingredientDto.IsActive
-            };
-
-            var updatedIngredient = await _ingredientService.UpdateIngredientAsync(id, ingredient);
+            var updatedIngredient = await _ingredientService.UpdateIngredientAsync(id, ingredientDto);
             return Ok(updatedIngredient);
         }
         catch (ArgumentException ex)
@@ -162,11 +133,11 @@ public class IngredientsController : ControllerBase
     }
 
     [HttpPost("{id}/adjust-quantity")]
-    public async Task<ActionResult<Ingredient>> AdjustQuantity(string id, [FromBody] AdjustQuantityRequest request)
+    public async Task<ActionResult<Ingredient>> AdjustQuantity(string id, [FromBody] AdjustQuantityRequestDto request)
     {
         try
         {
-            var updatedIngredient = await _ingredientService.AdjustQuantityAsync(id, request.Adjustment);
+            var updatedIngredient = await _ingredientService.AdjustQuantityAsync(id, request.Adjustment, request.MovementType, request.Reason, request.Notes, request.Supplier, request.UnitCost, request.ExpirationDate, request.LotNumber);
             return Ok(updatedIngredient);
         }
         catch (ArgumentException ex)
@@ -220,10 +191,5 @@ public class IngredientsController : ControllerBase
             return StatusCode(500, $"Error calculating inventory value by supplier: {ex.Message}");
         }
     }
-}
-
-public class AdjustQuantityRequest
-{
-    public decimal Adjustment { get; set; }
 }
 

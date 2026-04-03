@@ -34,10 +34,8 @@ public class StockMovement
     
     [MaxLength(100)]
     public string? CreatedBy { get; set; }
-    
+
+    public string? LotId { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
-
-
-
-

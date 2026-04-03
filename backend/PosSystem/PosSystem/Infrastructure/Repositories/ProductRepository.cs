@@ -102,4 +102,12 @@ public class ProductRepository : IProductRepository
             .OrderBy(p => p.Name)
             .ToListAsync();
     }
+
+    public async Task<int> DecrementStockAsync(string productId, int quantity)
+    {
+        var now = DateTime.UtcNow;
+        return await _context.Database.ExecuteSqlInterpolatedAsync(
+            $"UPDATE Products SET Stock = Stock - {quantity}, UpdatedAt = {now} WHERE Id = {productId} AND IsActive = 1 AND Stock >= {quantity}"
+        );
+    }
 } 

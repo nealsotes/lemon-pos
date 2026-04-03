@@ -1,52 +1,61 @@
 using PosSystem.Core.Interfaces;
 using PosSystem.Core.Models;
-using PosSystem.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
 
 namespace PosSystem.Infrastructure.Services;
 
 public class ReportingService : IReportingService
 {
-    private readonly PosSystemDbContext _context;
+    private readonly ITransactionRepository _transactionRepository;
+    private readonly IProductRepository _productRepository;
+    private readonly IIngredientRepository _ingredientRepository;
+    private readonly IStockMovementRepository _stockMovementRepository;
+    private readonly IIngredientLotRepository _ingredientLotRepository;
+    private readonly IProductIngredientRepository _productIngredientRepository;
 
-    public ReportingService(PosSystemDbContext context)
+    public ReportingService(
+        ITransactionRepository transactionRepository,
+        IProductRepository productRepository,
+        IIngredientRepository ingredientRepository,
+        IStockMovementRepository stockMovementRepository,
+        IIngredientLotRepository ingredientLotRepository,
+        IProductIngredientRepository productIngredientRepository)
     {
-        _context = context;
+        _transactionRepository = transactionRepository;
+        _productRepository = productRepository;
+        _ingredientRepository = ingredientRepository;
+        _stockMovementRepository = stockMovementRepository;
+        _ingredientLotRepository = ingredientLotRepository;
+        _productIngredientRepository = productIngredientRepository;
     }
 
     public async Task<object> GetDailyReportAsync(DateTime date)
     {
-        // Use the input date as-is for start and end of day logic
-        // This relies on the frontend passing the correct local date
         var startOfDay = date.Date;
-        var endOfDay = startOfDay.AddDays(1);
+        var endOfDay = startOfDay.AddDays(1).AddSeconds(-1);
 
-        var transactions = await _context.Transactions
-            .Where(t => t.Timestamp >= startOfDay && t.Timestamp < endOfDay)
-            .ToListAsync();
+        var allTransactions = await _transactionRepository.GetByDateRangeAsync(startOfDay, endOfDay);
+        var transactions = allTransactions.ToList();
 
         var totalSales = transactions.Sum(t => t.Total);
         var transactionCount = transactions.Count;
         var averageTransactionValue = transactionCount > 0 ? totalSales / transactionCount : 0;
 
-        // Get top products with product details
-        var topProducts = await _context.Transactions
-            .Where(t => t.Timestamp >= startOfDay && t.Timestamp < endOfDay)
+        // Get top products from transaction items
+        var topProducts = transactions
             .SelectMany(t => t.Items)
             .GroupBy(item => item.ProductId)
             .Select(g => new
             {
                 ProductId = g.Key,
-                Name = g.FirstOrDefault()!.Name, // Use the name stored in transaction items
-                Category = g.FirstOrDefault()!.Category, // Use the category stored in transaction items
+                Name = g.FirstOrDefault()!.Name,
+                Category = g.FirstOrDefault()!.Category,
                 Quantity = g.Sum(item => item.Quantity),
                 Revenue = g.Sum(item => item.Price * item.Quantity)
             })
             .OrderByDescending(p => p.Quantity)
             .Take(5)
-            .ToListAsync();
+            .ToList();
 
-        // Return data in the format expected by frontend
         return new
         {
             Date = date.Date,
@@ -59,9 +68,8 @@ public class ReportingService : IReportingService
 
     public async Task<object> GetSalesReportAsync(DateTime startDate, DateTime endDate)
     {
-        var transactions = await _context.Transactions
-            .Where(t => t.Timestamp >= startDate && t.Timestamp <= endDate)
-            .ToListAsync();
+        var allTransactions = await _transactionRepository.GetByDateRangeAsync(startDate, endDate);
+        var transactions = allTransactions.ToList();
 
         var dailySales = transactions
             .GroupBy(t => t.Timestamp.Date)
@@ -86,55 +94,53 @@ public class ReportingService : IReportingService
 
     public async Task<object> GetTopSellingProductsAsync(DateTime startDate, DateTime endDate, int count = 10)
     {
-        var topProducts = await _context.Transactions
-            .Where(t => t.Timestamp >= startDate && t.Timestamp <= endDate)
+        var allTransactions = await _transactionRepository.GetByDateRangeAsync(startDate, endDate);
+
+        var topProducts = allTransactions
             .SelectMany(t => t.Items)
             .GroupBy(item => item.ProductId)
             .Select(g => new
             {
                 ProductId = g.Key,
-                Name = g.FirstOrDefault()!.Name, // Use the name stored in transaction items
-                Category = g.FirstOrDefault()!.Category, // Use the category stored in transaction items
+                Name = g.FirstOrDefault()!.Name,
+                Category = g.FirstOrDefault()!.Category,
                 Quantity = g.Sum(item => item.Quantity),
                 Revenue = g.Sum(item => item.Price * item.Quantity)
             })
             .OrderByDescending(p => p.Quantity)
             .Take(count)
-            .ToListAsync();
+            .ToList();
 
         return topProducts;
     }
 
     public async Task<object> GetCategoryReportAsync(DateTime startDate, DateTime endDate)
     {
-        var categorySales = await _context.Transactions
-            .Where(t => t.Timestamp >= startDate && t.Timestamp <= endDate)
+        var allTransactions = await _transactionRepository.GetByDateRangeAsync(startDate, endDate);
+        var products = (await _productRepository.GetAllAsync()).ToDictionary(p => p.Id);
+
+        var categorySales = allTransactions
             .SelectMany(t => t.Items)
-            .Join(_context.Products,
-                item => item.ProductId,
-                product => product.Id,
-                (item, product) => new { item, product })
-            .GroupBy(x => x.product.Category)
+            .Where(item => products.ContainsKey(item.ProductId))
+            .GroupBy(item => products[item.ProductId].Category)
             .Select(g => new
             {
                 Category = g.Key,
-                Quantity = g.Sum(x => x.item.Quantity),
-                Revenue = g.Sum(x => x.item.Price * x.item.Quantity)
+                Quantity = g.Sum(item => item.Quantity),
+                Revenue = g.Sum(item => item.Price * item.Quantity)
             })
             .OrderByDescending(x => x.Revenue)
-            .ToListAsync();
+            .ToList();
 
         return categorySales;
     }
 
     public async Task<object> GetAllTimeProductSalesAsync()
     {
-        // Get all products with their total sold quantity (all-time)
-        var products = await _context.Products
-            .Where(p => p.IsActive)
-            .ToListAsync();
+        var products = (await _productRepository.GetAllAsync()).ToList();
+        var allTransactions = await _transactionRepository.GetAllAsync();
 
-        var productSales = await _context.Transactions
+        var productSales = allTransactions
             .SelectMany(t => t.Items.Select(item => new { item, t.Timestamp }))
             .GroupBy(x => x.item.ProductId)
             .Select(g => new
@@ -144,9 +150,8 @@ public class ReportingService : IReportingService
                 TotalRevenue = g.Sum(x => x.item.Price * x.item.Quantity),
                 LastSoldDate = g.Max(x => x.Timestamp)
             })
-            .ToListAsync();
+            .ToList();
 
-        // Join products with their sales data
         var result = products.Select(p =>
         {
             var sales = productSales.FirstOrDefault(s => s.ProductId == p.Id);
@@ -173,10 +178,7 @@ public class ReportingService : IReportingService
 
     private async Task<Dictionary<string, decimal>> GetCogsByProductIdAsync()
     {
-        var recipes = await _context.Set<ProductIngredient>()
-            .Include(pi => pi.Ingredient)
-            .Where(pi => pi.Ingredient != null)
-            .ToListAsync();
+        var recipes = (await _productIngredientRepository.GetAllWithIngredientsAsync()).ToList();
 
         return recipes
             .GroupBy(pi => pi.ProductId)
@@ -201,9 +203,8 @@ public class ReportingService : IReportingService
 
     public async Task<ProfitLossReportDto> GetProfitLossReportAsync(DateTime startDate, DateTime endDate)
     {
-        var transactions = await _context.Transactions
-            .Where(t => t.Timestamp >= startDate && t.Timestamp <= endDate && t.Status == "completed")
-            .ToListAsync();
+        var allTransactions = await _transactionRepository.GetByDateRangeAsync(startDate, endDate);
+        var transactions = allTransactions.Where(t => t.Status == "completed").ToList();
 
         var allItems = transactions.SelectMany(t => t.Items).ToList();
         var cogsByProduct = await GetCogsByProductIdAsync();
@@ -289,17 +290,13 @@ public class ReportingService : IReportingService
 
     public async Task<InventoryValuationReportDto> GetInventoryValuationReportAsync(DateTime startDate, DateTime endDate)
     {
-        var ingredients = await _context.Ingredients
-            .Where(i => i.IsActive)
-            .ToListAsync();
+        var ingredients = (await _ingredientRepository.GetAllAsync()).ToList();
 
         var totalValue = ingredients.Sum(i => (i.UnitCost ?? 0) * i.Quantity);
         var lowStockCount = ingredients.Count(i => i.Quantity <= i.LowStockThreshold);
 
         // Stock movements in period
-        var movements = await _context.StockMovements
-            .Where(m => m.CreatedAt >= startDate && m.CreatedAt <= endDate)
-            .ToListAsync();
+        var movements = (await _stockMovementRepository.GetByDateRangeAsync(startDate, endDate)).ToList();
 
         // Period change: purchases/returns add value, sales/waste/adjustments subtract
         var periodChange = movements.Sum(m =>
@@ -363,9 +360,8 @@ public class ReportingService : IReportingService
 
     public async Task<AccountantSummaryDto> GetAccountantSummaryAsync(DateTime startDate, DateTime endDate)
     {
-        var transactions = await _context.Transactions
-            .Where(t => t.Timestamp >= startDate && t.Timestamp <= endDate && t.Status == "completed")
-            .ToListAsync();
+        var allTransactions = await _transactionRepository.GetByDateRangeAsync(startDate, endDate);
+        var transactions = allTransactions.Where(t => t.Status == "completed").ToList();
 
         var allItems = transactions.SelectMany(t => t.Items).ToList();
         var cogsByProduct = await GetCogsByProductIdAsync();
@@ -410,14 +406,10 @@ public class ReportingService : IReportingService
             .ToList();
 
         // Inventory snapshot
-        var ingredients = await _context.Ingredients
-            .Where(i => i.IsActive)
-            .ToListAsync();
+        var ingredients = (await _ingredientRepository.GetAllAsync()).ToList();
         var currentInventoryValue = ingredients.Sum(i => (i.UnitCost ?? 0) * i.Quantity);
 
-        var movements = await _context.StockMovements
-            .Where(m => m.CreatedAt >= startDate && m.CreatedAt <= endDate)
-            .ToListAsync();
+        var movements = (await _stockMovementRepository.GetByDateRangeAsync(startDate, endDate)).ToList();
 
         var ingredientsConsumed = movements
             .Where(m => m.MovementType == MovementType.Sale)
@@ -445,6 +437,141 @@ public class ReportingService : IReportingService
             CurrentInventoryValue = currentInventoryValue,
             IngredientsConsumed = ingredientsConsumed,
             WasteAndShrinkage = wasteAndShrinkage
+        };
+    }
+
+    public async Task<SupplierBreakdownReportDto> GetSupplierBreakdownAsync(DateTime startDate, DateTime endDate)
+    {
+        var lots = (await _ingredientLotRepository.GetByDateRangeAsync(startDate, endDate)).ToList();
+
+        var ingredients = (await _ingredientRepository.GetAllAsync())
+            .ToDictionary(i => i.Id, i => i.Name);
+
+        // Supplier summary
+        var supplierGroups = lots
+            .Where(l => !string.IsNullOrEmpty(l.Supplier))
+            .GroupBy(l => l.Supplier!)
+            .Select(g => new SupplierSummaryDto
+            {
+                Supplier = g.Key,
+                PurchaseCount = g.Count(),
+                TotalSpent = g.Sum(l => l.InitialQuantity * l.UnitCost),
+                Ingredients = g
+                    .Select(l => ingredients.GetValueOrDefault(l.IngredientId, "Unknown"))
+                    .Distinct()
+                    .ToList(),
+                AvgCostPerPurchase = g.Count() > 0
+                    ? g.Sum(l => l.InitialQuantity * l.UnitCost) / g.Count()
+                    : 0
+            })
+            .OrderByDescending(s => s.TotalSpent)
+            .ToList();
+
+        // Cost comparison: ingredients with 2+ suppliers
+        var ingredientSupplierGroups = lots
+            .Where(l => !string.IsNullOrEmpty(l.Supplier))
+            .GroupBy(l => l.IngredientId)
+            .Where(g => g.Select(l => l.Supplier).Distinct().Count() >= 2)
+            .Select(g => new IngredientCostComparisonDto
+            {
+                IngredientName = ingredients.GetValueOrDefault(g.Key, "Unknown"),
+                Suppliers = g
+                    .GroupBy(l => l.Supplier!)
+                    .Select(sg => new SupplierCostDto
+                    {
+                        Supplier = sg.Key,
+                        UnitCost = sg.OrderByDescending(l => l.ReceivedAt).First().UnitCost,
+                        LastPurchaseDate = sg.Max(l => l.ReceivedAt),
+                        QtyPurchased = sg.Sum(l => l.InitialQuantity)
+                    })
+                    .OrderBy(s => s.UnitCost)
+                    .ToList()
+            })
+            .ToList();
+
+        return new SupplierBreakdownReportDto
+        {
+            SupplierSummary = supplierGroups,
+            CostComparison = ingredientSupplierGroups
+        };
+    }
+
+    public async Task<ConsumptionReportDto> GetConsumptionReportAsync(DateTime startDate, DateTime endDate)
+    {
+        var allMovements = await _stockMovementRepository.GetByDateRangeAsync(startDate, endDate);
+        var saleMovements = allMovements
+            .Where(m => m.MovementType == MovementType.Sale)
+            .ToList();
+
+        var allIngredients = await _ingredientRepository.GetAllIncludingInactiveAsync();
+        var ingredients = allIngredients.ToDictionary(i => i.Id, i => new { i.Name, i.Unit });
+
+        var days = Math.Max(1, (endDate - startDate).Days + 1);
+
+        var items = saleMovements
+            .GroupBy(m => m.IngredientId)
+            .Select(g =>
+            {
+                var qtyUsed = g.Sum(m => Math.Abs(m.Quantity));
+                var costConsumed = g.Sum(m => Math.Abs(m.Quantity) * (m.UnitCost ?? 0));
+                var info = ingredients.GetValueOrDefault(g.Key);
+                return new ConsumptionItemDto
+                {
+                    IngredientName = info?.Name ?? "Unknown",
+                    Unit = info?.Unit ?? "",
+                    QtyUsed = qtyUsed,
+                    CostConsumed = costConsumed,
+                    AvgDaily = Math.Round(qtyUsed / days, 4)
+                };
+            })
+            .OrderByDescending(i => i.CostConsumed)
+            .ToList();
+
+        var totalCost = items.Sum(i => i.CostConsumed);
+        foreach (var item in items)
+        {
+            item.PercentOfTotal = totalCost > 0 ? Math.Round(item.CostConsumed / totalCost * 100, 1) : 0;
+        }
+
+        return new ConsumptionReportDto
+        {
+            TotalConsumedCost = totalCost,
+            TopIngredientName = items.FirstOrDefault()?.IngredientName ?? "None",
+            IngredientsUsedCount = items.Count,
+            Items = items
+        };
+    }
+
+    public async Task<PeriodComparisonDto> GetPeriodComparisonAsync(DateTime startDate, DateTime endDate)
+    {
+        var duration = endDate - startDate;
+        var prevEnd = startDate.AddSeconds(-1);
+        var prevStart = prevEnd - duration;
+
+        var currentAll = await _transactionRepository.GetByDateRangeAsync(startDate, endDate);
+        var currentTxns = currentAll.Where(t => t.Status == "completed").ToList();
+
+        var previousAll = await _transactionRepository.GetByDateRangeAsync(prevStart, prevEnd);
+        var previousTxns = previousAll.Where(t => t.Status == "completed").ToList();
+
+        var currentSales = currentTxns.Sum(t => t.Total);
+        var previousSales = previousTxns.Sum(t => t.Total);
+        var currentCount = currentTxns.Count;
+        var previousCount = previousTxns.Count;
+        var currentAvg = currentCount > 0 ? currentSales / currentCount : 0;
+        var previousAvg = previousCount > 0 ? previousSales / previousCount : 0;
+
+        return new PeriodComparisonDto
+        {
+            CurrentSales = currentSales,
+            PreviousSales = previousSales,
+            SalesChangePercent = previousSales > 0 ? Math.Round((currentSales - previousSales) / previousSales * 100, 1) : 0,
+            CurrentTransactions = currentCount,
+            PreviousTransactions = previousCount,
+            TransactionsChangePercent = previousCount > 0 ? Math.Round((decimal)(currentCount - previousCount) / previousCount * 100, 1) : 0,
+            CurrentAvgOrder = Math.Round(currentAvg, 2),
+            PreviousAvgOrder = Math.Round(previousAvg, 2),
+            AvgOrderChangePercent = previousAvg > 0 ? Math.Round((currentAvg - previousAvg) / previousAvg * 100, 1) : 0
         };
     }
 }

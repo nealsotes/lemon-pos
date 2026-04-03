@@ -29,7 +29,14 @@ public class StockMovementsController : ControllerBase
 
             if (!string.IsNullOrEmpty(ingredientId))
             {
-                movements = await _stockMovementService.GetMovementsByIngredientIdAsync(ingredientId);
+                if (startDate.HasValue && endDate.HasValue)
+                {
+                    movements = await _stockMovementService.GetMovementsByIngredientIdAndDateRangeAsync(ingredientId, startDate.Value, endDate.Value);
+                }
+                else
+                {
+                    movements = await _stockMovementService.GetMovementsByIngredientIdAsync(ingredientId);
+                }
             }
             else if (startDate.HasValue && endDate.HasValue)
             {
@@ -107,7 +114,3 @@ public class StockMovementsController : ControllerBase
         }
     }
 }
-
-
-
-

@@ -27,6 +27,12 @@ public class StockMovementService : IStockMovementService
         return await _stockMovementRepository.GetByIngredientIdAsync(ingredientId);
     }
 
+    public async Task<IEnumerable<StockMovement>> GetMovementsByIngredientIdAndDateRangeAsync(string ingredientId, DateTime startDate, DateTime endDate)
+    {
+        var movements = await _stockMovementRepository.GetByIngredientIdAsync(ingredientId);
+        return movements.Where(m => m.CreatedAt >= startDate && m.CreatedAt <= endDate);
+    }
+
     public async Task<IEnumerable<StockMovement>> GetMovementsByDateRangeAsync(DateTime startDate, DateTime endDate)
     {
         return await _stockMovementRepository.GetByDateRangeAsync(startDate, endDate);
@@ -54,7 +60,5 @@ public class StockMovementService : IStockMovementService
         await _stockMovementRepository.DeleteAsync(id);
     }
 }
-
-
 
 

@@ -85,3 +85,69 @@ public class CategorySalesDto
     public decimal Total { get; set; }
     public decimal Percent { get; set; }
 }
+
+// ── Supplier Breakdown ──
+
+public class SupplierBreakdownReportDto
+{
+    public List<SupplierSummaryDto> SupplierSummary { get; set; } = new();
+    public List<IngredientCostComparisonDto> CostComparison { get; set; } = new();
+}
+
+public class SupplierSummaryDto
+{
+    public string Supplier { get; set; } = string.Empty;
+    public int PurchaseCount { get; set; }
+    public decimal TotalSpent { get; set; }
+    public List<string> Ingredients { get; set; } = new();
+    public decimal AvgCostPerPurchase { get; set; }
+}
+
+public class IngredientCostComparisonDto
+{
+    public string IngredientName { get; set; } = string.Empty;
+    public List<SupplierCostDto> Suppliers { get; set; } = new();
+}
+
+public class SupplierCostDto
+{
+    public string Supplier { get; set; } = string.Empty;
+    public decimal UnitCost { get; set; }
+    public DateTime LastPurchaseDate { get; set; }
+    public decimal QtyPurchased { get; set; }
+}
+
+// ── Consumption Report ──
+
+public class ConsumptionReportDto
+{
+    public decimal TotalConsumedCost { get; set; }
+    public string TopIngredientName { get; set; } = string.Empty;
+    public int IngredientsUsedCount { get; set; }
+    public List<ConsumptionItemDto> Items { get; set; } = new();
+}
+
+public class ConsumptionItemDto
+{
+    public string IngredientName { get; set; } = string.Empty;
+    public string Unit { get; set; } = string.Empty;
+    public decimal QtyUsed { get; set; }
+    public decimal CostConsumed { get; set; }
+    public decimal PercentOfTotal { get; set; }
+    public decimal AvgDaily { get; set; }
+}
+
+// ── Period Comparison ──
+
+public class PeriodComparisonDto
+{
+    public decimal CurrentSales { get; set; }
+    public decimal PreviousSales { get; set; }
+    public decimal SalesChangePercent { get; set; }
+    public int CurrentTransactions { get; set; }
+    public int PreviousTransactions { get; set; }
+    public decimal TransactionsChangePercent { get; set; }
+    public decimal CurrentAvgOrder { get; set; }
+    public decimal PreviousAvgOrder { get; set; }
+    public decimal AvgOrderChangePercent { get; set; }
+}

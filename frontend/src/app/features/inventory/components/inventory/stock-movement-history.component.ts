@@ -1,14 +1,18 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { FormsModule } from '@angular/forms';
-import { StockMovementService } from '../../services/stock-movement.service';
+import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { StockMovement, MovementType, MovementTypeLabels } from '../../models/stock-movement.model';
+import { IngredientLot } from '../../models/ingredient-lot.model';
 import { Ingredient } from '../../../pos/models/ingredient.model';
+import { StockMovementService } from '../../services/stock-movement.service';
+import { IngredientLotService } from '../../services/ingredient-lot.service';
 import { ToastService } from '../../../../shared/ui/toast/toast.service';
 import { BadgeComponent } from '../../../../shared/ui/badge/badge.component';
 import { ButtonComponent } from '../../../../shared/ui/button/button.component';
 import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/loading-spinner.component';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 
 interface MovementTypeFilter {
   value: MovementType | null;
@@ -88,33 +92,36 @@ interface MovementTypeFilter {
           <div class="movement-list" *ngIf="filteredMovements.length > 0">
             <div class="movement-row" *ngFor="let m of filteredMovements; let i = index">
               <div class="movement-icon" [class]="'icon-' + getTypeClass(m.movementType)">
-                <svg *ngIf="isIncoming(m.movementType)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="14" height="14">
+                <svg *ngIf="m.quantity !== 0 && isIncoming(m.movementType)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="14" height="14">
                   <path d="M12 19V5M5 12l7-7 7 7"/>
                 </svg>
-                <svg *ngIf="!isIncoming(m.movementType)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="14" height="14">
+                <svg *ngIf="m.quantity !== 0 && !isIncoming(m.movementType)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="14" height="14">
                   <path d="M12 5v14M19 12l-7 7-7-7"/>
+                </svg>
+                <svg *ngIf="m.quantity === 0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="14" height="14">
+                  <path d="M12 20V10M18 20V4M6 20v-4"/>
                 </svg>
               </div>
               <div class="movement-info">
-                <span class="movement-label">{{ getMovementTypeLabel(m.movementType) }}</span>
+                <span class="movement-label">{{ m.quantity === 0 ? m.reason : getMovementTypeLabel(m.movementType) }}</span>
                 <span class="movement-meta">
                   {{ formatDate(m.createdAt) }}
-                  <span *ngIf="m.reason"> · {{ m.reason }}</span>
+                  <span *ngIf="m.quantity !== 0 && m.reason"> · {{ m.reason }}</span>
+                </span>
+                <span class="movement-detail" *ngIf="m.notes">{{ m.notes }}</span>
+                <span class="lot-tag" *ngIf="m.lotId && lotMap.get(m.lotId) as lot">
+                  {{ lot.supplier || 'Unknown' }}<span *ngIf="lot.lotNumber"> · #{{ lot.lotNumber }}</span>
                 </span>
               </div>
-              <div class="movement-qty" [class.incoming]="isIncoming(m.movementType)" [class.outgoing]="!isIncoming(m.movementType)">
-                {{ isIncoming(m.movementType) ? '+' : '-' }}{{ m.quantity | number:(isPiece ? '1.0-0' : '1.2-2') }}
+              <div class="movement-qty" *ngIf="m.quantity !== 0" [class.incoming]="isIncoming(m.movementType)" [class.outgoing]="!isIncoming(m.movementType)">
+                {{ isIncoming(m.movementType) ? '+' : '-' }}{{ (m.quantity < 0 ? -m.quantity : m.quantity) | number:(isPiece ? '1.0-0' : '1.2-2') }}
                 <span class="qty-unit">{{ ingredient?.unit }}</span>
               </div>
+              <div class="movement-qty muted" *ngIf="m.quantity === 0">--</div>
               <div class="movement-cost" *ngIf="m.unitCost">
                 &#8369;{{ m.unitCost | number:'1.2-2' }}
               </div>
               <div class="movement-cost muted" *ngIf="!m.unitCost">--</div>
-              <div class="movement-notes" *ngIf="m.notes" [title]="m.notes">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
-                  <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
-                </svg>
-              </div>
             </div>
           </div>
 
@@ -416,6 +423,24 @@ interface MovementTypeFilter {
       text-overflow: ellipsis;
     }
 
+    .lot-tag {
+      display: inline-block;
+      font-size: 0.5625rem;
+      padding: 1px 6px;
+      border-radius: 3px;
+      background: rgba(99, 102, 241, 0.1);
+      color: #6366f1;
+      font-weight: 500;
+      margin-top: 2px;
+    }
+
+    .movement-detail {
+      font-size: 0.6875rem;
+      color: var(--text-secondary);
+      font-style: italic;
+      margin-top: 1px;
+    }
+
     .movement-qty {
       font-family: var(--font-display);
       font-weight: 700;
@@ -597,10 +622,12 @@ interface MovementTypeFilter {
     }
   `]
 })
-export class StockMovementHistoryComponent implements OnInit {
+export class StockMovementHistoryComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   ingredient: Ingredient | null = null;
   movements: StockMovement[] = [];
   filteredMovements: StockMovement[] = [];
+  lotMap: Map<string, { supplier: string; lotNumber: string }> = new Map();
   isLoading = false;
   selectedMovementType: MovementType | null = null;
   startDate: string = '';
@@ -623,14 +650,14 @@ export class StockMovementHistoryComponent implements OnInit {
 
   get totalIncoming(): number {
     return this.filteredMovements
-      .filter(m => this.isIncoming(m.movementType))
-      .reduce((sum, m) => sum + m.quantity, 0);
+      .filter(m => this.isIncoming(m.movementType) && m.quantity !== 0)
+      .reduce((sum, m) => sum + Math.abs(m.quantity), 0);
   }
 
   get totalOutgoing(): number {
     return this.filteredMovements
-      .filter(m => !this.isIncoming(m.movementType))
-      .reduce((sum, m) => sum + m.quantity, 0);
+      .filter(m => !this.isIncoming(m.movementType) && m.quantity !== 0)
+      .reduce((sum, m) => sum + Math.abs(m.quantity), 0);
   }
 
   get netChange(): number {
@@ -641,6 +668,7 @@ export class StockMovementHistoryComponent implements OnInit {
     private dialogRef: MatDialogRef<StockMovementHistoryComponent>,
     @Inject(MAT_DIALOG_DATA) public data: { ingredient: Ingredient },
     private stockMovementService: StockMovementService,
+    private lotService: IngredientLotService,
     private toast: ToastService
   ) {
     this.ingredient = data.ingredient;
@@ -648,6 +676,19 @@ export class StockMovementHistoryComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadMovements();
+    this.loadLots();
+  }
+
+  private loadLots(): void {
+    if (!this.ingredient) return;
+    this.lotService.getLots(this.ingredient.id).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (lots) => {
+        this.lotMap.clear();
+        for (const lot of lots) {
+          this.lotMap.set(lot.id, { supplier: lot.supplier || 'Unknown', lotNumber: lot.lotNumber || '' });
+        }
+      }
+    });
   }
 
   loadMovements(): void {
@@ -657,7 +698,7 @@ export class StockMovementHistoryComponent implements OnInit {
     const start = this.startDate ? new Date(this.startDate) : undefined;
     const end = this.endDate ? new Date(this.endDate + 'T23:59:59') : undefined;
 
-    this.stockMovementService.getAllMovements(this.ingredient.id, start, end).subscribe({
+    this.stockMovementService.getAllMovements(this.ingredient.id, start, end).pipe(takeUntil(this.destroy$)).subscribe({
       next: (movements) => {
         this.movements = movements.sort((a, b) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -738,5 +779,10 @@ export class StockMovementHistoryComponent implements OnInit {
 
   close(): void {
     this.dialogRef.close();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

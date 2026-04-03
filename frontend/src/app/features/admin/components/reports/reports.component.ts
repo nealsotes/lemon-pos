@@ -1,13 +1,14 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { firstValueFrom } from 'rxjs';
-import { TransactionService } from '../../../checkout/services/transaction.service';
-import { ProductService } from '../../../pos/services/product.service';
-import { ThermalPrinterService } from '../../../checkout/services/thermal-printer.service';
 import { Transaction } from '../../../checkout/models/transaction.model';
 import { Product } from '../../../pos/models/product.model';
+import { TransactionService } from '../../../checkout/services/transaction.service';
+import { ProductService } from '../../../pos/services/product.service';
+import { IngredientService } from '../../../pos/services/ingredient.service';
+import { StockMovementService } from '../../../inventory/services/stock-movement.service';
+import { ThermalPrinterService } from '../../../checkout/services/thermal-printer.service';
 import { TopBarComponent } from '../../../../shared/ui/top-bar/top-bar.component';
 import { ToastService } from '../../../../shared/ui/toast/toast.service';
 import { KpiStripComponent, KpiItem } from '../../../../shared/ui/kpi-strip/kpi-strip.component';
@@ -15,6 +16,7 @@ import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/l
 import { ButtonComponent } from '../../../../shared/ui/button/button.component';
 import { BadgeComponent } from '../../../../shared/ui/badge/badge.component';
 import { FilterBarComponent } from '../../../../shared/ui/filter-bar/filter-bar.component';
+import { Subject, firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-reports',
@@ -23,7 +25,8 @@ import { FilterBarComponent } from '../../../../shared/ui/filter-bar/filter-bar.
   templateUrl: './reports.component.html',
   styleUrls: ['./reports.component.css']
 })
-export class ReportsComponent implements OnInit {
+export class ReportsComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   selectedTransaction: Transaction | null = null;
   isTransactionModalOpen: boolean = false;
   dailyReport: any = null;
@@ -64,13 +67,31 @@ export class ReportsComponent implements OnInit {
   profitLossData: any = null;
   inventoryData: any = null;
   accountantSummary: any = null;
+  supplierData: any = null;
+  consumptionData: any = null;
+  periodComparison: any = null;
+  categoryBreakdown: any[] = [];
+  paymentBreakdown: any[] = [];
+
+  // Activity sub-tab data
+  activityMovements: any[] = [];
+  filteredActivityMovements: any[] = [];
+  activityTypeFilter = '';
+  activitySearchTerm = '';
+  activityTotalIn = 0;
+  activityTotalOut = 0;
+  activityNet = 0;
+  ingredientsMap: Map<string, { name: string; unit: string }> = new Map();
 
   // Tab navigation
   activeTab: 'overview' | 'leaderboard' | 'profitability' | 'inventory' | 'summary' = 'overview';
+  inventorySubTab: 'overview' | 'activity' | 'suppliers' | 'consumption' = 'overview';
 
   constructor(
     private transactionService: TransactionService,
     private productService: ProductService,
+    private ingredientService: IngredientService,
+    private stockMovementService: StockMovementService,
     private thermalPrinter: ThermalPrinterService,
     private toast: ToastService
   ) {
@@ -338,7 +359,7 @@ export class ReportsComponent implements OnInit {
 
   private async loadAllData(): Promise<void> {
     this.errorMessage = '';
-    this.isLoading = false;
+    this.isLoading = true;
 
     const timeoutId = setTimeout(() => {
       this.isLoading = false;
@@ -354,6 +375,9 @@ export class ReportsComponent implements OnInit {
       await this.loadProfitLossReport();
       await this.loadInventoryValuation();
       await this.loadAccountantSummary();
+      await this.loadPeriodComparison();
+      await this.loadCategoryBreakdown();
+      this.loadPaymentBreakdown();
 
       clearTimeout(timeoutId);
       this.isLoading = false;
@@ -574,6 +598,113 @@ export class ReportsComponent implements OnInit {
     }
   }
 
+  private async loadSupplierBreakdown(): Promise<void> {
+    try {
+      const queryStartDate = new Date(this.startDate);
+      queryStartDate.setHours(0, 0, 0, 0);
+      const queryEndDate = new Date(this.endDate);
+      queryEndDate.setHours(23, 59, 59, 999);
+      this.supplierData = await firstValueFrom(this.transactionService.getSupplierBreakdown(queryStartDate, queryEndDate));
+    } catch (error) {
+      this.supplierData = null;
+    }
+  }
+
+  private async loadConsumption(): Promise<void> {
+    try {
+      const queryStartDate = new Date(this.startDate);
+      queryStartDate.setHours(0, 0, 0, 0);
+      const queryEndDate = new Date(this.endDate);
+      queryEndDate.setHours(23, 59, 59, 999);
+      this.consumptionData = await firstValueFrom(this.transactionService.getConsumption(queryStartDate, queryEndDate));
+    } catch (error) {
+      this.consumptionData = null;
+    }
+  }
+
+  private async loadActivityMovements(): Promise<void> {
+    try {
+      const queryStartDate = new Date(this.startDate);
+      queryStartDate.setHours(0, 0, 0, 0);
+      const queryEndDate = new Date(this.endDate);
+      queryEndDate.setHours(23, 59, 59, 999);
+
+      // Load ingredients map for name lookups
+      const ingredients: any[] = await firstValueFrom(this.ingredientService.getAllIngredients());
+      this.ingredientsMap.clear();
+      for (const ing of ingredients) {
+        this.ingredientsMap.set(ing.id, { name: ing.name, unit: ing.unit });
+      }
+
+      // Load movements
+      this.activityMovements = await firstValueFrom(
+        this.stockMovementService.getAllMovements(undefined, queryStartDate, queryEndDate)
+      );
+      this.activityMovements.sort((a: any, b: any) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      this.filterActivityMovements();
+    } catch (error) {
+      this.activityMovements = [];
+      this.filteredActivityMovements = [];
+    }
+  }
+
+  filterActivityMovements(): void {
+    let filtered = this.activityMovements;
+    if (this.activityTypeFilter) {
+      filtered = filtered.filter((m: any) => m.movementType === this.activityTypeFilter);
+    }
+    if (this.activitySearchTerm.trim()) {
+      const search = this.activitySearchTerm.toLowerCase();
+      filtered = filtered.filter((m: any) => {
+        const name = this.getIngredientName(m.ingredientId).toLowerCase();
+        return name.includes(search);
+      });
+    }
+    this.filteredActivityMovements = filtered;
+
+    // Calculate totals
+    this.activityTotalIn = filtered
+      .filter((m: any) => m.quantity > 0)
+      .reduce((sum: number, m: any) => sum + Math.abs(m.quantity) * (m.unitCost || 0), 0);
+    this.activityTotalOut = filtered
+      .filter((m: any) => m.quantity < 0)
+      .reduce((sum: number, m: any) => sum + Math.abs(m.quantity) * (m.unitCost || 0), 0);
+    this.activityNet = this.activityTotalIn - this.activityTotalOut;
+  }
+
+  getIngredientName(ingredientId: string): string {
+    return this.ingredientsMap.get(ingredientId)?.name || 'Unknown';
+  }
+
+  getIngredientUnit(ingredientId: string): string {
+    return this.ingredientsMap.get(ingredientId)?.unit || '';
+  }
+
+  getMovementTotal(m: any): number {
+    return Math.abs(m.quantity) * (m.unitCost || 0);
+  }
+
+  formatActivityDate(dateString: string): string {
+    return new Date(dateString).toLocaleDateString('en-PH', {
+      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+  }
+
+  setInventorySubTab(tab: 'overview' | 'activity' | 'suppliers' | 'consumption'): void {
+    this.inventorySubTab = tab;
+    if (tab === 'activity' && this.activityMovements.length === 0) {
+      this.loadActivityMovements();
+    }
+    if (tab === 'suppliers' && !this.supplierData) {
+      this.loadSupplierBreakdown();
+    }
+    if (tab === 'consumption' && !this.consumptionData) {
+      this.loadConsumption();
+    }
+  }
+
   private async loadAccountantSummary(): Promise<void> {
     try {
       const queryStartDate = new Date(this.startDate);
@@ -584,6 +715,61 @@ export class ReportsComponent implements OnInit {
     } catch (error) {
       this.accountantSummary = null;
     }
+  }
+
+  private async loadPeriodComparison(): Promise<void> {
+    try {
+      const queryStartDate = new Date(this.startDate);
+      queryStartDate.setHours(0, 0, 0, 0);
+      const queryEndDate = new Date(this.endDate);
+      queryEndDate.setHours(23, 59, 59, 999);
+      this.periodComparison = await firstValueFrom(this.transactionService.getPeriodComparison(queryStartDate, queryEndDate));
+    } catch (error) {
+      this.periodComparison = null;
+    }
+  }
+
+  private async loadCategoryBreakdown(): Promise<void> {
+    try {
+      const queryStartDate = new Date(this.startDate);
+      queryStartDate.setHours(0, 0, 0, 0);
+      const queryEndDate = new Date(this.endDate);
+      queryEndDate.setHours(23, 59, 59, 999);
+      const data = await firstValueFrom(this.transactionService.getCategoryReport(queryStartDate, queryEndDate));
+      this.categoryBreakdown = data || [];
+    } catch (error) {
+      this.categoryBreakdown = [];
+    }
+  }
+
+  private loadPaymentBreakdown(): void {
+    // Extract from accountant summary (already loaded)
+    if (this.accountantSummary?.paymentMethodBreakdown) {
+      this.paymentBreakdown = this.accountantSummary.paymentMethodBreakdown;
+    } else {
+      this.paymentBreakdown = [];
+    }
+  }
+
+  getChangeClass(percent: number): string {
+    if (percent > 0) return 'change-up';
+    if (percent < 0) return 'change-down';
+    return 'change-flat';
+  }
+
+  formatChange(percent: number): string {
+    if (percent === 0) return '—';
+    const arrow = percent > 0 ? '+' : '';
+    return `${arrow}${percent.toFixed(1)}%`;
+  }
+
+  getPaymentTotal(): number {
+    return this.paymentBreakdown.reduce((sum: number, p: any) => sum + (p.total || 0), 0);
+  }
+
+  getPaymentPercent(amount: number): number {
+    const total = this.getPaymentTotal();
+    return total > 0 ? (amount / total) * 100 : 0;
   }
 
   private createEmptyReport(): any {
@@ -1153,8 +1339,10 @@ export class ReportsComponent implements OnInit {
       this.toast.error(error.message || 'Failed to print receipt');
     }
   }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 }
-
-
-
 

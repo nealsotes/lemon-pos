@@ -12,4 +12,7 @@ public interface IReportingService
     Task<ProfitLossReportDto> GetProfitLossReportAsync(DateTime startDate, DateTime endDate);
     Task<InventoryValuationReportDto> GetInventoryValuationReportAsync(DateTime startDate, DateTime endDate);
     Task<AccountantSummaryDto> GetAccountantSummaryAsync(DateTime startDate, DateTime endDate);
+    Task<SupplierBreakdownReportDto> GetSupplierBreakdownAsync(DateTime startDate, DateTime endDate);
+    Task<ConsumptionReportDto> GetConsumptionReportAsync(DateTime startDate, DateTime endDate);
+    Task<PeriodComparisonDto> GetPeriodComparisonAsync(DateTime startDate, DateTime endDate);
 }

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PosSystem.Core.Interfaces;
+using PosSystem.Core.Models;
 
 namespace PosSystem.API.Controllers;
 
@@ -19,7 +20,7 @@ public class ReportsController : ControllerBase
     [HttpGet("daily")]
     public async Task<ActionResult<object>> GetDailyReport()
     {
-        var today = DateTime.Today;
+        var today = DateTime.UtcNow.Date;
         var report = await _reportingService.GetDailyReportAsync(today);
         return Ok(report);
     }
@@ -90,6 +91,33 @@ public class ReportsController : ControllerBase
         [FromQuery] DateTime endDate)
     {
         var report = await _reportingService.GetAccountantSummaryAsync(startDate, endDate);
+        return Ok(report);
+    }
+
+    [HttpGet("supplier-breakdown")]
+    public async Task<ActionResult<SupplierBreakdownReportDto>> GetSupplierBreakdown(
+        [FromQuery] DateTime startDate,
+        [FromQuery] DateTime endDate)
+    {
+        var report = await _reportingService.GetSupplierBreakdownAsync(startDate, endDate);
+        return Ok(report);
+    }
+
+    [HttpGet("consumption")]
+    public async Task<ActionResult<ConsumptionReportDto>> GetConsumptionReport(
+        [FromQuery] DateTime startDate,
+        [FromQuery] DateTime endDate)
+    {
+        var report = await _reportingService.GetConsumptionReportAsync(startDate, endDate);
+        return Ok(report);
+    }
+
+    [HttpGet("period-comparison")]
+    public async Task<ActionResult<PeriodComparisonDto>> GetPeriodComparison(
+        [FromQuery] DateTime startDate,
+        [FromQuery] DateTime endDate)
+    {
+        var report = await _reportingService.GetPeriodComparisonAsync(startDate, endDate);
         return Ok(report);
     }
 }
