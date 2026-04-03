@@ -1,0 +1,263 @@
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.modal-content {
+  background: var(--surface, #fff);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border, #e5e7eb);
+}
+
+.modal-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+  margin: 0;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 22px;
+  color: var(--text-secondary, #6b7280);
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.modal-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border, #e5e7eb);
+}
+
+.error-banner {
+  padding: 10px 14px;
+  background: #fef2f2;
+  color: #dc2626;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary, #6b7280);
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  padding: 8px 12px;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--text-primary, #111827);
+  background: var(--surface, #fff);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  border-color: var(--primary, #f59e0b);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.category-row {
+  display: flex;
+  gap: 8px;
+}
+
+.category-row .form-select {
+  flex: 1;
+}
+
+.add-cat-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px dashed var(--border, #e5e7eb);
+  border-radius: 8px;
+  background: none;
+  font-size: 18px;
+  color: var(--text-secondary, #6b7280);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.add-cat-btn:hover {
+  border-color: var(--primary, #f59e0b);
+  color: var(--primary, #f59e0b);
+}
+
+.new-category-row {
+  display: flex;
+  gap: 8px;
+}
+
+.new-category-row .form-input {
+  flex: 1;
+}
+
+.save-cat-btn,
+.cancel-cat-btn {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  border: none;
+}
+
+.save-cat-btn {
+  background: var(--primary, #f59e0b);
+  color: #fff;
+}
+
+.save-cat-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cancel-cat-btn {
+  background: var(--surface-alt, #f3f4f6);
+  color: var(--text-secondary, #6b7280);
+}
+
+.amount-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.currency-symbol {
+  position: absolute;
+  left: 12px;
+  font-size: 14px;
+  color: var(--text-secondary, #6b7280);
+  pointer-events: none;
+}
+
+.amount-field {
+  padding-left: 28px !important;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.toggle-label {
+  font-size: 14px;
+  color: var(--text-primary, #111827);
+}
+
+.toggle {
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  background: var(--border, #e5e7eb);
+  position: relative;
+  transition: background 0.2s;
+  cursor: pointer;
+}
+
+.toggle.active {
+  background: var(--primary, #f59e0b);
+}
+
+.toggle-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.toggle.active .toggle-thumb {
+  transform: translateX(20px);
+}
+
+.recurring-options {
+  padding: 12px;
+  background: var(--surface-alt, #f9fafb);
+  border-radius: 8px;
+}
+
+.btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--primary, #f59e0b);
+  color: #fff;
+}
+
+.btn-secondary {
+  background: var(--surface-alt, #f3f4f6);
+  color: var(--text-primary, #111827);
+}

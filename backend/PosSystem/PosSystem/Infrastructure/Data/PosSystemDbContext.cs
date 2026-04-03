@@ -17,6 +17,8 @@ public class PosSystemDbContext : DbContext
     public DbSet<User> Users { get; set; }
     public DbSet<IngredientLot> IngredientLots { get; set; }
     public DbSet<ApplicationSettings> ApplicationSettings { get; set; }
+    public DbSet<Expense> Expenses { get; set; }
+    public DbSet<ExpenseCategory> ExpenseCategories { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -167,5 +169,36 @@ public class PosSystemDbContext : DbContext
             entity.Property(e => e.UpdatedBy).HasMaxLength(100);
             entity.HasIndex(e => e.Key).IsUnique();
         });
+
+        // ExpenseCategory configuration
+        modelBuilder.Entity<ExpenseCategory>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.HasIndex(e => e.Name);
+        });
+
+        // Expense configuration
+        modelBuilder.Entity<Expense>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Amount).HasPrecision(18, 2);
+            entity.Property(e => e.Description).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.CategoryId).IsRequired();
+            entity.Property(e => e.RecurrenceType).HasMaxLength(20);
+            entity.Property(e => e.Notes).HasMaxLength(500);
+            entity.Property(e => e.CreatedBy).IsRequired().HasMaxLength(100);
+
+            entity.HasOne(e => e.Category)
+                .WithMany()
+                .HasForeignKey(e => e.CategoryId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(e => e.CategoryId);
+            entity.HasIndex(e => e.Date);
+            entity.HasIndex(e => e.ParentExpenseId);
+        });
+
+        // Seed data is applied via raw SQL in migration 20260403130000_AddExpenseSystem
     }
 } 

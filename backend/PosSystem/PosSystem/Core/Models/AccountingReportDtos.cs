@@ -10,7 +10,12 @@ public class ProfitLossReportDto
     public decimal Cogs { get; set; }
     public decimal GrossProfit { get; set; }
     public decimal MarginPercent { get; set; }
+    public decimal TotalExpenses { get; set; }
+    public decimal NetProfit { get; set; }
+    public decimal NetMarginPercent { get; set; }
+    public List<ExpenseCategorySummaryDto> ExpensesByCategory { get; set; } = new();
     public List<ProfitLossPeriodDto> Breakdown { get; set; } = new();
+    public bool CogsWarning { get; set; } // true when COGS=0 but revenue>0
 }
 
 public class ProfitLossPeriodDto
@@ -20,6 +25,15 @@ public class ProfitLossPeriodDto
     public decimal Cogs { get; set; }
     public decimal GrossProfit { get; set; }
     public decimal MarginPercent { get; set; }
+    public decimal Expenses { get; set; }
+    public decimal NetProfit { get; set; }
+    public decimal NetMarginPercent { get; set; }
+}
+
+public class ExpenseCategorySummaryDto
+{
+    public string CategoryName { get; set; } = string.Empty;
+    public decimal Total { get; set; }
 }
 
 // ── Inventory Valuation ──
@@ -63,6 +77,10 @@ public class AccountantSummaryDto
     public decimal Cogs { get; set; }
     public decimal GrossProfit { get; set; }
     public decimal GrossMarginPercent { get; set; }
+    public decimal TotalExpenses { get; set; }
+    public decimal NetProfit { get; set; }
+    public decimal NetMarginPercent { get; set; }
+    public List<ExpenseCategorySummaryDto> ExpensesByCategory { get; set; } = new();
     public int TransactionCount { get; set; }
     public decimal AverageTicket { get; set; }
     public List<PaymentMethodDto> PaymentMethodBreakdown { get; set; } = new();

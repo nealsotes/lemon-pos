@@ -1,0 +1,95 @@
+<div class="modal-backdrop" (click)="onBackdropClick($event)">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title">{{ isEditMode ? 'Edit Expense' : 'Add Expense' }}</h3>
+      <button class="close-btn" (click)="onClose()">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <div *ngIf="errorMessage" class="error-banner">{{ errorMessage }}</div>
+
+      <!-- Category -->
+      <div class="form-group">
+        <label class="form-label">Category *</label>
+        <div class="category-row" *ngIf="!showNewCategory">
+          <select class="form-select" [(ngModel)]="categoryId">
+            <option value="" disabled>Select category...</option>
+            <option *ngFor="let cat of categories" [value]="cat.id">{{ cat.name }}</option>
+          </select>
+          <button class="add-cat-btn" (click)="showNewCategory = true" title="New category">+</button>
+        </div>
+        <div class="new-category-row" *ngIf="showNewCategory">
+          <input type="text" class="form-input" placeholder="Category name..." [(ngModel)]="newCategoryName"
+            (keyup.enter)="onCreateCategory()">
+          <button class="save-cat-btn" (click)="onCreateCategory()" [disabled]="!newCategoryName.trim()">Add</button>
+          <button class="cancel-cat-btn" (click)="showNewCategory = false; newCategoryName = ''">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div class="form-group">
+        <label class="form-label">Description *</label>
+        <input type="text" class="form-input" placeholder="e.g., March rent payment" [(ngModel)]="description"
+          maxlength="200">
+      </div>
+
+      <!-- Amount + Date row -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Amount *</label>
+          <div class="amount-input">
+            <span class="currency-symbol">&#8369;</span>
+            <input type="number" class="form-input amount-field" placeholder="0.00" [(ngModel)]="amount" min="0.01"
+              step="0.01">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date *</label>
+          <input type="date" class="form-input" [(ngModel)]="date">
+        </div>
+      </div>
+
+      <!-- Recurring toggle -->
+      <div class="form-group">
+        <label class="toggle-row">
+          <span class="toggle-label">Recurring expense</span>
+          <div class="toggle" [class.active]="isRecurring" (click)="isRecurring = !isRecurring">
+            <div class="toggle-thumb"></div>
+          </div>
+        </label>
+      </div>
+
+      <!-- Recurring options -->
+      <div class="recurring-options" *ngIf="isRecurring">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Frequency</label>
+            <select class="form-select" [(ngModel)]="recurrenceType">
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="yearly">Yearly</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">End date (optional)</label>
+            <input type="date" class="form-input" [(ngModel)]="recurrenceEndDate" [min]="date">
+          </div>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea class="form-textarea" placeholder="Optional notes..." [(ngModel)]="notes" maxlength="500"
+          rows="2"></textarea>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="onClose()">Cancel</button>
+      <button class="btn btn-primary" (click)="onSave()" [disabled]="!isValid || isSaving">
+        {{ isSaving ? 'Saving...' : (isEditMode ? 'Update' : 'Add Expense') }}
+      </button>
+    </div>
+  </div>
+</div>

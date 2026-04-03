@@ -198,6 +198,7 @@ builder.Services.AddScoped<IIngredientLotService, IngredientLotService>();
 builder.Services.AddScoped<IIngredientService, IngredientService>();
 builder.Services.AddScoped<IStockMovementService, StockMovementService>();
 builder.Services.AddScoped<IRecipeService, RecipeService>();
+builder.Services.AddScoped<IExpenseService, ExpenseService>();
 
 // Register Repositories
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
@@ -208,6 +209,8 @@ builder.Services.AddScoped<IStockMovementRepository, StockMovementRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IProductIngredientRepository, ProductIngredientRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<IExpenseRepository, ExpenseRepository>();
+builder.Services.AddScoped<IExpenseCategoryRepository, ExpenseCategoryRepository>();
 
 // Register Infrastructure Services
 builder.Services.AddScoped<IOfflineDataService, OfflineDataService>();

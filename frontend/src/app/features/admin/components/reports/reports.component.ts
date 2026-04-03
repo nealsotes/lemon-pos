@@ -16,16 +16,18 @@ import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/l
 import { ButtonComponent } from '../../../../shared/ui/button/button.component';
 import { BadgeComponent } from '../../../../shared/ui/badge/badge.component';
 import { FilterBarComponent } from '../../../../shared/ui/filter-bar/filter-bar.component';
+import { ExpenseModalComponent } from '../expense-modal/expense-modal.component';
 import { Subject, firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-reports',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, TopBarComponent, KpiStripComponent, LoadingSpinnerComponent, ButtonComponent, BadgeComponent, FilterBarComponent],
+  imports: [CommonModule, RouterModule, FormsModule, TopBarComponent, KpiStripComponent, LoadingSpinnerComponent, ButtonComponent, BadgeComponent, FilterBarComponent, ExpenseModalComponent],
   templateUrl: './reports.component.html',
   styleUrls: ['./reports.component.css']
 })
 export class ReportsComponent implements OnInit, OnDestroy {
+  Math = Math;
   private destroy$ = new Subject<void>();
   selectedTransaction: Transaction | null = null;
   isTransactionModalOpen: boolean = false;
@@ -84,16 +86,18 @@ export class ReportsComponent implements OnInit, OnDestroy {
   ingredientsMap: Map<string, { name: string; unit: string }> = new Map();
 
   // Tab navigation
-  activeTab: 'dashboard' | 'sales' | 'costs' | 'export' = 'dashboard';
+  activeTab: 'dashboard' | 'sales' | 'pnl' | 'inventory' | 'export' = 'dashboard';
 
-  // Costs tab collapsible sections
-  costsExpanded: Record<string, boolean> = {
-    pnl: true,
-    inventory: true,
+  // Inventory tab collapsible sections
+  inventoryExpanded: Record<string, boolean> = {
+    valuation: true,
     activity: false,
     suppliers: false,
     consumption: false
   };
+
+  // P&L quick-add expense modal
+  showExpenseModal = false;
 
   // Date presets
   activeDatePreset: string = 'today';
@@ -1082,11 +1086,11 @@ export class ReportsComponent implements OnInit, OnDestroy {
     this.loadAllData();
   }
 
-  // --- Costs tab collapsible toggle ---
-  toggleCostsSection(section: string): void {
-    this.costsExpanded[section] = !this.costsExpanded[section];
+  // --- Inventory tab collapsible toggle ---
+  toggleInventorySection(section: string): void {
+    this.inventoryExpanded[section] = !this.inventoryExpanded[section];
     // Lazy-load data when expanding
-    if (this.costsExpanded[section]) {
+    if (this.inventoryExpanded[section]) {
       if (section === 'activity' && this.activityMovements.length === 0) {
         this.loadActivityMovements();
       }
@@ -1097,6 +1101,21 @@ export class ReportsComponent implements OnInit, OnDestroy {
         this.loadConsumption();
       }
     }
+  }
+
+  // --- P&L quick-add expense modal ---
+  openExpenseModal(): void {
+    this.showExpenseModal = true;
+  }
+
+  onExpenseModalSaved(): void {
+    this.showExpenseModal = false;
+    this.loadProfitLossReport();
+    this.loadAccountantSummary();
+  }
+
+  onExpenseModalClosed(): void {
+    this.showExpenseModal = false;
   }
 
   // --- Sparkline data (last 7 data points from salesTrendData) ---
@@ -1113,7 +1132,7 @@ export class ReportsComponent implements OnInit, OnDestroy {
   }
 
   // --- Per-section export ---
-  exportSection(section: 'full' | 'sales' | 'pnl' | 'inventory', format: 'csv' | 'excel'): void {
+  exportSection(section: 'full' | 'sales' | 'pnl' | 'inventory' | 'expenses', format: 'csv' | 'excel'): void {
     try {
       let csvContent = '';
       const dateLabel = this.getDateRangeLabel();

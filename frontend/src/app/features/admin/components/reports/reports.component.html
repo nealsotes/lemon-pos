@@ -48,11 +48,18 @@
       </svg>
       Sales
     </button>
-    <button class="tab" [class.active]="activeTab === 'costs'" (click)="activeTab = 'costs'">
+    <button class="tab" [class.active]="activeTab === 'pnl'" (click)="activeTab = 'pnl'">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
       </svg>
-      Costs
+      Profit &amp; Loss
+    </button>
+    <button class="tab" [class.active]="activeTab === 'inventory'" (click)="activeTab = 'inventory'">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+        <polyline points="3.27,6.96 12,12.01 20.73,6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
+      </svg>
+      Inventory
     </button>
     <button class="tab" [class.active]="activeTab === 'export'" (click)="activeTab = 'export'">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -403,66 +410,133 @@
       </ng-container>
 
       <!-- ============================================ -->
-      <!-- TAB: COSTS                                   -->
+      <!-- TAB: PROFIT & LOSS                            -->
       <!-- ============================================ -->
-      <ng-container *ngIf="!errorMessage && activeTab === 'costs'">
+      <ng-container *ngIf="!errorMessage && activeTab === 'pnl'">
 
-        <!-- SECTION: Profit & Loss (collapsible) -->
-        <div class="collapsible-section" [class.expanded]="costsExpanded['pnl']">
-          <div class="collapsible-header" (click)="toggleCostsSection('pnl')">
-            <div class="collapsible-left">
-              <span class="collapsible-chevron">{{ costsExpanded['pnl'] ? '&#9660;' : '&#9654;' }}</span>
-              <span class="collapsible-title">Profit &amp; Loss</span>
-              <span class="collapsible-desc">Revenue, cost of goods, margins by period</span>
-            </div>
-            <div class="collapsible-summary" *ngIf="profitLossData">
-              <span class="summary-stat profit">{{ formatCurrency(profitLossData.grossProfit) }} profit</span>
-              <span class="summary-stat-sep">&middot;</span>
-              <span class="summary-stat">{{ profitLossData.marginPercent | number:'1.1-1' }}% margin</span>
-            </div>
+        <!-- COGS Warning Banner -->
+        <div class="cogs-warning" *ngIf="profitLossData?.cogsWarning">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          COGS may be incomplete. Ensure inventory is being deducted when products are sold.
+        </div>
+
+        <!-- P&L Statement -->
+        <div class="card pnl-statement" *ngIf="profitLossData">
+          <div class="card-header">
+            <h3 class="card-title">Profit &amp; Loss Statement</h3>
+            <span class="card-subtitle">{{ getDateRangeLabel() }}</span>
           </div>
-          <div class="collapsible-body" *ngIf="costsExpanded['pnl']">
-            <div *ngIf="profitLossData">
-              <div class="pnl-kpis">
-                <div class="pnl-kpi">
-                  <span class="pnl-kpi-label">Revenue <span class="tooltip-icon" [title]="METRIC_TOOLTIPS['revenue']">&#9432;</span></span>
-                  <span class="pnl-kpi-value">{{ formatCurrency(profitLossData.grossRevenue) }}</span>
-                </div>
-                <div class="pnl-kpi">
-                  <span class="pnl-kpi-label">Cost of Goods <span class="tooltip-icon" [title]="METRIC_TOOLTIPS['costOfGoods']">&#9432;</span></span>
-                  <span class="pnl-kpi-value cogs">{{ formatCurrency(profitLossData.cogs) }}</span>
-                </div>
-                <div class="pnl-kpi">
-                  <span class="pnl-kpi-label">Gross Profit <span class="tooltip-icon" [title]="METRIC_TOOLTIPS['grossProfit']">&#9432;</span></span>
-                  <span class="pnl-kpi-value profit">{{ formatCurrency(profitLossData.grossProfit) }}</span>
-                </div>
-                <div class="pnl-kpi">
-                  <span class="pnl-kpi-label">Margin <span class="tooltip-icon" [title]="METRIC_TOOLTIPS['grossMargin']">&#9432;</span></span>
-                  <span class="pnl-kpi-value" [class]="getMarginClass(profitLossData.marginPercent)">{{ profitLossData.marginPercent | number:'1.1-1' }}%</span>
-                </div>
+
+          <div class="pnl-body">
+            <!-- Revenue Section -->
+            <div class="pnl-section-label">Revenue</div>
+            <div class="pnl-line">
+              <span class="pnl-line-name indent">Gross Revenue</span>
+              <span class="pnl-line-value">{{ formatCurrency(profitLossData.grossRevenue) }}</span>
+            </div>
+            <div class="pnl-line">
+              <span class="pnl-line-name indent">Less: Discounts</span>
+              <span class="pnl-line-value cogs">({{ formatCurrency(profitLossData.totalDiscounts) }})</span>
+            </div>
+            <div class="pnl-divider"></div>
+            <div class="pnl-line subtotal">
+              <span class="pnl-line-name indent">Net Revenue <span class="tooltip-icon" [title]="METRIC_TOOLTIPS['netRevenue']">&#9432;</span></span>
+              <span class="pnl-line-value">{{ formatCurrency(profitLossData.netRevenue) }}</span>
+            </div>
+
+            <!-- COGS Section -->
+            <div class="pnl-section-label" style="margin-top: 16px;">Cost of Goods Sold</div>
+            <div class="pnl-line">
+              <span class="pnl-line-name indent">Ingredients Consumed <span class="tooltip-icon" [title]="METRIC_TOOLTIPS['costOfGoods']">&#9432;</span></span>
+              <span class="pnl-line-value cogs">({{ formatCurrency(profitLossData.cogs) }})</span>
+            </div>
+            <div class="pnl-divider"></div>
+            <div class="pnl-line subtotal">
+              <span class="pnl-line-name indent">Total COGS</span>
+              <span class="pnl-line-value cogs">({{ formatCurrency(profitLossData.cogs) }})</span>
+            </div>
+
+            <!-- Gross Profit -->
+            <div class="pnl-line grand-total" style="margin-top: 12px;">
+              <span class="pnl-line-name">GROSS PROFIT</span>
+              <span class="pnl-line-value profit">{{ formatCurrency(profitLossData.grossProfit) }}</span>
+            </div>
+            <div class="pnl-line margin-line">
+              <span class="pnl-line-name">Gross Margin</span>
+              <span class="pnl-line-value" [class]="getMarginClass(profitLossData.marginPercent)">{{ profitLossData.marginPercent | number:'1.1-1' }}%</span>
+            </div>
+
+            <!-- Expenses Section -->
+            <div class="pnl-section-label" style="margin-top: 16px;">
+              Expenses
+              <span class="pnl-manage-link">
+                <a routerLink="/expenses">Manage Expenses &rarr;</a>
+                <button class="pnl-quick-add" (click)="openExpenseModal()" title="Quick add expense">+</button>
+              </span>
+            </div>
+            <div *ngIf="profitLossData.expensesByCategory?.length > 0">
+              <div class="pnl-line" *ngFor="let cat of profitLossData.expensesByCategory">
+                <span class="pnl-line-name indent">{{ cat.categoryName }}</span>
+                <span class="pnl-line-value cogs">({{ formatCurrency(cat.total) }})</span>
               </div>
-              <div class="pnl-table" *ngIf="profitLossData.breakdown?.length > 0">
-                <div class="pnl-table-head">
-                  <span>Period</span><span>Revenue</span><span>Cost of Goods</span><span>Profit</span><span>Margin</span>
-                </div>
-                <div class="pnl-table-row" *ngFor="let row of profitLossData.breakdown">
-                  <span class="pnl-period">{{ row.period }}</span>
-                  <span>{{ formatCurrency(row.revenue) }}</span>
-                  <span class="cogs">{{ formatCurrency(row.cogs) }}</span>
-                  <span class="profit">{{ formatCurrency(row.grossProfit) }}</span>
-                  <span [class]="getMarginClass(row.marginPercent)">{{ row.marginPercent | number:'1.1-1' }}%</span>
-                </div>
+              <div class="pnl-divider"></div>
+              <div class="pnl-line subtotal">
+                <span class="pnl-line-name indent">Total Expenses</span>
+                <span class="pnl-line-value cogs">({{ formatCurrency(profitLossData.totalExpenses) }})</span>
               </div>
             </div>
-            <div *ngIf="!profitLossData" class="card-empty-state"><p>No profitability data available for this period.</p></div>
+            <div *ngIf="!profitLossData.expensesByCategory?.length" class="pnl-empty-expenses">
+              No expenses recorded. <a routerLink="/expenses">Add expenses</a> to see your Net Profit.
+            </div>
+
+            <!-- Net Profit -->
+            <div class="pnl-line grand-total" style="margin-top: 12px;">
+              <span class="pnl-line-name">NET PROFIT</span>
+              <span class="pnl-line-value" [class.profit]="profitLossData.netProfit >= 0" [class.cogs]="profitLossData.netProfit < 0">
+                {{ profitLossData.netProfit >= 0 ? '' : '-' }}{{ formatCurrency(Math.abs(profitLossData.netProfit)) }}
+              </span>
+            </div>
+            <div class="pnl-line margin-line">
+              <span class="pnl-line-name">Net Margin</span>
+              <span class="pnl-line-value" [class]="getMarginClass(profitLossData.netMarginPercent)">{{ profitLossData.netMarginPercent | number:'1.1-1' }}%</span>
+            </div>
           </div>
         </div>
 
+        <!-- Period Breakdown Table -->
+        <div class="card" *ngIf="profitLossData?.breakdown?.length > 0">
+          <div class="card-header">
+            <h3 class="card-title">Period Breakdown</h3>
+          </div>
+          <div class="pnl-table">
+            <div class="pnl-table-head">
+              <span>Period</span><span>Revenue</span><span>COGS</span><span>Gross Profit</span><span>Expenses</span><span>Net Profit</span><span>Net Margin</span>
+            </div>
+            <div class="pnl-table-row" *ngFor="let row of profitLossData.breakdown">
+              <span class="pnl-period">{{ row.period }}</span>
+              <span>{{ formatCurrency(row.revenue) }}</span>
+              <span class="cogs">{{ formatCurrency(row.cogs) }}</span>
+              <span class="profit">{{ formatCurrency(row.grossProfit) }}</span>
+              <span class="cogs">{{ formatCurrency(row.expenses) }}</span>
+              <span [class.profit]="row.netProfit >= 0" [class.cogs]="row.netProfit < 0">{{ formatCurrency(row.netProfit) }}</span>
+              <span [class]="getMarginClass(row.netMarginPercent)">{{ row.netMarginPercent | number:'1.1-1' }}%</span>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="!profitLossData" class="card-empty-state"><p>No profitability data available for this period.</p></div>
+      </ng-container>
+
+      <!-- ============================================ -->
+      <!-- TAB: INVENTORY                                -->
+      <!-- ============================================ -->
+      <ng-container *ngIf="!errorMessage && activeTab === 'inventory'">
+
         <!-- SECTION: Inventory Valuation (collapsible) -->
-        <div class="collapsible-section" [class.expanded]="costsExpanded['inventory']">
-          <div class="collapsible-header" (click)="toggleCostsSection('inventory')">
+        <div class="collapsible-section" [class.expanded]="inventoryExpanded['valuation']">
+          <div class="collapsible-header" (click)="toggleInventorySection('valuation')">
             <div class="collapsible-left">
-              <span class="collapsible-chevron">{{ costsExpanded['inventory'] ? '&#9660;' : '&#9654;' }}</span>
+              <span class="collapsible-chevron">{{ inventoryExpanded['valuation'] ? '&#9660;' : '&#9654;' }}</span>
               <span class="collapsible-title">Inventory Valuation</span>
               <span class="collapsible-desc">Current stock value and movements</span>
             </div>
@@ -472,7 +546,7 @@
               <span class="summary-stat" [class.cogs]="inventoryData.lowStockCount > 0">{{ inventoryData.lowStockCount }} low stock</span>
             </div>
           </div>
-          <div class="collapsible-body" *ngIf="costsExpanded['inventory']">
+          <div class="collapsible-body" *ngIf="inventoryExpanded['valuation']">
             <div *ngIf="inventoryData">
               <div class="pnl-kpis">
                 <div class="pnl-kpi">
@@ -522,10 +596,10 @@
         </div>
 
         <!-- SECTION: Stock Activity (collapsible) -->
-        <div class="collapsible-section" [class.expanded]="costsExpanded['activity']">
-          <div class="collapsible-header" (click)="toggleCostsSection('activity')">
+        <div class="collapsible-section" [class.expanded]="inventoryExpanded['activity']">
+          <div class="collapsible-header" (click)="toggleInventorySection('activity')">
             <div class="collapsible-left">
-              <span class="collapsible-chevron">{{ costsExpanded['activity'] ? '&#9660;' : '&#9654;' }}</span>
+              <span class="collapsible-chevron">{{ inventoryExpanded['activity'] ? '&#9660;' : '&#9654;' }}</span>
               <span class="collapsible-title">Stock Activity</span>
               <span class="collapsible-desc">Movement ledger with filters</span>
             </div>
@@ -535,8 +609,7 @@
               <span class="summary-stat outgoing">-{{ formatCurrency(activityTotalOut) }} out</span>
             </div>
           </div>
-          <div class="collapsible-body" *ngIf="costsExpanded['activity']">
-            <!-- Filters -->
+          <div class="collapsible-body" *ngIf="inventoryExpanded['activity']">
             <div class="activity-filters">
               <div class="activity-type-chips">
                 <button class="activity-chip" [class.active]="activityTypeFilter === ''" (click)="activityTypeFilter = ''; filterActivityMovements()">All</button>
@@ -548,7 +621,6 @@
               </div>
               <input type="text" class="activity-search" placeholder="Search ingredient..." [(ngModel)]="activitySearchTerm" (input)="filterActivityMovements()">
             </div>
-            <!-- Table -->
             <div class="activity-table" *ngIf="filteredActivityMovements.length > 0">
               <div class="activity-table-head">
                 <span>Date</span><span>Ingredient</span><span>Type</span><span>Qty</span><span>Unit Cost</span><span>Total</span><span>Notes</span>
@@ -565,7 +637,6 @@
                 <span class="activity-notes" [title]="m.notes || ''">{{ m.reason || '--' }}</span>
               </div>
             </div>
-            <!-- Footer summary -->
             <div class="activity-footer" *ngIf="filteredActivityMovements.length > 0">
               <span class="activity-summary incoming">+{{ formatCurrency(activityTotalIn) }} in</span>
               <span class="activity-summary outgoing">-{{ formatCurrency(activityTotalOut) }} out</span>
@@ -580,10 +651,10 @@
         </div>
 
         <!-- SECTION: Suppliers (collapsible) -->
-        <div class="collapsible-section" [class.expanded]="costsExpanded['suppliers']">
-          <div class="collapsible-header" (click)="toggleCostsSection('suppliers')">
+        <div class="collapsible-section" [class.expanded]="inventoryExpanded['suppliers']">
+          <div class="collapsible-header" (click)="toggleInventorySection('suppliers')">
             <div class="collapsible-left">
-              <span class="collapsible-chevron">{{ costsExpanded['suppliers'] ? '&#9660;' : '&#9654;' }}</span>
+              <span class="collapsible-chevron">{{ inventoryExpanded['suppliers'] ? '&#9660;' : '&#9654;' }}</span>
               <span class="collapsible-title">Suppliers</span>
               <span class="collapsible-desc">Spend by supplier and cost comparison</span>
             </div>
@@ -591,7 +662,7 @@
               <span class="summary-stat">{{ supplierData.supplierSummary.length }} supplier{{ supplierData.supplierSummary.length !== 1 ? 's' : '' }}</span>
             </div>
           </div>
-          <div class="collapsible-body" *ngIf="costsExpanded['suppliers']">
+          <div class="collapsible-body" *ngIf="inventoryExpanded['suppliers']">
             <div *ngIf="supplierData">
               <div class="inv-sub-panel" *ngIf="supplierData.supplierSummary?.length > 0">
                 <div class="inv-sub-title">Spend by Supplier</div>
@@ -628,10 +699,10 @@
         </div>
 
         <!-- SECTION: Consumption (collapsible) -->
-        <div class="collapsible-section" [class.expanded]="costsExpanded['consumption']">
-          <div class="collapsible-header" (click)="toggleCostsSection('consumption')">
+        <div class="collapsible-section" [class.expanded]="inventoryExpanded['consumption']">
+          <div class="collapsible-header" (click)="toggleInventorySection('consumption')">
             <div class="collapsible-left">
-              <span class="collapsible-chevron">{{ costsExpanded['consumption'] ? '&#9660;' : '&#9654;' }}</span>
+              <span class="collapsible-chevron">{{ inventoryExpanded['consumption'] ? '&#9660;' : '&#9654;' }}</span>
               <span class="collapsible-title">Consumption</span>
               <span class="collapsible-desc">Ingredient usage ranking</span>
             </div>
@@ -639,7 +710,7 @@
               <span class="summary-stat">{{ formatCurrency(consumptionData.totalConsumedCost) }} consumed</span>
             </div>
           </div>
-          <div class="collapsible-body" *ngIf="costsExpanded['consumption']">
+          <div class="collapsible-body" *ngIf="inventoryExpanded['consumption']">
             <div *ngIf="consumptionData">
               <div class="pnl-kpis">
                 <div class="pnl-kpi">
@@ -703,6 +774,17 @@
               <div class="acct-row negative"><span>Cost of Goods <span class="tooltip-icon" [title]="METRIC_TOOLTIPS['costOfGoods']">&#9432;</span></span><span>({{ formatCurrency(accountantSummary.cogs) }})</span></div>
               <div class="acct-row bold"><span>Gross Profit</span><span>{{ formatCurrency(accountantSummary.grossProfit) }}</span></div>
               <div class="acct-row bold"><span>Gross Margin</span><span [class]="getMarginClass(accountantSummary.grossMarginPercent)">{{ accountantSummary.grossMarginPercent | number:'1.1-1' }}%</span></div>
+            </div>
+
+            <div class="acct-section" *ngIf="accountantSummary.expensesByCategory?.length > 0">
+              <div class="acct-section-label">Expenses</div>
+              <div class="acct-row" *ngFor="let exp of accountantSummary.expensesByCategory">
+                <span>{{ exp.categoryName }}</span>
+                <span>({{ formatCurrency(exp.total) }})</span>
+              </div>
+              <div class="acct-row negative bold"><span>Total Expenses</span><span>({{ formatCurrency(accountantSummary.totalExpenses) }})</span></div>
+              <div class="acct-row bold"><span>Net Profit</span><span [class.profit]="accountantSummary.netProfit >= 0" [class.cogs]="accountantSummary.netProfit < 0">{{ formatCurrency(accountantSummary.netProfit) }}</span></div>
+              <div class="acct-row bold"><span>Net Margin</span><span [class]="getMarginClass(accountantSummary.netMarginPercent)">{{ accountantSummary.netMarginPercent | number:'1.1-1' }}%</span></div>
             </div>
 
             <div class="acct-section">
@@ -783,6 +865,17 @@
                 <app-button variant="secondary" size="sm" (click)="exportSection('inventory', 'excel')">Excel</app-button>
               </div>
             </div>
+            <div class="export-card">
+              <div class="export-card-icon">&#128179;</div>
+              <div class="export-card-info">
+                <div class="export-card-title">Expenses</div>
+                <div class="export-card-desc">All expenses with categories, dates, recurring flags</div>
+              </div>
+              <div class="export-card-actions">
+                <app-button variant="secondary" size="sm" (click)="exportSection('expenses', 'csv')">CSV</app-button>
+                <app-button variant="secondary" size="sm" (click)="exportSection('expenses', 'excel')">Excel</app-button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -859,3 +952,7 @@
     </div>
   </div>
 </div>
+
+<!-- P&L Quick-Add Expense Modal -->
+<app-expense-modal *ngIf="showExpenseModal" [expense]="null" (saved)="onExpenseModalSaved()"
+  (closed)="onExpenseModalClosed()"></app-expense-modal>

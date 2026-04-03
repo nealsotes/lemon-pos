@@ -1,0 +1,254 @@
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Subject, Subscription, takeUntil } from 'rxjs';
+
+import { ExpenseService, ExpenseCategory, ExpenseResponse } from '../../../../core/services/expense.service';
+import { TopBarComponent } from '../../../../shared/ui/top-bar/top-bar.component';
+import { ButtonComponent } from '../../../../shared/ui/button/button.component';
+import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/loading-spinner.component';
+import { ExpenseModalComponent } from '../expense-modal/expense-modal.component';
+
+@Component({
+  selector: 'app-expenses',
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    TopBarComponent,
+    ButtonComponent,
+    LoadingSpinnerComponent,
+    ExpenseModalComponent
+  ],
+  templateUrl: './expenses.component.html',
+  styleUrls: ['./expenses.component.css']
+})
+export class ExpensesComponent implements OnInit, OnDestroy {
+  expenses: ExpenseResponse[] = [];
+  categories: ExpenseCategory[] = [];
+  isLoading = false;
+  errorMessage = '';
+
+  // Filters
+  selectedCategory = '';
+  selectedPeriod = 'thisMonth';
+  searchQuery = '';
+  startDate = new Date();
+  endDate = new Date();
+
+  // Modal
+  showModal = false;
+  editingExpense: ExpenseResponse | null = null;
+
+  // Confirm delete
+  showDeleteConfirm = false;
+  deletingExpense: ExpenseResponse | null = null;
+
+  private destroy$ = new Subject<void>();
+  private loadSub?: Subscription;
+
+  constructor(private expenseService: ExpenseService) {}
+
+  ngOnInit(): void {
+    this.setDatePreset('thisMonth');
+    this.loadCategories();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  // ── Data loading ──
+
+  loadExpenses(): void {
+    this.loadSub?.unsubscribe();
+    this.isLoading = true;
+    this.errorMessage = '';
+    this.expenses = [];
+    const catId = this.selectedCategory || undefined;
+
+    this.loadSub = this.expenseService.getExpenses(this.startDate, this.endDate, catId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (expenses) => {
+          this.expenses = expenses;
+          this.isLoading = false;
+        },
+        error: () => {
+          this.errorMessage = 'Failed to load expenses';
+          this.isLoading = false;
+        }
+      });
+  }
+
+  loadCategories(): void {
+    this.expenseService.getCategories()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (cats) => this.categories = cats,
+        error: () => {}
+      });
+  }
+
+  // ── Filters ──
+
+  setDatePreset(preset: string): void {
+    this.selectedPeriod = preset;
+    const now = new Date();
+
+    switch (preset) {
+      case 'thisMonth':
+        this.startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        this.endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+        break;
+      case 'lastMonth':
+        this.startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        this.endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+        break;
+      case '3months':
+        this.startDate = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+        this.endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+        break;
+      case 'thisYear':
+        this.startDate = new Date(now.getFullYear(), 0, 1);
+        this.endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+        break;
+    }
+
+    this.loadExpenses();
+  }
+
+  onCategoryFilterChange(): void {
+    this.loadExpenses();
+  }
+
+  // ── Computed data ──
+
+  get recurringExpenses(): ExpenseResponse[] {
+    const seen = new Set<string>();
+    return this.expenses.filter(e => {
+      if (!e.isRecurring) return false;
+      if (e.isVirtual) {
+        if (seen.has(e.id)) return false;
+        seen.add(e.id);
+        return true;
+      }
+      return e.parentExpenseId === null;
+    });
+  }
+
+  get oneTimeExpenses(): ExpenseResponse[] {
+    return this.filteredExpenses.filter(e => !e.isRecurring);
+  }
+
+  get filteredExpenses(): ExpenseResponse[] {
+    if (!this.searchQuery.trim()) return this.expenses;
+    const q = this.searchQuery.toLowerCase();
+    return this.expenses.filter(e =>
+      e.description.toLowerCase().includes(q) ||
+      e.categoryName.toLowerCase().includes(q)
+    );
+  }
+
+  get totalThisPeriod(): number {
+    return this.expenses.reduce((sum, e) => sum + e.amount, 0);
+  }
+
+  get recurringMonthlyTotal(): number {
+    return this.recurringExpenses.reduce((sum, e) => {
+      if (e.recurrenceType === 'weekly') return sum + e.amount * 4.33;
+      if (e.recurrenceType === 'yearly') return sum + e.amount / 12;
+      return sum + e.amount;
+    }, 0);
+  }
+
+  get oneTimeTotal(): number {
+    return this.oneTimeExpenses.reduce((sum, e) => sum + e.amount, 0);
+  }
+
+  // ── Actions ──
+
+  openAddModal(): void {
+    this.editingExpense = null;
+    this.showModal = true;
+  }
+
+  openEditModal(expense: ExpenseResponse): void {
+    this.editingExpense = expense;
+    this.showModal = true;
+  }
+
+  onModalSaved(): void {
+    this.showModal = false;
+    this.editingExpense = null;
+    this.loadExpenses();
+  }
+
+  onModalClosed(): void {
+    this.showModal = false;
+    this.editingExpense = null;
+  }
+
+  confirmDelete(expense: ExpenseResponse): void {
+    this.deletingExpense = expense;
+    this.showDeleteConfirm = true;
+  }
+
+  onDeleteConfirmed(): void {
+    if (!this.deletingExpense) return;
+
+    this.expenseService.deleteExpense(this.deletingExpense.id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.showDeleteConfirm = false;
+          this.deletingExpense = null;
+          this.loadExpenses();
+        },
+        error: () => {
+          this.errorMessage = 'Failed to delete expense';
+          this.showDeleteConfirm = false;
+        }
+      });
+  }
+
+  onPauseRecurring(expense: ExpenseResponse): void {
+    const dto = {
+      categoryId: expense.categoryId,
+      description: expense.description,
+      amount: expense.amount,
+      date: expense.date,
+      isRecurring: true,
+      recurrenceType: expense.recurrenceType,
+      recurrenceEndDate: new Date().toISOString(),
+      notes: expense.notes
+    };
+
+    this.expenseService.updateExpense(expense.id, dto)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => this.loadExpenses(),
+        error: () => this.errorMessage = 'Failed to pause recurring expense'
+      });
+  }
+
+  // ── Formatting ──
+
+  formatCurrency(value: number): string {
+    return '₱' + value.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  formatDate(dateStr: string): string {
+    return new Date(dateStr).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' });
+  }
+
+  getFrequencyLabel(type: string | null): string {
+    switch (type) {
+      case 'weekly': return 'Weekly';
+      case 'monthly': return 'Monthly';
+      case 'yearly': return 'Yearly';
+      default: return 'Monthly';
+    }
+  }
+}

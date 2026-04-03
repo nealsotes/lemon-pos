@@ -1,0 +1,139 @@
+<div class="expenses-container">
+  <!-- Header -->
+  <app-top-bar title="Expenses">
+    <app-button variant="primary" size="sm" (click)="openAddModal()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+        stroke-linecap="round">
+        <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+      </svg>
+      Add Expense
+    </app-button>
+  </app-top-bar>
+
+  <!-- Filters -->
+  <div class="filter-bar">
+    <select class="filter-select" [(ngModel)]="selectedCategory" (change)="onCategoryFilterChange()">
+      <option value="">All Categories</option>
+      <option *ngFor="let cat of categories" [value]="cat.id">{{ cat.name }}</option>
+    </select>
+    <div class="period-chips">
+      <button class="period-chip" [class.active]="selectedPeriod === 'thisMonth'"
+        (click)="setDatePreset('thisMonth')">This Month</button>
+      <button class="period-chip" [class.active]="selectedPeriod === 'lastMonth'"
+        (click)="setDatePreset('lastMonth')">Last Month</button>
+      <button class="period-chip" [class.active]="selectedPeriod === '3months'"
+        (click)="setDatePreset('3months')">3 Months</button>
+      <button class="period-chip" [class.active]="selectedPeriod === 'thisYear'"
+        (click)="setDatePreset('thisYear')">This Year</button>
+    </div>
+    <input type="text" class="search-input" placeholder="Search expenses..." [(ngModel)]="searchQuery">
+  </div>
+
+  <!-- Loading -->
+  <app-loading-spinner *ngIf="isLoading" message="Loading expenses..."></app-loading-spinner>
+
+  <!-- Error -->
+  <div *ngIf="errorMessage && !isLoading" class="error-banner">
+    <p>{{ errorMessage }}</p>
+    <app-button variant="secondary" size="sm" (click)="loadExpenses()">Retry</app-button>
+  </div>
+
+  <div class="expenses-body" *ngIf="!isLoading && !errorMessage">
+    <!-- Summary Cards -->
+    <div class="summary-cards">
+      <div class="summary-card">
+        <span class="summary-label">Total This Period</span>
+        <span class="summary-value">{{ formatCurrency(totalThisPeriod) }}</span>
+      </div>
+      <div class="summary-card">
+        <span class="summary-label">Recurring / mo</span>
+        <span class="summary-value">{{ formatCurrency(recurringMonthlyTotal) }}</span>
+      </div>
+      <div class="summary-card">
+        <span class="summary-label">One-time</span>
+        <span class="summary-value">{{ formatCurrency(oneTimeTotal) }}</span>
+      </div>
+    </div>
+
+    <!-- Recurring Expenses -->
+    <div class="section-card" *ngIf="recurringExpenses.length > 0">
+      <div class="section-header">
+        <h3 class="section-title">Recurring Expenses</h3>
+        <span class="section-badge">{{ recurringExpenses.length }}</span>
+      </div>
+      <div class="expense-list">
+        <div class="expense-row" *ngFor="let exp of recurringExpenses">
+          <div class="expense-info">
+            <span class="expense-category">{{ exp.categoryName }}</span>
+            <span class="expense-desc">{{ exp.description }}</span>
+          </div>
+          <span class="expense-freq">{{ getFrequencyLabel(exp.recurrenceType) }}</span>
+          <span class="expense-amount">{{ formatCurrency(exp.amount) }}</span>
+          <div class="expense-actions">
+            <button class="action-btn" (click)="openEditModal(exp)" title="Edit">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+            </button>
+            <div class="more-menu">
+              <button class="action-btn" title="More">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="12" cy="6" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="12" cy="18"
+                    r="1.5" />
+                </svg>
+              </button>
+              <div class="more-dropdown">
+                <button (click)="onPauseRecurring(exp)">Pause</button>
+                <button class="danger" (click)="confirmDelete(exp)">Delete</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- One-time Expenses -->
+    <div class="section-card">
+      <div class="section-header">
+        <h3 class="section-title">One-time Expenses</h3>
+        <span class="section-badge">{{ oneTimeExpenses.length }}</span>
+      </div>
+      <div class="expense-list" *ngIf="oneTimeExpenses.length > 0">
+        <div class="expense-row" *ngFor="let exp of oneTimeExpenses" (click)="openEditModal(exp)">
+          <span class="expense-date">{{ formatDate(exp.date) }}</span>
+          <div class="expense-info">
+            <span class="expense-category">{{ exp.categoryName }}</span>
+            <span class="expense-desc">{{ exp.description }}</span>
+          </div>
+          <span class="expense-amount">{{ formatCurrency(exp.amount) }}</span>
+          <button class="action-btn delete-btn" (click)="$event.stopPropagation(); confirmDelete(exp)" title="Delete">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3,6 5,6 21,6" /><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="empty-state" *ngIf="oneTimeExpenses.length === 0">
+        <p>No one-time expenses for this period.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Expense Modal -->
+<app-expense-modal *ngIf="showModal" [expense]="editingExpense" (saved)="onModalSaved()"
+  (closed)="onModalClosed()"></app-expense-modal>
+
+<!-- Delete Confirmation -->
+<div class="modal-backdrop" *ngIf="showDeleteConfirm" (click)="showDeleteConfirm = false">
+  <div class="confirm-dialog" (click)="$event.stopPropagation()">
+    <h3>Delete Expense</h3>
+    <p *ngIf="deletingExpense?.isRecurring">This will stop all future instances of this recurring expense. Past records will be removed.</p>
+    <p *ngIf="!deletingExpense?.isRecurring">Are you sure you want to delete this expense?</p>
+    <div class="confirm-actions">
+      <button class="btn btn-secondary" (click)="showDeleteConfirm = false">Cancel</button>
+      <button class="btn btn-danger" (click)="onDeleteConfirmed()">Delete</button>
+    </div>
+  </div>
+</div>

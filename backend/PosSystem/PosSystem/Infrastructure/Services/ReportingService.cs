@@ -11,6 +11,7 @@ public class ReportingService : IReportingService
     private readonly IStockMovementRepository _stockMovementRepository;
     private readonly IIngredientLotRepository _ingredientLotRepository;
     private readonly IProductIngredientRepository _productIngredientRepository;
+    private readonly IExpenseService _expenseService;
 
     public ReportingService(
         ITransactionRepository transactionRepository,
@@ -18,7 +19,8 @@ public class ReportingService : IReportingService
         IIngredientRepository ingredientRepository,
         IStockMovementRepository stockMovementRepository,
         IIngredientLotRepository ingredientLotRepository,
-        IProductIngredientRepository productIngredientRepository)
+        IProductIngredientRepository productIngredientRepository,
+        IExpenseService expenseService)
     {
         _transactionRepository = transactionRepository;
         _productRepository = productRepository;
@@ -26,6 +28,7 @@ public class ReportingService : IReportingService
         _stockMovementRepository = stockMovementRepository;
         _ingredientLotRepository = ingredientLotRepository;
         _productIngredientRepository = productIngredientRepository;
+        _expenseService = expenseService;
     }
 
     public async Task<object> GetDailyReportAsync(DateTime date)
@@ -244,17 +247,48 @@ public class ReportingService : IReportingService
         var transactions = allTransactions.Where(t => t.Status == "completed").ToList();
 
         var allItems = transactions.SelectMany(t => t.Items).ToList();
-        var cogsByProduct = await GetCogsByProductIdAsync();
 
         var grossRevenue = transactions.Sum(t => t.Total);
         var totalDiscounts = allItems
             .Where(i => i.Discount != null)
             .Sum(i => i.Discount!.Amount * i.Quantity);
-        var netRevenue = grossRevenue;
-        // Use actual FIFO costs from sale movements for accurate total COGS
+
+        // Fix 1: Properly subtract discounts from net revenue
+        var netRevenue = grossRevenue - totalDiscounts;
+
+        // Use movement-based COGS for totals
         var totalCogs = await CalculateTotalCogsFromMovementsAsync(startDate, endDate);
+
+        // Fix 2: If no movement COGS but revenue exists, fall back to recipe-based
+        var cogsByProduct = await GetCogsByProductIdAsync();
+        var cogsWarning = false;
+        if (totalCogs == 0 && grossRevenue > 0)
+        {
+            var recipeCogs = CalculateCogsForItems(allItems, cogsByProduct);
+            if (recipeCogs > 0)
+            {
+                totalCogs = recipeCogs;
+            }
+            else
+            {
+                // Fix 3: Flag when COGS is genuinely zero with revenue
+                cogsWarning = true;
+            }
+        }
+
         var grossProfit = netRevenue - totalCogs;
         var marginPercent = netRevenue > 0 ? (grossProfit / netRevenue) * 100 : 0;
+
+        // Expenses integration
+        var totalExpenses = await _expenseService.GetTotalExpensesForPeriodAsync(startDate, endDate);
+        var expensesByCategory = await _expenseService.GetExpensesByCategoryAsync(startDate, endDate);
+        var netProfit = grossProfit - totalExpenses;
+        var netMarginPercent = netRevenue > 0 ? (netProfit / netRevenue) * 100 : 0;
+
+        // All sale movements for period breakdown (Fix 2: use movements for breakdown too)
+        var allMovements = (await _stockMovementRepository.GetByDateRangeAsync(startDate, endDate))
+            .Where(m => m.MovementType == MovementType.Sale)
+            .ToList();
 
         // Group by day for breakdown
         var daySpan = (endDate - startDate).TotalDays;
@@ -263,7 +297,7 @@ public class ReportingService : IReportingService
         if (daySpan > 60)
         {
             // Weekly grouping
-            breakdown = transactions
+            var weekGroups = transactions
                 .GroupBy(t =>
                 {
                     var diff = (t.Timestamp.Date - startDate.Date).Days;
@@ -271,45 +305,79 @@ public class ReportingService : IReportingService
                     return startDate.Date.AddDays(weekNum * 7);
                 })
                 .OrderBy(g => g.Key)
-                .Select(g =>
+                .ToList();
+
+            var breakdownTasks = weekGroups.Select(async g =>
+            {
+                var periodStart = g.Key;
+                var periodEnd = g.Key.AddDays(6);
+                if (periodEnd > endDate) periodEnd = endDate;
+
+                var rev = g.Sum(t => t.Total);
+                // Use movement-based COGS for this period
+                var periodCogs = allMovements
+                    .Where(m => m.CreatedAt >= periodStart && m.CreatedAt <= periodEnd.AddDays(1).AddTicks(-1))
+                    .Sum(m => Math.Abs(m.Quantity) * (m.UnitCost ?? 0));
+                if (periodCogs == 0 && rev > 0)
                 {
                     var items = g.SelectMany(t => t.Items).ToList();
-                    var rev = g.Sum(t => t.Total);
-                    var cogs = CalculateCogsForItems(items, cogsByProduct);
-                    var profit = rev - cogs;
-                    return new ProfitLossPeriodDto
-                    {
-                        Period = $"{g.Key:MMM dd} – {g.Key.AddDays(6):MMM dd}",
-                        Revenue = rev,
-                        Cogs = cogs,
-                        GrossProfit = profit,
-                        MarginPercent = rev > 0 ? (profit / rev) * 100 : 0
-                    };
-                })
-                .ToList();
+                    periodCogs = CalculateCogsForItems(items, cogsByProduct);
+                }
+                var profit = rev - periodCogs;
+                var expenses = await _expenseService.GetProratedExpensesForPeriodAsync(periodStart, periodEnd, startDate, endDate);
+                var periodNetProfit = profit - expenses;
+                return new ProfitLossPeriodDto
+                {
+                    Period = $"{periodStart:MMM dd} – {periodEnd:MMM dd}",
+                    Revenue = rev,
+                    Cogs = periodCogs,
+                    GrossProfit = profit,
+                    MarginPercent = rev > 0 ? (profit / rev) * 100 : 0,
+                    Expenses = expenses,
+                    NetProfit = periodNetProfit,
+                    NetMarginPercent = rev > 0 ? (periodNetProfit / rev) * 100 : 0
+                };
+            });
+            breakdown = (await Task.WhenAll(breakdownTasks)).ToList();
         }
         else
         {
             // Daily grouping
-            breakdown = transactions
+            var dayGroups = transactions
                 .GroupBy(t => t.Timestamp.Date)
                 .OrderBy(g => g.Key)
-                .Select(g =>
+                .ToList();
+
+            var breakdownTasks = dayGroups.Select(async g =>
+            {
+                var dayStart = g.Key;
+                var dayEnd = g.Key.AddDays(1).AddTicks(-1);
+
+                var rev = g.Sum(t => t.Total);
+                var periodCogs = allMovements
+                    .Where(m => m.CreatedAt >= dayStart && m.CreatedAt <= dayEnd)
+                    .Sum(m => Math.Abs(m.Quantity) * (m.UnitCost ?? 0));
+                if (periodCogs == 0 && rev > 0)
                 {
                     var items = g.SelectMany(t => t.Items).ToList();
-                    var rev = g.Sum(t => t.Total);
-                    var cogs = CalculateCogsForItems(items, cogsByProduct);
-                    var profit = rev - cogs;
-                    return new ProfitLossPeriodDto
-                    {
-                        Period = g.Key.ToString("MMM dd"),
-                        Revenue = rev,
-                        Cogs = cogs,
-                        GrossProfit = profit,
-                        MarginPercent = rev > 0 ? (profit / rev) * 100 : 0
-                    };
-                })
-                .ToList();
+                    periodCogs = CalculateCogsForItems(items, cogsByProduct);
+                }
+                var profit = rev - periodCogs;
+                var expenses = await _expenseService.GetProratedExpensesForPeriodAsync(dayStart, dayEnd, startDate, endDate);
+                var periodNetProfit = profit - expenses;
+                return new ProfitLossPeriodDto
+                {
+                    Period = dayStart.ToString("MMM dd"),
+                    Revenue = rev,
+                    Cogs = periodCogs,
+                    GrossProfit = profit,
+                    MarginPercent = rev > 0 ? (profit / rev) * 100 : 0,
+                    Expenses = expenses,
+                    NetProfit = periodNetProfit,
+                    NetMarginPercent = rev > 0 ? (periodNetProfit / rev) * 100 : 0
+                };
+            });
+            breakdown = (await Task.WhenAll(breakdownTasks)).ToList();
         }
 
         return new ProfitLossReportDto
@@ -320,7 +388,12 @@ public class ReportingService : IReportingService
             Cogs = totalCogs,
             GrossProfit = grossProfit,
             MarginPercent = marginPercent,
-            Breakdown = breakdown
+            TotalExpenses = totalExpenses,
+            NetProfit = netProfit,
+            NetMarginPercent = netMarginPercent,
+            ExpensesByCategory = expensesByCategory,
+            Breakdown = breakdown,
+            CogsWarning = cogsWarning
         };
     }
 
@@ -408,12 +481,18 @@ public class ReportingService : IReportingService
         var totalDiscounts = allItems
             .Where(i => i.Discount != null)
             .Sum(i => i.Discount!.Amount * i.Quantity);
-        var netRevenue = grossRevenue;
-        // Use actual FIFO costs from sale movements for accurate total COGS
+        // Fix 1: Properly subtract discounts
+        var netRevenue = grossRevenue - totalDiscounts;
         var totalCogs = await CalculateTotalCogsFromMovementsAsync(startDate, endDate);
         var grossProfit = netRevenue - totalCogs;
         var transactionCount = transactions.Count;
         var averageTicket = transactionCount > 0 ? grossRevenue / transactionCount : 0;
+
+        // Expenses integration
+        var totalExpenses = await _expenseService.GetTotalExpensesForPeriodAsync(startDate, endDate);
+        var expensesByCategory = await _expenseService.GetExpensesByCategoryAsync(startDate, endDate);
+        var netProfit = grossProfit - totalExpenses;
+        var netMarginPercent = netRevenue > 0 ? (netProfit / netRevenue) * 100 : 0;
 
         // Payment method breakdown
         var paymentBreakdown = transactions
@@ -469,6 +548,10 @@ public class ReportingService : IReportingService
             Cogs = totalCogs,
             GrossProfit = grossProfit,
             GrossMarginPercent = netRevenue > 0 ? (grossProfit / netRevenue) * 100 : 0,
+            TotalExpenses = totalExpenses,
+            NetProfit = netProfit,
+            NetMarginPercent = netMarginPercent,
+            ExpensesByCategory = expensesByCategory,
             TransactionCount = transactionCount,
             AverageTicket = averageTicket,
             PaymentMethodBreakdown = paymentBreakdown,
