@@ -1,6 +1,6 @@
 import { Component, Inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -18,7 +18,6 @@ export interface ProductEditorDialogData {
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    FormsModule,
     MatDialogModule,
     ButtonComponent
   ],
@@ -120,32 +119,8 @@ export interface ProductEditorDialogData {
 
           <!-- Image -->
           <div class="image-upload-section">
-            <div class="image-type-selector">
-              <label class="image-type-option">
-                <input type="radio" name="imageType" value="emoji" [(ngModel)]="imageType"
-                  [ngModelOptions]="{standalone: true}" (change)="onImageTypeChange()" class="image-type-radio">
-                <span class="image-type-label">Emoji Icon</span>
-              </label>
-              <label class="image-type-option">
-                <input type="radio" name="imageType" value="file" [(ngModel)]="imageType"
-                  [ngModelOptions]="{standalone: true}" (change)="onImageTypeChange()" class="image-type-radio">
-                <span class="image-type-label">Upload Image</span>
-              </label>
-            </div>
-
-            <!-- Emoji Selector -->
-            <div *ngIf="imageType === 'emoji'" class="emoji-selector">
-              <div class="emoji-grid">
-                <button type="button" *ngFor="let emoji of productEmojis" class="emoji-btn"
-                  [class.selected]="productForm.get('image')?.value === emoji" (click)="selectEmoji(emoji)"
-                  [title]="emoji">
-                  {{ emoji }}
-                </button>
-              </div>
-            </div>
-
-            <!-- File Upload -->
-            <div *ngIf="imageType === 'file'" class="file-upload-section">
+            <label class="image-upload-label">Product Image</label>
+            <div class="file-upload-section">
               <div class="file-upload-area" (click)="fileInput.click()" (dragover)="onDragOver($event)"
                 (dragleave)="onDragLeave($event)" (drop)="onDrop($event)" [class.dragover]="isDragOver"
                 [class.has-file]="selectedFile" [class.processing]="isProcessingImage">
@@ -384,50 +359,13 @@ export interface ProductEditorDialogData {
       margin-top: 10px;
     }
 
-    .image-type-selector {
-      display: flex;
-      gap: 12px;
-    }
-
-    .image-type-option {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      cursor: pointer;
-      font-size: 0.75rem;
+    .image-upload-label {
+      font-size: 0.625rem;
       font-weight: 600;
-      color: var(--text-secondary);
-    }
-
-    .emoji-grid {
-      display: grid;
-      grid-template-columns: repeat(8, 1fr);
-      gap: 4px;
-      max-height: 72px;
-      overflow-y: auto;
-      padding: 4px;
-      background: var(--bg-surface, var(--surface-color));
-      border: 1px solid var(--border, var(--border-color));
-      border-radius: 6px;
-    }
-
-    .emoji-btn {
-      font-size: 1rem;
-      padding: 3px;
-      background: transparent;
-      border: 1px solid transparent;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background var(--transition-fast), border-color var(--transition-fast);
-    }
-
-    .emoji-btn:hover {
-      background: var(--bg-subtle, var(--background-secondary));
-    }
-
-    .emoji-btn.selected {
-      background: rgba(var(--accent-rgb), 0.1);
-      border-color: var(--accent, var(--primary-color));
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      margin-bottom: 2px;
     }
 
     .file-upload-area {
@@ -524,7 +462,6 @@ export interface ProductEditorDialogData {
       .form-grid-2 { grid-template-columns: 1fr; }
       .form-grid-3 { grid-template-columns: 1fr; }
       .dialog-footer { padding: 10px 16px; }
-      .emoji-grid { grid-template-columns: repeat(6, 1fr); }
     }
 
     @media (pointer: coarse) {
@@ -547,42 +484,23 @@ export interface ProductEditorDialogData {
         min-height: 44px;
       }
 
-      .emoji-btn {
-        min-width: 44px;
-        min-height: 44px;
-      }
-
       .form-checkbox {
         width: 20px;
         height: 20px;
       }
 
-      .image-type-option {
-        padding: 10px 14px;
-        min-height: 44px;
-      }
-    }
+}
   `]
 })
 export class ProductEditorDialogComponent implements OnInit, OnDestroy {
   productForm: FormGroup;
   useCustomCategory = false;
-  imageType: 'emoji' | 'file' = 'emoji';
   selectedFile: File | null = null;
   imagePreview: string | null = null;
   isDragOver = false;
   isProcessingImage = false;
 
   private destroy$ = new Subject<void>();
-
-  productEmojis = [
-    '☕', '🥪', '🥐', '🍵', '🧁', '💧', '🥗', '🧃',
-    '🍔', '🍕', '🌭', '🥙', '🌮', '🍤', '🍗', '🥘',
-    '🍜', '🍝', '🍲', '🥣', '🍿', '🧀', '🥓', '🥖',
-    '🍞', '🥯', '🥨', '🍪', '🎂', '🍰', '🧁', '🍫',
-    '🍬', '🍭', '🍮', '🍯', '🍼', '🥛', '☕', '🍵',
-    '🥤', '🧋', '🍷', '🍺', '🍻', '🥂', '🍾', '🍸'
-  ];
 
   constructor(
     public dialogRef: MatDialogRef<ProductEditorDialogComponent>,
@@ -597,7 +515,7 @@ export class ProductEditorDialogComponent implements OnInit, OnDestroy {
       category: ['', Validators.required],
       stock: ['', [Validators.required, Validators.min(0)]],
       lowQuantityThreshold: [10, [Validators.required, Validators.min(0)]],
-      image: ['📦', Validators.required],
+      image: [''],
       isActive: [true]
     });
   }
@@ -630,10 +548,7 @@ export class ProductEditorDialogComponent implements OnInit, OnDestroy {
       const isBeverage = this.isBeverageCategory(product.category);
 
       if (this.isImageUrl(product.image)) {
-        this.imageType = 'file';
         this.imagePreview = product.image;
-      } else {
-        this.imageType = 'emoji';
       }
 
       this.productForm.patchValue({
@@ -665,20 +580,6 @@ export class ProductEditorDialogComponent implements OnInit, OnDestroy {
     this.useCustomCategory = !this.useCustomCategory;
     if (this.useCustomCategory) {
       this.productForm.patchValue({ category: '' });
-    }
-  }
-
-  selectEmoji(emoji: string): void {
-    this.productForm.patchValue({ image: emoji });
-  }
-
-  onImageTypeChange(): void {
-    if (this.imageType === 'emoji') {
-      this.selectedFile = null;
-      this.imagePreview = null;
-      this.productForm.patchValue({ image: '📦' });
-    } else {
-      this.productForm.patchValue({ image: '' });
     }
   }
 

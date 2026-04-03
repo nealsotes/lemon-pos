@@ -12,8 +12,7 @@ import { BadgeComponent } from '../badge/badge.component';
       <app-image-display
         [src]="image"
         [alt]="name"
-        [size]="60"
-        fallbackEmoji="\uD83C\uDF7D\uFE0F">
+        [size]="60">
       </app-image-display>
       <div class="product-info">
         <span class="product-name">{{ name }}</span>

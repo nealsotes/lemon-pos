@@ -81,9 +81,13 @@ function smartDisplayUnit(baseUnit: string, baseQuantity: number): string {
       <div class="dialog-header">
         <div class="dialog-product-info">
           <div class="dialog-product-img">
-            <img *ngIf="data.product.image" [src]="data.product.image" [alt]="data.product.name">
-            <div *ngIf="!data.product.image" class="dialog-product-placeholder" [style.background]="getProductColor(data.product.name)">
-              {{ data.product.name.charAt(0).toUpperCase() }}
+            <img *ngIf="isImageUrl(data.product.image)" [src]="data.product.image" [alt]="data.product.name">
+            <div *ngIf="!isImageUrl(data.product.image)" class="dialog-product-placeholder">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <path d="M21 15l-5-5L5 21"/>
+              </svg>
             </div>
           </div>
           <div class="dialog-product-text">
@@ -311,9 +315,9 @@ function smartDisplayUnit(baseUnit: string, baseQuantity: number): string {
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.125rem;
-      font-weight: 700;
-      color: #fff;
+      background: var(--bg-subtle);
+      color: var(--text-muted);
+      border-radius: var(--radius-sm);
     }
 
     .dialog-product-text {
@@ -1120,6 +1124,11 @@ export class RecipeEditorDialogComponent implements OnInit {
       hash = name.charCodeAt(i) + ((hash << 5) - hash);
     }
     return colors[Math.abs(hash) % colors.length];
+  }
+
+  isImageUrl(image: string): boolean {
+    if (!image) return false;
+    return image.startsWith('data:image/') || image.startsWith('http') || image.startsWith('/uploads/') || image.startsWith('uploads/') || image.startsWith('/');
   }
 
   getProductColor(name: string): string {

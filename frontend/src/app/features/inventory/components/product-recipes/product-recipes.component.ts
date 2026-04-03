@@ -105,6 +105,11 @@ export class ProductRecipesComponent implements OnInit {
     });
   }
 
+  isImageUrl(image: string): boolean {
+    if (!image) return false;
+    return image.startsWith('data:image/') || image.startsWith('http') || image.startsWith('/uploads/') || image.startsWith('uploads/') || image.startsWith('/');
+  }
+
   getProductColor(name: string): string {
     const colors = [
       '#7C3AED', '#6366F1', '#2563EB', '#0891B2', '#059669',

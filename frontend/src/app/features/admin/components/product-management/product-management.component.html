@@ -66,7 +66,7 @@
 
         <ng-template cellDef="product" let-row>
           <div class="product-info-cell">
-            <app-image-display [src]="row.image" [size]="36" [alt]="row.name" fallbackEmoji="📦"></app-image-display>
+            <app-image-display [src]="row.image" [size]="36" [alt]="row.name"></app-image-display>
             <div class="product-text">
               <span class="product-name-text">{{ row.name }}</span>
               <span class="product-id-text">#{{ row.id.substring(0, 8) }}</span>

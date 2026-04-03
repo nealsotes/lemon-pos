@@ -21,8 +21,8 @@
 .checkout-sidebar {
   position: fixed;
   top: 0;
-  right: -480px;
-  width: 480px;
+  right: -420px;
+  width: 420px;
   height: 100vh;
   background: var(--bg-surface);
   box-shadow: var(--shadow-lg);
