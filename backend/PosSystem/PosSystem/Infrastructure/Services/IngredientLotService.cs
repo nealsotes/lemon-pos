@@ -184,4 +184,31 @@ public class IngredientLotService : IIngredientLotService
         ingredient.UpdatedAt = DateTime.UtcNow;
         await _ingredientRepository.UpdateAsync(ingredient);
     }
+
+    public async Task<Dictionary<string, decimal>> GetFifoCostsAsync()
+    {
+        var allIngredients = await _ingredientRepository.GetAllAsync();
+        var result = new Dictionary<string, decimal>();
+
+        foreach (var ingredient in allIngredients)
+        {
+            // Try oldest active lot first (true FIFO cost)
+            var oldestActive = await _lotRepository.GetOldestActiveLotAsync(ingredient.Id);
+            if (oldestActive != null)
+            {
+                result[ingredient.Id] = oldestActive.UnitCost;
+                continue;
+            }
+
+            // Fall back to most recent lot (even if depleted)
+            var mostRecent = await _lotRepository.GetMostRecentLotAsync(ingredient.Id);
+            if (mostRecent != null)
+            {
+                result[ingredient.Id] = mostRecent.UnitCost;
+            }
+            // If no lots at all, omit — frontend falls back to ingredient.unitCost
+        }
+
+        return result;
+    }
 }

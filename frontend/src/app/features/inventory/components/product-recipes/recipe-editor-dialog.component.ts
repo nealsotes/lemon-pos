@@ -6,6 +6,7 @@ import { Product } from '../../../pos/models/product.model';
 import { Ingredient } from '../../../pos/models/ingredient.model';
 import { RecipeLine, RecipeLineRequest } from '../../../pos/models/recipe.model';
 import { RecipeService } from '../../../pos/services/recipe.service';
+import { IngredientService } from '../../../pos/services/ingredient.service';
 import { ToastService } from '../../../../shared/ui/toast/toast.service';
 import { ButtonComponent } from '../../../../shared/ui/button/button.component';
 import { BadgeComponent } from '../../../../shared/ui/badge/badge.component';
@@ -899,6 +900,7 @@ function smartDisplayUnit(baseUnit: string, baseQuantity: number): string {
 export class RecipeEditorDialogComponent implements OnInit {
   workingLines: WorkingRecipeLine[] = [];
   recipeLines: RecipeLine[] = [];
+  fifoCosts: Record<string, number> = {};
   isLoading = true;
   isSaving = false;
 
@@ -911,11 +913,20 @@ export class RecipeEditorDialogComponent implements OnInit {
     public dialogRef: MatDialogRef<RecipeEditorDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: RecipeEditorDialogData,
     private recipeService: RecipeService,
+    private ingredientService: IngredientService,
     private toast: ToastService
   ) { }
 
   ngOnInit(): void {
     this.loadRecipe();
+    this.loadFifoCosts();
+  }
+
+  private loadFifoCosts(): void {
+    this.ingredientService.getFifoCosts().subscribe({
+      next: (costs) => this.fifoCosts = costs,
+      error: () => {} // Silently fall back to ingredient.unitCost
+    });
   }
 
   loadRecipe(): void {
@@ -1047,9 +1058,7 @@ export class RecipeEditorDialogComponent implements OnInit {
 
   getRecipeCost(): number {
     return this.workingLines.reduce((acc, line) => {
-      const ingredient = this.data.ingredients.find(i => i.id === line.ingredientId);
-      const baseQty = toBase(line.displayQuantity, line.displayUnit, line.baseUnit);
-      return acc + (ingredient?.unitCost || 0) * baseQty;
+      return acc + this.getLineCost(line);
     }, 0);
   }
 
@@ -1064,9 +1073,11 @@ export class RecipeEditorDialogComponent implements OnInit {
   }
 
   getLineCost(line: WorkingRecipeLine): number {
+    const fifoCost = this.fifoCosts[line.ingredientId];
     const ingredient = this.data.ingredients.find(i => i.id === line.ingredientId);
+    const unitCost = fifoCost ?? ingredient?.unitCost ?? 0;
     const baseQty = toBase(line.displayQuantity, line.displayUnit, line.baseUnit);
-    return (ingredient?.unitCost || 0) * baseQty;
+    return unitCost * baseQty;
   }
 
   getBaseQuantity(line: WorkingRecipeLine): number {

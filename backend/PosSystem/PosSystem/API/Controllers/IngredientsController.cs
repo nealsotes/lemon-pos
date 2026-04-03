@@ -11,10 +11,12 @@ namespace PosSystem.API.Controllers;
 public class IngredientsController : ControllerBase
 {
     private readonly IIngredientService _ingredientService;
+    private readonly IIngredientLotService _lotService;
 
-    public IngredientsController(IIngredientService ingredientService)
+    public IngredientsController(IIngredientService ingredientService, IIngredientLotService lotService)
     {
         _ingredientService = ingredientService;
+        _lotService = lotService;
     }
 
     [HttpGet]
@@ -189,6 +191,20 @@ public class IngredientsController : ControllerBase
         catch (Exception ex)
         {
             return StatusCode(500, $"Error calculating inventory value by supplier: {ex.Message}");
+        }
+    }
+
+    [HttpGet("fifo-costs")]
+    public async Task<ActionResult<Dictionary<string, decimal>>> GetFifoCosts()
+    {
+        try
+        {
+            var costs = await _lotService.GetFifoCostsAsync();
+            return Ok(costs);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error retrieving FIFO costs: {ex.Message}");
         }
     }
 }

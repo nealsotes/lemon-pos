@@ -10,4 +10,6 @@ public interface IIngredientLotRepository
     Task<IngredientLot> UpdateAsync(IngredientLot lot);
     Task<IEnumerable<IngredientLot>> GetFifoLotsAsync(string ingredientId);
     Task<IEnumerable<IngredientLot>> GetByDateRangeAsync(DateTime startDate, DateTime endDate);
+    Task<IngredientLot?> GetOldestActiveLotAsync(string ingredientId);
+    Task<IngredientLot?> GetMostRecentLotAsync(string ingredientId);
 }

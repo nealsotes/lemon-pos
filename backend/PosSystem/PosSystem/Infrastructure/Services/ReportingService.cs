@@ -180,12 +180,49 @@ public class ReportingService : IReportingService
     {
         var recipes = (await _productIngredientRepository.GetAllWithIngredientsAsync()).ToList();
 
+        // Build FIFO cost map: oldest active lot cost per ingredient, fallback to most recent lot
+        var ingredientFifoCosts = new Dictionary<string, decimal>();
+        var ingredientIds = recipes.Select(r => r.IngredientId).Distinct();
+        foreach (var ingredientId in ingredientIds)
+        {
+            var oldestActive = await _ingredientLotRepository.GetOldestActiveLotAsync(ingredientId);
+            if (oldestActive != null)
+            {
+                ingredientFifoCosts[ingredientId] = oldestActive.UnitCost;
+                continue;
+            }
+
+            var mostRecent = await _ingredientLotRepository.GetMostRecentLotAsync(ingredientId);
+            if (mostRecent != null)
+            {
+                ingredientFifoCosts[ingredientId] = mostRecent.UnitCost;
+            }
+            else
+            {
+                // No lots at all — fall back to ingredient's weighted average
+                var ingredient = recipes.FirstOrDefault(r => r.IngredientId == ingredientId)?.Ingredient;
+                ingredientFifoCosts[ingredientId] = ingredient?.UnitCost ?? 0;
+            }
+        }
+
         return recipes
             .GroupBy(pi => pi.ProductId)
             .ToDictionary(
                 g => g.Key,
-                g => g.Sum(pi => pi.QuantityPerUnit * (pi.Ingredient!.UnitCost ?? 0))
+                g => g.Sum(pi =>
+                {
+                    ingredientFifoCosts.TryGetValue(pi.IngredientId, out var fifoCost);
+                    return pi.QuantityPerUnit * fifoCost;
+                })
             );
+    }
+
+    private async Task<decimal> CalculateTotalCogsFromMovementsAsync(DateTime startDate, DateTime endDate)
+    {
+        var movements = await _stockMovementRepository.GetByDateRangeAsync(startDate, endDate);
+        return movements
+            .Where(m => m.MovementType == MovementType.Sale)
+            .Sum(m => Math.Abs(m.Quantity) * (m.UnitCost ?? 0));
     }
 
     private decimal CalculateCogsForItems(
@@ -214,7 +251,8 @@ public class ReportingService : IReportingService
             .Where(i => i.Discount != null)
             .Sum(i => i.Discount!.Amount * i.Quantity);
         var netRevenue = grossRevenue;
-        var totalCogs = CalculateCogsForItems(allItems, cogsByProduct);
+        // Use actual FIFO costs from sale movements for accurate total COGS
+        var totalCogs = await CalculateTotalCogsFromMovementsAsync(startDate, endDate);
         var grossProfit = netRevenue - totalCogs;
         var marginPercent = netRevenue > 0 ? (grossProfit / netRevenue) * 100 : 0;
 
@@ -371,7 +409,8 @@ public class ReportingService : IReportingService
             .Where(i => i.Discount != null)
             .Sum(i => i.Discount!.Amount * i.Quantity);
         var netRevenue = grossRevenue;
-        var totalCogs = CalculateCogsForItems(allItems, cogsByProduct);
+        // Use actual FIFO costs from sale movements for accurate total COGS
+        var totalCogs = await CalculateTotalCogsFromMovementsAsync(startDate, endDate);
         var grossProfit = netRevenue - totalCogs;
         var transactionCount = transactions.Count;
         var averageTicket = transactionCount > 0 ? grossRevenue / transactionCount : 0;

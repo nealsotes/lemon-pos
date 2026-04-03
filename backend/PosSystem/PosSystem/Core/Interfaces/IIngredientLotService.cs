@@ -10,4 +10,5 @@ public interface IIngredientLotService
     Task<IngredientLot> UpdateLotAsync(string ingredientId, string lotId, IngredientLotUpdateDto dto);
     Task<List<StockMovement>> DeductFifoAsync(string ingredientId, decimal quantity, MovementType movementType, string? reason = null, string? notes = null);
     Task SyncIngredientAggregatesAsync(string ingredientId);
+    Task<Dictionary<string, decimal>> GetFifoCostsAsync();
 }

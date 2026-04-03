@@ -63,4 +63,20 @@ public class IngredientLotRepository : IIngredientLotRepository
             .OrderByDescending(l => l.ReceivedAt)
             .ToListAsync();
     }
+
+    public async Task<IngredientLot?> GetOldestActiveLotAsync(string ingredientId)
+    {
+        return await _context.IngredientLots
+            .Where(l => l.IngredientId == ingredientId && l.IsActive && l.RemainingQuantity > 0)
+            .OrderBy(l => l.ReceivedAt)
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task<IngredientLot?> GetMostRecentLotAsync(string ingredientId)
+    {
+        return await _context.IngredientLots
+            .Where(l => l.IngredientId == ingredientId)
+            .OrderByDescending(l => l.ReceivedAt)
+            .FirstOrDefaultAsync();
+    }
 }

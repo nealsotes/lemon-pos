@@ -52,6 +52,12 @@ export class IngredientService {
     );
   }
 
+  getFifoCosts(): Observable<Record<string, number>> {
+    return this.http.get<Record<string, number>>(`${this.apiUrl}/fifo-costs`).pipe(
+      catchError(this.handleError)
+    );
+  }
+
   adjustQuantity(id: string, adjustment: number, movementType?: string, reason?: string, notes?: string, supplier?: string, unitCost?: number, expirationDate?: string, lotNumber?: string): Observable<Ingredient> {
     return this.http.post<Ingredient>(`${this.apiUrl}/${id}/adjust-quantity`, { adjustment, movementType, reason, notes, supplier, unitCost, expirationDate, lotNumber }).pipe(
       catchError(this.handleError)
