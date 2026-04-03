@@ -52,7 +52,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
   tableColumns: TableColumn[] = [
     { key: 'name', label: 'Ingredient', cellTemplate: 'ingredient' },
     { key: 'quantity', label: 'On Hand', cellTemplate: 'onHand' },
-    { key: 'unitCost', label: 'Unit Cost', cellTemplate: 'unitCost' },
+    { key: 'unitCost', label: 'Avg Unit Cost', cellTemplate: 'unitCost' },
     { key: 'totalValue', label: 'Total Value', cellTemplate: 'totalValue' },
     { key: 'supplier', label: 'Supplier', cellTemplate: 'supplier' },
     { key: 'expirationDate', label: 'Expiration', cellTemplate: 'expiration' },
