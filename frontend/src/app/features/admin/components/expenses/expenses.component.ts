@@ -35,20 +35,13 @@ export class ExpensesComponent implements OnInit, OnDestroy {
   isLoading = false;
   errorMessage = '';
 
-  recurringColumns: TableColumn[] = [
-    { key: 'categoryName', label: 'Category', cellTemplate: 'category' },
-    { key: 'description', label: 'Description', cellTemplate: 'description' },
-    { key: 'recurrenceType', label: 'Frequency', cellTemplate: 'frequency' },
-    { key: 'amount', label: 'Amount', cellTemplate: 'amount', align: 'right' },
-    { key: 'actions', label: '', cellTemplate: 'recurringActions', width: '80px', align: 'right' }
-  ];
-
-  oneTimeColumns: TableColumn[] = [
+  tableColumns: TableColumn[] = [
     { key: 'date', label: 'Date', cellTemplate: 'date', width: '100px' },
     { key: 'categoryName', label: 'Category', cellTemplate: 'category' },
     { key: 'description', label: 'Description', cellTemplate: 'description' },
+    { key: 'isRecurring', label: 'Type', cellTemplate: 'type', width: '110px' },
     { key: 'amount', label: 'Amount', cellTemplate: 'amount', align: 'right' },
-    { key: 'actions', label: '', cellTemplate: 'oneTimeActions', width: '50px', align: 'right' }
+    { key: 'actions', label: '', cellTemplate: 'actions', width: '100px', align: 'right' }
   ];
 
   // Filters
@@ -170,6 +163,14 @@ export class ExpensesComponent implements OnInit, OnDestroy {
     return this.expenses.filter(e =>
       e.description.toLowerCase().includes(q) ||
       e.categoryName.toLowerCase().includes(q)
+    );
+  }
+
+  get allExpenses(): ExpenseResponse[] {
+    const recurring = this.recurringExpenses;
+    const oneTime = this.oneTimeExpenses;
+    return [...recurring, ...oneTime].sort((a, b) =>
+      new Date(b.date).getTime() - new Date(a.date).getTime()
     );
   }
 
