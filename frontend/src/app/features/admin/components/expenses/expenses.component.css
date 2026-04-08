@@ -2,6 +2,9 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
   background: var(--background, #f9fafb);
 }
 
@@ -13,6 +16,7 @@
   background: var(--surface, #fff);
   border-bottom: 1px solid var(--border, #e5e7eb);
   flex-wrap: wrap;
+  min-width: 0;
 }
 
 .filter-select {
@@ -83,7 +87,9 @@
   flex-direction: column;
   gap: 16px;
   overflow-y: auto;
+  overflow-x: hidden;
   flex: 1;
+  min-height: 0;
 }
 
 /* Summary Cards */
@@ -122,6 +128,7 @@
   border: 1px solid var(--border, #e5e7eb);
   border-radius: 10px;
   overflow: hidden;
+  min-width: 0;
 }
 
 .section-header {
@@ -147,83 +154,45 @@
   border-radius: 10px;
 }
 
-/* Expense Rows */
-.expense-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.expense-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border-light, #f3f4f6);
-  cursor: pointer;
-  transition: background 0.1s;
-}
-
-.expense-row:last-child {
-  border-bottom: none;
-}
-
-.expense-row:hover {
-  background: var(--surface-alt, #f9fafb);
-}
-
-.expense-date {
-  font-size: 12px;
-  color: var(--text-secondary, #6b7280);
-  min-width: 50px;
-}
-
-.expense-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.expense-category {
+/* Data Table Cell Styles */
+.cell-category {
   font-size: 13px;
   font-weight: 500;
   color: var(--text-primary, #111827);
 }
 
-.expense-desc {
-  font-size: 12px;
+.cell-desc {
+  font-size: 13px;
   color: var(--text-secondary, #6b7280);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: block;
+  max-width: 300px;
 }
 
-.expense-freq {
-  font-size: 11px;
-  color: var(--primary, #f59e0b);
-  background: rgba(245, 158, 11, 0.1);
-  padding: 2px 8px;
-  border-radius: 4px;
-  white-space: nowrap;
-}
-
-.expense-amount {
+.cell-amount {
   font-size: 14px;
   font-weight: 600;
   color: var(--text-primary, #111827);
   white-space: nowrap;
 }
 
-.expense-actions {
+.cell-date {
+  font-size: 12px;
+  color: var(--text-secondary, #6b7280);
+}
+
+/* Action Buttons */
+.row-actions {
   display: flex;
   gap: 4px;
   align-items: center;
 }
 
-.action-btn {
-  width: 30px;
-  height: 30px;
+.action-btn-mini {
+  width: 28px;
+  height: 28px;
   border: none;
   background: none;
   border-radius: 6px;
@@ -233,68 +202,28 @@
   justify-content: center;
   color: var(--text-secondary, #6b7280);
   transition: all 0.15s;
+  padding: 0;
 }
 
-.action-btn:hover {
+.action-btn-mini svg {
+  width: 14px;
+  height: 14px;
+}
+
+.action-btn-mini:hover {
   background: var(--surface-alt, #f3f4f6);
   color: var(--text-primary, #111827);
 }
 
-.delete-btn:hover {
+.action-btn-mini.delete:hover {
   color: #dc2626;
+  background: rgba(220, 38, 38, 0.08);
 }
 
-.more-menu {
-  position: relative;
-}
-
-.more-dropdown {
-  display: none;
-  position: absolute;
-  right: 0;
-  top: 100%;
-  background: var(--surface, #fff);
-  border: 1px solid var(--border, #e5e7eb);
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  z-index: 10;
-  overflow: hidden;
-  min-width: 120px;
-}
-
-.more-menu:hover .more-dropdown {
-  display: block;
-}
-
-.more-dropdown button {
-  display: block;
-  width: 100%;
-  padding: 8px 14px;
+/* Remove data-table wrapper border since section-card already has one */
+:host ::ng-deep .table-wrapper {
   border: none;
-  background: none;
-  font-size: 13px;
-  text-align: left;
-  cursor: pointer;
-  color: var(--text-primary, #111827);
-}
-
-.more-dropdown button:hover {
-  background: var(--surface-alt, #f3f4f6);
-}
-
-.more-dropdown button.danger {
-  color: #dc2626;
-}
-
-.empty-state {
-  padding: 24px 16px;
-  text-align: center;
-}
-
-.empty-state p {
-  margin: 0;
-  color: var(--text-secondary, #6b7280);
-  font-size: 13px;
+  border-radius: 0;
 }
 
 /* Modal backdrop & confirm dialog */
@@ -370,5 +299,9 @@
 
   .period-chips {
     flex-wrap: wrap;
+  }
+
+  .cell-desc {
+    max-width: 150px;
   }
 }

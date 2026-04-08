@@ -61,36 +61,49 @@
         <h3 class="section-title">Recurring Expenses</h3>
         <span class="section-badge">{{ recurringExpenses.length }}</span>
       </div>
-      <div class="expense-list">
-        <div class="expense-row" *ngFor="let exp of recurringExpenses">
-          <div class="expense-info">
-            <span class="expense-category">{{ exp.categoryName }}</span>
-            <span class="expense-desc">{{ exp.description }}</span>
-          </div>
-          <span class="expense-freq">{{ getFrequencyLabel(exp.recurrenceType) }}</span>
-          <span class="expense-amount">{{ formatCurrency(exp.amount) }}</span>
-          <div class="expense-actions">
-            <button class="action-btn" (click)="openEditModal(exp)" title="Edit">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <app-data-table
+        [columns]="recurringColumns"
+        [data]="recurringExpenses"
+        [clickable]="true"
+        (rowClick)="openEditModal($event)">
+
+        <ng-template cellDef="category" let-row>
+          <span class="cell-category">{{ row.categoryName }}</span>
+        </ng-template>
+
+        <ng-template cellDef="description" let-row>
+          <span class="cell-desc">{{ row.description }}</span>
+        </ng-template>
+
+        <ng-template cellDef="frequency" let-row>
+          <app-badge variant="warning">{{ getFrequencyLabel(row.recurrenceType) }}</app-badge>
+        </ng-template>
+
+        <ng-template cellDef="amount" let-row>
+          <span class="cell-amount">{{ formatCurrency(row.amount) }}</span>
+        </ng-template>
+
+        <ng-template cellDef="recurringActions" let-row>
+          <div class="row-actions">
+            <button class="action-btn-mini" (click)="openEditModal(row); $event.stopPropagation()" title="Edit">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
                 <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
               </svg>
             </button>
-            <div class="more-menu">
-              <button class="action-btn" title="More">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                  <circle cx="12" cy="6" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="12" cy="18"
-                    r="1.5" />
-                </svg>
-              </button>
-              <div class="more-dropdown">
-                <button (click)="onPauseRecurring(exp)">Pause</button>
-                <button class="danger" (click)="confirmDelete(exp)">Delete</button>
-              </div>
-            </div>
+            <button class="action-btn-mini" (click)="onPauseRecurring(row); $event.stopPropagation()" title="Pause">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" />
+              </svg>
+            </button>
+            <button class="action-btn-mini delete" (click)="confirmDelete(row); $event.stopPropagation()" title="Delete">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+              </svg>
+            </button>
           </div>
-        </div>
-      </div>
+        </ng-template>
+      </app-data-table>
     </div>
 
     <!-- One-time Expenses -->
@@ -99,24 +112,41 @@
         <h3 class="section-title">One-time Expenses</h3>
         <span class="section-badge">{{ oneTimeExpenses.length }}</span>
       </div>
-      <div class="expense-list" *ngIf="oneTimeExpenses.length > 0">
-        <div class="expense-row" *ngFor="let exp of oneTimeExpenses" (click)="openEditModal(exp)">
-          <span class="expense-date">{{ formatDate(exp.date) }}</span>
-          <div class="expense-info">
-            <span class="expense-category">{{ exp.categoryName }}</span>
-            <span class="expense-desc">{{ exp.description }}</span>
+      <app-data-table
+        [columns]="oneTimeColumns"
+        [data]="oneTimeExpenses"
+        [clickable]="true"
+        emptyIcon="💸"
+        emptyTitle="No expenses"
+        emptyMessage="No one-time expenses for this period."
+        (rowClick)="openEditModal($event)">
+
+        <ng-template cellDef="date" let-row>
+          <span class="cell-date">{{ formatDate(row.date) }}</span>
+        </ng-template>
+
+        <ng-template cellDef="category" let-row>
+          <span class="cell-category">{{ row.categoryName }}</span>
+        </ng-template>
+
+        <ng-template cellDef="description" let-row>
+          <span class="cell-desc">{{ row.description }}</span>
+        </ng-template>
+
+        <ng-template cellDef="amount" let-row>
+          <span class="cell-amount">{{ formatCurrency(row.amount) }}</span>
+        </ng-template>
+
+        <ng-template cellDef="oneTimeActions" let-row>
+          <div class="row-actions">
+            <button class="action-btn-mini delete" (click)="confirmDelete(row); $event.stopPropagation()" title="Delete">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+              </svg>
+            </button>
           </div>
-          <span class="expense-amount">{{ formatCurrency(exp.amount) }}</span>
-          <button class="action-btn delete-btn" (click)="$event.stopPropagation(); confirmDelete(exp)" title="Delete">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="3,6 5,6 21,6" /><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-            </svg>
-          </button>
-        </div>
-      </div>
-      <div class="empty-state" *ngIf="oneTimeExpenses.length === 0">
-        <p>No one-time expenses for this period.</p>
-      </div>
+        </ng-template>
+      </app-data-table>
     </div>
   </div>
 </div>

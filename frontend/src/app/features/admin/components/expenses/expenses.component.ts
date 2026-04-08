@@ -8,6 +8,9 @@ import { TopBarComponent } from '../../../../shared/ui/top-bar/top-bar.component
 import { ButtonComponent } from '../../../../shared/ui/button/button.component';
 import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/loading-spinner.component';
 import { ExpenseModalComponent } from '../expense-modal/expense-modal.component';
+import { DataTableComponent, TableColumn } from '../../../../shared/ui/data-table/data-table.component';
+import { CellDefDirective } from '../../../../shared/ui/data-table/cell-def.directive';
+import { BadgeComponent } from '../../../../shared/ui/badge/badge.component';
 
 @Component({
   selector: 'app-expenses',
@@ -18,7 +21,10 @@ import { ExpenseModalComponent } from '../expense-modal/expense-modal.component'
     TopBarComponent,
     ButtonComponent,
     LoadingSpinnerComponent,
-    ExpenseModalComponent
+    ExpenseModalComponent,
+    DataTableComponent,
+    CellDefDirective,
+    BadgeComponent
   ],
   templateUrl: './expenses.component.html',
   styleUrls: ['./expenses.component.css']
@@ -28,6 +34,22 @@ export class ExpensesComponent implements OnInit, OnDestroy {
   categories: ExpenseCategory[] = [];
   isLoading = false;
   errorMessage = '';
+
+  recurringColumns: TableColumn[] = [
+    { key: 'categoryName', label: 'Category', cellTemplate: 'category' },
+    { key: 'description', label: 'Description', cellTemplate: 'description' },
+    { key: 'recurrenceType', label: 'Frequency', cellTemplate: 'frequency' },
+    { key: 'amount', label: 'Amount', cellTemplate: 'amount', align: 'right' },
+    { key: 'actions', label: '', cellTemplate: 'recurringActions', width: '80px', align: 'right' }
+  ];
+
+  oneTimeColumns: TableColumn[] = [
+    { key: 'date', label: 'Date', cellTemplate: 'date', width: '100px' },
+    { key: 'categoryName', label: 'Category', cellTemplate: 'category' },
+    { key: 'description', label: 'Description', cellTemplate: 'description' },
+    { key: 'amount', label: 'Amount', cellTemplate: 'amount', align: 'right' },
+    { key: 'actions', label: '', cellTemplate: 'oneTimeActions', width: '50px', align: 'right' }
+  ];
 
   // Filters
   selectedCategory = '';
