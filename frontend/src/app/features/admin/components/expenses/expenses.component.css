@@ -220,10 +220,12 @@
   background: rgba(220, 38, 38, 0.08);
 }
 
-/* Remove data-table wrapper border since section-card already has one */
+/* Remove data-table wrapper border since section-card already has one, and add scroll */
 :host ::ng-deep .table-wrapper {
   border: none;
   border-radius: 0;
+  max-height: 400px;
+  overflow-y: auto;
 }
 
 /* Modal backdrop & confirm dialog */
