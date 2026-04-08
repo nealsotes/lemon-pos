@@ -56,6 +56,9 @@ public class ProductService : IProductService
         existingProduct.LowQuantityThreshold = product.LowQuantityThreshold;
         existingProduct.Image = product.Image;
         existingProduct.IsActive = product.IsActive;
+        existingProduct.HasHotCold = product.HasHotCold;
+        existingProduct.HasAddOns = product.HasAddOns;
+        existingProduct.AddOnsJson = product.AddOnsJson;
         existingProduct.UpdatedAt = DateTime.UtcNow;
 
         return await _productRepository.UpdateAsync(existingProduct);

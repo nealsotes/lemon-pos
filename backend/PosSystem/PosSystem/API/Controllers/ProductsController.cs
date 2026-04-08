@@ -110,7 +110,10 @@ public class ProductsController : ControllerBase
                 Category = productDto.Category,
                 Stock = productDto.Stock,
                 LowQuantityThreshold = productDto.LowQuantityThreshold,
-                IsActive = productDto.IsActive
+                IsActive = productDto.IsActive,
+                HasHotCold = productDto.HasHotCold,
+                HasAddOns = productDto.HasAddOns,
+                AddOns = productDto.AddOns
             };
 
                          // Handle image processing
@@ -202,6 +205,9 @@ public class ProductsController : ControllerBase
                 LowQuantityThreshold = productDto.LowQuantityThreshold,
                 Image = newImagePath,
                 IsActive = productDto.IsActive,
+                HasHotCold = productDto.HasHotCold,
+                HasAddOns = productDto.HasAddOns,
+                AddOns = productDto.AddOns,
                 CreatedAt = existingProduct.CreatedAt,
                 UpdatedAt = DateTime.UtcNow
             };

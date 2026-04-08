@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { Product } from '../../models/product.model';
 import { AddOn } from '../../../checkout/models/cart-item.model';
-import { BEVERAGE_ADD_ONS } from './add-ons-config';
 
 export interface TemperatureDialogData {
   product: Product;
@@ -22,9 +21,10 @@ export interface TemperatureDialogResult {
   template: `
     <div class="dialog-container">
       <h2 class="dialog-title">{{ data.product.name }}</h2>
-      <p class="dialog-subtitle">Select temperature</p>
-      
-      <div class="temperature-options">
+      <p class="dialog-subtitle" *ngIf="showTemperature">Select temperature</p>
+      <p class="dialog-subtitle" *ngIf="!showTemperature">Customize your order</p>
+
+      <div class="temperature-options" *ngIf="showTemperature">
         <button 
           class="temperature-btn hot-btn"
           [class.selected]="selectedTemperature === 'hot'"
@@ -385,12 +385,17 @@ export interface TemperatureDialogResult {
 export class TemperatureSelectDialogComponent {
   selectedTemperature: 'hot' | 'cold' | null = null;
   selectedAddOns: AddOn[] = [];
-  availableAddOns = BEVERAGE_ADD_ONS;
+  availableAddOns: AddOn[] = [];
 
   constructor(
     public dialogRef: MatDialogRef<TemperatureSelectDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: TemperatureDialogData
   ) {
+    // Load per-product add-ons
+    if (data.product.hasAddOns && data.product.addOns?.length) {
+      this.availableAddOns = data.product.addOns;
+    }
+
     // Auto-select if only one option available
     if (this.hasHotPrice && !this.hasColdPrice) {
       this.selectedTemperature = 'hot';
@@ -399,6 +404,10 @@ export class TemperatureSelectDialogComponent {
     } else if (!this.hasHotPrice && !this.hasColdPrice) {
       this.selectedTemperature = null;
     }
+  }
+
+  get showTemperature(): boolean {
+    return this.data.product.hasHotCold === true;
   }
 
   get hasHotPrice(): boolean {
@@ -452,27 +461,28 @@ export class TemperatureSelectDialogComponent {
 
   // Check if add-ons section can be shown
   canShowAddOns(): boolean {
-    // Always show add-ons section, but disable it until temperature is selected (when both hot and cold are available)
-    return true;
+    return this.availableAddOns.length > 0;
   }
 
   // Check if add-ons can be selected
   canSelectAddOns(): boolean {
+    // If no temperature selection needed, allow immediately
+    if (!this.showTemperature) return true;
     // If both hot and cold are available, require temperature selection first
     if (this.hasHotPrice && this.hasColdPrice) {
       return this.selectedTemperature !== null;
     }
-    // Otherwise, allow selection
     return true;
   }
 
   // Check if user can confirm (add to cart)
   canConfirm(): boolean {
+    // If no temperature selection needed, always allow
+    if (!this.showTemperature) return true;
     // If both hot and cold are available, temperature must be selected
     if (this.hasHotPrice && this.hasColdPrice) {
       return this.selectedTemperature !== null;
     }
-    // Otherwise, allow confirmation (temperature is auto-selected or not needed)
     return true;
   }
 

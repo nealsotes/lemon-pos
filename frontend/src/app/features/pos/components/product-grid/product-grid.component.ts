@@ -204,27 +204,10 @@ export class ProductGridComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Check if product is a beverage (needs temperature selection)
-    // Show temperature dialog if it's a beverage category OR has hot/cold prices set
-    const categoryLower = product.category?.toLowerCase() || '';
-    const isBeverageCategory = categoryLower === 'beverages' ||
-      categoryLower === 'beverage' ||
-      categoryLower === 'coffee' ||
-      categoryLower === 'non coffee' ||
-      categoryLower === 'drinks' ||
-      categoryLower === 'drink' ||
-      categoryLower === 'tea' ||
-      categoryLower === 'juice' ||
-      categoryLower === 'smoothie' ||
-      categoryLower === 'shake';
+    // Show dialog if product has hot/cold variants or add-ons enabled
+    const needsDialog = product.hasHotCold || product.hasAddOns;
 
-    const hasTemperaturePrices = (product.hotPrice !== undefined && product.hotPrice !== null) ||
-      (product.coldPrice !== undefined && product.coldPrice !== null);
-
-    const isBeverage = isBeverageCategory || hasTemperaturePrices;
-
-    if (isBeverage) {
-      // Show temperature selection dialog
+    if (needsDialog) {
       const dialogRef = this.dialog.open(TemperatureSelectDialogComponent, {
         width: '400px',
         data: { product: product }
@@ -232,7 +215,6 @@ export class ProductGridComponent implements OnInit, OnDestroy {
 
       dialogRef.afterClosed().subscribe((result: TemperatureDialogResult | undefined) => {
         if (result !== undefined && result !== null) {
-          // User selected a temperature and potentially add-ons
           this.cartService.addToCart(product, 1, result.temperature, result.addOns);
           if (!this.isDesktop) {
             this.openCartSidebar();
@@ -241,7 +223,6 @@ export class ProductGridComponent implements OnInit, OnDestroy {
         }
       });
     } else {
-      // Non-beverage products don't need temperature selection
       this.cartService.addToCart(product, 1, null);
       if (!this.isDesktop) {
         this.openCartSidebar();

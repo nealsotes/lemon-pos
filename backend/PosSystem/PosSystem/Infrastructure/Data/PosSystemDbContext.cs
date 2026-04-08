@@ -35,6 +35,10 @@ public class PosSystemDbContext : DbContext
             entity.Property(e => e.Category).IsRequired().HasMaxLength(50);
             entity.Property(e => e.Image).HasMaxLength(200);
             entity.Property(e => e.LowQuantityThreshold).IsRequired().HasDefaultValue(10);
+            entity.Property(e => e.HasHotCold).HasDefaultValue(false);
+            entity.Property(e => e.HasAddOns).HasDefaultValue(false);
+            entity.Property(e => e.AddOnsJson).HasColumnType("longtext").HasDefaultValue("[]");
+            entity.Ignore(e => e.AddOns);
         });
 
         // Transaction configuration

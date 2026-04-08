@@ -209,7 +209,7 @@ export class ProductManagementComponent implements OnInit {
     const dialogRef = this.dialog.open(ProductEditorDialogComponent, {
       width: '660px',
       maxWidth: '95vw',
-      data: { product, categories: this.categories },
+      data: { product, categories: this.categories, allProducts: this.products },
       disableClose: false
     });
 
@@ -273,13 +273,14 @@ export class ProductManagementComponent implements OnInit {
   }
 
   private saveProduct(formValue: any, existingProduct: Product | null): void {
-    const isBeverage = this.isBeverageCategory(formValue.category);
     const basePrice = parseFloat(formValue.price) || 0;
+    const hasHotCold = formValue.hasHotCold === true;
+    const hasAddOns = formValue.hasAddOns === true;
 
     let hotPrice: number | undefined = undefined;
     let coldPrice: number | undefined = undefined;
 
-    if (isBeverage) {
+    if (hasHotCold) {
       const hotPriceValue = formValue.hotPrice ? parseFloat(formValue.hotPrice) : null;
       const coldPriceValue = formValue.coldPrice ? parseFloat(formValue.coldPrice) : null;
 
@@ -290,6 +291,13 @@ export class ProductManagementComponent implements OnInit {
         coldPrice = coldPriceValue;
       }
     }
+
+    // Build add-ons array from form
+    const addOns = hasAddOns && formValue.addOns?.length > 0
+      ? formValue.addOns
+          .filter((a: any) => a.name && a.price > 0)
+          .map((a: any) => ({ name: a.name, price: parseFloat(a.price) || 0 }))
+      : [];
 
     const productData = {
       name: formValue.name,
@@ -304,7 +312,10 @@ export class ProductManagementComponent implements OnInit {
           ? Number(formValue.lowQuantityThreshold)
           : 10,
       image: formValue.image,
-      isActive: formValue.isActive === true || (formValue.isActive !== false && formValue.isActive !== 'false')
+      isActive: formValue.isActive === true || (formValue.isActive !== false && formValue.isActive !== 'false'),
+      hasHotCold: hasHotCold,
+      hasAddOns: hasAddOns,
+      addOns: addOns
     };
 
     if (existingProduct) {

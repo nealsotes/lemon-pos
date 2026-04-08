@@ -1,15 +1,17 @@
 import { Component, Inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, FormArray, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { Product } from '../../../pos/models/product.model';
+import { AddOn } from '../../../checkout/models/cart-item.model';
 import { ButtonComponent } from '../../../../shared/ui/button/button.component';
 
 export interface ProductEditorDialogData {
   product: Product | null;
   categories: string[];
+  allProducts?: Product[];
 }
 
 @Component({
@@ -105,15 +107,60 @@ export interface ProductEditorDialogData {
             </div>
           </div>
 
-          <!-- Beverage hot/cold prices (conditional) -->
-          <div *ngIf="isBeverageCategory(productForm.get('category')?.value)" class="form-grid form-grid-2">
-            <div class="form-group">
-              <label for="hotPrice">Hot Price</label>
-              <input type="number" id="hotPrice" formControlName="hotPrice" class="form-control" placeholder="0.00" step="0.01" min="0.01">
+          <!-- Toggle Section -->
+          <div class="toggles-section">
+            <!-- Hot/Cold Toggle (beverages only) -->
+            <div class="form-group toggle-row" *ngIf="isBeverageCategory(productForm.get('category')?.value)">
+              <label>
+                <input type="checkbox" formControlName="hasHotCold" class="form-checkbox">
+                <span>Has Hot & Cold Variants</span>
+              </label>
             </div>
-            <div class="form-group">
-              <label for="coldPrice">Iced Price</label>
-              <input type="number" id="coldPrice" formControlName="coldPrice" class="form-control" placeholder="0.00" step="0.01" min="0.01">
+
+            <!-- Hot/Cold Prices (shown when toggle is on) -->
+            <div *ngIf="productForm.get('hasHotCold')?.value && isBeverageCategory(productForm.get('category')?.value)" class="form-grid form-grid-2">
+              <div class="form-group">
+                <label for="hotPrice">Hot Price</label>
+                <input type="number" id="hotPrice" formControlName="hotPrice" class="form-control" placeholder="0.00" step="0.01" min="0.01">
+              </div>
+              <div class="form-group">
+                <label for="coldPrice">Iced Price</label>
+                <input type="number" id="coldPrice" formControlName="coldPrice" class="form-control" placeholder="0.00" step="0.01" min="0.01">
+              </div>
+            </div>
+
+            <!-- Add-Ons Toggle (all categories) -->
+            <div class="form-group toggle-row">
+              <label>
+                <input type="checkbox" formControlName="hasAddOns" class="form-checkbox">
+                <span>Has Add-Ons</span>
+              </label>
+            </div>
+
+            <!-- Add-Ons Editor (shown when toggle is on) -->
+            <div *ngIf="productForm.get('hasAddOns')?.value" class="addons-editor">
+              <div formArrayName="addOns">
+                <div *ngFor="let addOn of addOnsArray.controls; let i = index" [formGroupName]="i" class="addon-row">
+                  <input type="text" formControlName="name" class="form-control addon-name-input"
+                    placeholder="Add-on name" [attr.list]="'addonSuggestions'" autocomplete="off">
+                  <input type="number" formControlName="price" class="form-control addon-price-input"
+                    placeholder="0.00" step="0.01" min="0.01">
+                  <button type="button" class="addon-delete-btn" (click)="removeAddOn(i)" title="Remove add-on">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                      <path d="M18 6L6 18M6 6l12 12"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <datalist id="addonSuggestions">
+                <option *ngFor="let suggestion of addOnSuggestions" [value]="suggestion">
+              </datalist>
+              <button type="button" class="add-addon-btn" (click)="addAddOn()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+                  <path d="M12 5v14M5 12h14"/>
+                </svg>
+                Add Add-On
+              </button>
             </div>
           </div>
 
@@ -427,6 +474,98 @@ export interface ProductEditorDialogData {
       margin-top: 6px;
     }
 
+    /* ---------- Toggles Section ---------- */
+    .toggles-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .toggle-row label {
+      display: flex;
+      align-items: center;
+      text-transform: none;
+      letter-spacing: normal;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--text-primary);
+    }
+
+    .toggle-row .form-checkbox {
+      margin-right: 8px;
+    }
+
+    /* ---------- Add-Ons Editor ---------- */
+    .addons-editor {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 8px;
+      background: var(--bg-subtle, var(--background-secondary));
+      border: 1px solid var(--border, var(--border-color));
+      border-radius: 6px;
+    }
+
+    .addon-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .addon-name-input {
+      flex: 2;
+    }
+
+    .addon-price-input {
+      flex: 1;
+      max-width: 100px;
+    }
+
+    .addon-delete-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      background: transparent;
+      border: 1px solid var(--border, var(--border-color));
+      border-radius: 6px;
+      color: var(--text-muted);
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: all var(--transition-fast);
+    }
+
+    .addon-delete-btn:hover {
+      color: var(--danger, var(--error));
+      border-color: var(--danger, var(--error));
+      background: rgba(239, 68, 68, 0.08);
+    }
+
+    .add-addon-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: transparent;
+      border: 1px dashed var(--border, var(--border-color));
+      border-radius: 6px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 0.75rem;
+      font-weight: 600;
+      transition: all var(--transition-fast);
+    }
+
+    .add-addon-btn:hover {
+      color: var(--accent, var(--primary-color));
+      border-color: var(--accent, var(--primary-color));
+      background: rgba(var(--accent-rgb), 0.05);
+    }
+
     /* ---------- Active Toggle ---------- */
     .active-toggle {
       margin-top: 8px;
@@ -499,6 +638,7 @@ export class ProductEditorDialogComponent implements OnInit, OnDestroy {
   imagePreview: string | null = null;
   isDragOver = false;
   isProcessingImage = false;
+  addOnSuggestions: string[] = [];
 
   private destroy$ = new Subject<void>();
 
@@ -516,12 +656,28 @@ export class ProductEditorDialogComponent implements OnInit, OnDestroy {
       stock: ['', [Validators.required, Validators.min(0)]],
       lowQuantityThreshold: [10, [Validators.required, Validators.min(0)]],
       image: [''],
-      isActive: [true]
+      isActive: [true],
+      hasHotCold: [false],
+      hasAddOns: [false],
+      addOns: this.fb.array([])
     });
+
+    // Build add-on suggestions from existing products
+    if (this.data.allProducts) {
+      const names = new Set<string>();
+      this.data.allProducts.forEach(p => {
+        p.addOns?.forEach(a => names.add(a.name));
+      });
+      this.addOnSuggestions = Array.from(names).sort();
+    }
+  }
+
+  get addOnsArray(): FormArray {
+    return this.productForm.get('addOns') as FormArray;
   }
 
   ngOnInit(): void {
-    // Watch category changes for beverage price fields
+    // Watch category changes — reset hasHotCold when switching away from beverage
     this.productForm.get('category')?.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe(category => {
@@ -533,6 +689,8 @@ export class ProductEditorDialogComponent implements OnInit, OnDestroy {
           hotPriceControl?.setValidators([Validators.min(0.01)]);
           coldPriceControl?.setValidators([Validators.min(0.01)]);
         } else {
+          // Not a beverage — disable hot/cold
+          this.productForm.patchValue({ hasHotCold: false });
           hotPriceControl?.clearValidators();
           coldPriceControl?.clearValidators();
           hotPriceControl?.setValue('');
@@ -542,13 +700,43 @@ export class ProductEditorDialogComponent implements OnInit, OnDestroy {
         coldPriceControl?.updateValueAndValidity();
       });
 
+    // Watch hasHotCold toggle — clear prices when turned off
+    this.productForm.get('hasHotCold')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(hasHotCold => {
+        if (!hasHotCold) {
+          this.productForm.patchValue({ hotPrice: '', coldPrice: '' });
+        }
+      });
+
+    // Watch hasAddOns toggle — clear add-ons when turned off
+    this.productForm.get('hasAddOns')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(hasAddOns => {
+        if (!hasAddOns) {
+          this.addOnsArray.clear();
+        }
+      });
+
     // Populate form if editing
     if (this.data.product) {
       const product = this.data.product;
       const isBeverage = this.isBeverageCategory(product.category);
+      const hasHotCold = product.hasHotCold ?? (isBeverage && (!!product.hotPrice || !!product.coldPrice));
+      const hasAddOns = product.hasAddOns ?? (product.addOns && product.addOns.length > 0);
 
       if (this.isImageUrl(product.image)) {
         this.imagePreview = product.image;
+      }
+
+      // Populate add-ons FormArray
+      if (product.addOns && product.addOns.length > 0) {
+        product.addOns.forEach(addOn => {
+          this.addOnsArray.push(this.fb.group({
+            name: [addOn.name],
+            price: [addOn.price]
+          }));
+        });
       }
 
       this.productForm.patchValue({
@@ -559,8 +747,10 @@ export class ProductEditorDialogComponent implements OnInit, OnDestroy {
         lowQuantityThreshold: product.lowQuantityThreshold ?? 10,
         image: product.image,
         isActive: product.isActive ?? true,
-        hotPrice: isBeverage ? (product.hotPrice ?? '') : '',
-        coldPrice: isBeverage ? (product.coldPrice ?? '') : ''
+        hasHotCold: hasHotCold,
+        hasAddOns: hasAddOns,
+        hotPrice: hasHotCold ? (product.hotPrice ?? '') : '',
+        coldPrice: hasHotCold ? (product.coldPrice ?? '') : ''
       });
     }
   }
@@ -675,6 +865,17 @@ export class ProductEditorDialogComponent implements OnInit, OnDestroy {
   isImageUrl(image: string): boolean {
     if (!image) return false;
     return image.startsWith('data:image/') || image.startsWith('http') || image.startsWith('/uploads/') || image.startsWith('uploads/') || image.startsWith('/');
+  }
+
+  addAddOn(): void {
+    this.addOnsArray.push(this.fb.group({
+      name: [''],
+      price: ['']
+    }));
+  }
+
+  removeAddOn(index: number): void {
+    this.addOnsArray.removeAt(index);
   }
 
   save(): void {

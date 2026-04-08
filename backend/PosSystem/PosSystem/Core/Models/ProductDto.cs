@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace PosSystem.Core.Models;
 
 public class ProductDto
@@ -8,9 +10,18 @@ public class ProductDto
     public decimal? ColdPrice { get; set; }
     public string Category { get; set; } = string.Empty;
     public int Stock { get; set; }
-    public int LowQuantityThreshold { get; set; } = 10; // Default threshold
+    public int LowQuantityThreshold { get; set; } = 10;
     public string Image { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
+    public bool HasHotCold { get; set; } = false;
+    public bool HasAddOns { get; set; } = false;
+    public List<AddOnDto>? AddOns { get; set; }
+}
+
+public class AddOnDto
+{
+    public string Name { get; set; } = string.Empty;
+    public decimal Price { get; set; }
 }
 
 public class ProductImageDto
