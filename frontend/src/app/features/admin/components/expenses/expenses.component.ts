@@ -267,26 +267,6 @@ export class ExpensesComponent implements OnInit, OnDestroy {
       });
   }
 
-  onPauseRecurring(expense: ExpenseResponse): void {
-    const dto = {
-      categoryId: expense.categoryId,
-      description: expense.description,
-      amount: expense.amount,
-      date: expense.date,
-      isRecurring: true,
-      recurrenceType: expense.recurrenceType,
-      recurrenceEndDate: new Date().toISOString(),
-      notes: expense.notes
-    };
-
-    this.expenseService.updateExpense(expense.id, dto)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: () => this.loadExpenses(),
-        error: () => this.errorMessage = 'Failed to pause recurring expense'
-      });
-  }
-
   // ── Formatting ──
 
   formatCurrency(value: number): string {
