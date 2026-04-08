@@ -10,19 +10,27 @@ namespace PosSystem.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // Fix pre-existing issue: AddOn table was missing PRIMARY KEY and AUTO_INCREMENT on Id.
+            // Fix pre-existing issue: AddOn table missing PRIMARY KEY or having Id not first in PK.
             // MySQL requires AUTO_INCREMENT column to be first in the primary key.
-            // Use IF NOT EXISTS pattern: only add PK if it doesn't already exist.
             migrationBuilder.Sql(@"
-                SET @pk_exists = (SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS
-                    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'AddOn' AND CONSTRAINT_TYPE = 'PRIMARY KEY');
-                SET @sql = IF(@pk_exists = 0,
-                    'ALTER TABLE `AddOn` MODIFY `Id` int NOT NULL AUTO_INCREMENT, ADD PRIMARY KEY (`Id`, `TransactionItemTransactionId`, `TransactionItemId`)',
-                    'SELECT 1');
-                PREPARE stmt FROM @sql;
-                EXECUTE stmt;
-                DEALLOCATE PREPARE stmt;
-            ");
+DROP PROCEDURE IF EXISTS FixAddOnPK;
+", suppressTransaction: true);
+
+            migrationBuilder.Sql(@"
+CREATE PROCEDURE FixAddOnPK()
+BEGIN
+    DECLARE pk_count INT;
+    SELECT COUNT(*) INTO pk_count FROM information_schema.TABLE_CONSTRAINTS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'AddOn' AND CONSTRAINT_TYPE = 'PRIMARY KEY';
+    IF pk_count > 0 THEN
+        ALTER TABLE `AddOn` DROP PRIMARY KEY;
+    END IF;
+    ALTER TABLE `AddOn` MODIFY `Id` int NOT NULL AUTO_INCREMENT, ADD PRIMARY KEY (`Id`, `TransactionItemTransactionId`, `TransactionItemId`);
+END;
+", suppressTransaction: true);
+
+            migrationBuilder.Sql("CALL FixAddOnPK();", suppressTransaction: true);
+            migrationBuilder.Sql("DROP PROCEDURE IF EXISTS FixAddOnPK;", suppressTransaction: true);
         }
 
         /// <inheritdoc />
