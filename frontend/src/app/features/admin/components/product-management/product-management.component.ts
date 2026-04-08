@@ -51,13 +51,16 @@ export class ProductManagementComponent implements OnInit {
 
   // Table columns definition
   tableColumns: TableColumn[] = [
-    { key: 'name', label: 'Product', cellTemplate: 'product' },
-    { key: 'category', label: 'Category', cellTemplate: 'category' },
-    { key: 'price', label: 'Price', cellTemplate: 'price' },
-    { key: 'stock', label: 'Stock', cellTemplate: 'stock' },
-    { key: 'isActive', label: 'Status', cellTemplate: 'status' },
+    { key: 'name', label: 'Product', cellTemplate: 'product', sortable: true },
+    { key: 'category', label: 'Category', cellTemplate: 'category', sortable: true },
+    { key: 'price', label: 'Price', cellTemplate: 'price', sortable: true },
+    { key: 'stock', label: 'Stock', cellTemplate: 'stock', sortable: true },
+    { key: 'isActive', label: 'Status', cellTemplate: 'status', sortable: true },
     { key: 'actions', label: '', cellTemplate: 'actions', width: '100px', align: 'right' as const }
   ];
+
+  columnSortKey = '';
+  columnSortDirection: 'asc' | 'desc' = 'asc';
 
   // Sort options for filter bar
   sortOptions = [
@@ -156,6 +159,13 @@ export class ProductManagementComponent implements OnInit {
 
   onSortChange(value: string): void {
     this.sortBy = value;
+    this.columnSortKey = '';
+    this.filterProducts();
+  }
+
+  onColumnSort(event: { key: string; direction: 'asc' | 'desc' }): void {
+    this.columnSortKey = event.key;
+    this.columnSortDirection = event.direction;
     this.filterProducts();
   }
 
@@ -181,22 +191,35 @@ export class ProductManagementComponent implements OnInit {
       filtered = filtered.filter(product => product.category === this.selectedCategory);
     }
 
-    // Sort products
-    filtered.sort((a, b) => {
-      switch (this.sortBy) {
-        case 'name':
-          return a.name.localeCompare(b.name);
-        case 'price':
-          return a.price - b.price;
-        case 'stock':
-          return a.stock - b.stock;
-        case 'createdAt':
-          // Since createdAt doesn't exist in Product model, sort by name as fallback
-          return a.name.localeCompare(b.name);
-        default:
-          return 0;
-      }
-    });
+    // Sort products — column header sort takes priority over dropdown
+    if (this.columnSortKey) {
+      const key = this.columnSortKey;
+      const dir = this.columnSortDirection === 'asc' ? 1 : -1;
+      filtered.sort((a: any, b: any) => {
+        const valA = a[key];
+        const valB = b[key];
+        if (typeof valA === 'number' && typeof valB === 'number') {
+          return (valA - valB) * dir;
+        }
+        if (typeof valA === 'boolean' && typeof valB === 'boolean') {
+          return (valA === valB ? 0 : valA ? -1 : 1) * dir;
+        }
+        return String(valA || '').localeCompare(String(valB || '')) * dir;
+      });
+    } else {
+      filtered.sort((a, b) => {
+        switch (this.sortBy) {
+          case 'name':
+            return a.name.localeCompare(b.name);
+          case 'price':
+            return a.price - b.price;
+          case 'stock':
+            return a.stock - b.stock;
+          default:
+            return 0;
+        }
+      });
+    }
 
     this.filteredProducts = filtered;
   }

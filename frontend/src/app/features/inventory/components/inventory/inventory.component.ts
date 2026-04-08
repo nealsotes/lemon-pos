@@ -50,15 +50,18 @@ export class InventoryComponent implements OnInit, OnDestroy {
   searchTerm: string = '';
 
   tableColumns: TableColumn[] = [
-    { key: 'name', label: 'Ingredient', cellTemplate: 'ingredient' },
-    { key: 'quantity', label: 'On Hand', cellTemplate: 'onHand' },
-    { key: 'unitCost', label: 'Avg Unit Cost', cellTemplate: 'unitCost' },
-    { key: 'totalValue', label: 'Total Value', cellTemplate: 'totalValue' },
-    { key: 'supplier', label: 'Supplier', cellTemplate: 'supplier' },
-    { key: 'expirationDate', label: 'Expiration', cellTemplate: 'expiration' },
+    { key: 'name', label: 'Ingredient', cellTemplate: 'ingredient', sortable: true },
+    { key: 'quantity', label: 'On Hand', cellTemplate: 'onHand', sortable: true },
+    { key: 'unitCost', label: 'Avg Unit Cost', cellTemplate: 'unitCost', sortable: true },
+    { key: 'totalValue', label: 'Total Value', cellTemplate: 'totalValue', sortable: true },
+    { key: 'supplier', label: 'Supplier', cellTemplate: 'supplier', sortable: true },
+    { key: 'expirationDate', label: 'Expiration', cellTemplate: 'expiration', sortable: true },
     { key: 'status', label: 'Status', cellTemplate: 'status' },
     { key: 'actions', label: '', cellTemplate: 'actions', width: '100px', align: 'right' as const }
   ];
+
+  sortKey = '';
+  sortDirection: 'asc' | 'desc' = 'asc';
 
   calculateTotalCost(ingredient: Ingredient): number {
     return (ingredient.unitCost || 0) * ingredient.quantity;
@@ -92,11 +95,39 @@ export class InventoryComponent implements OnInit, OnDestroy {
 
   applyFilter(): void {
     const search = this.searchTerm.toLowerCase().trim();
-    this.filteredIngredients = this.ingredients.filter(ingredient =>
+    let filtered = this.ingredients.filter(ingredient =>
       ingredient.name.toLowerCase().includes(search) ||
       (ingredient.supplier && ingredient.supplier.toLowerCase().includes(search)) ||
       ingredient.unit.toLowerCase().includes(search)
     );
+
+    if (this.sortKey) {
+      const key = this.sortKey;
+      const dir = this.sortDirection === 'asc' ? 1 : -1;
+      filtered = [...filtered].sort((a: any, b: any) => {
+        let valA = key === 'totalValue' ? this.calculateTotalCost(a) : a[key];
+        let valB = key === 'totalValue' ? this.calculateTotalCost(b) : b[key];
+
+        if (valA == null) valA = '';
+        if (valB == null) valB = '';
+
+        if (typeof valA === 'number' && typeof valB === 'number') {
+          return (valA - valB) * dir;
+        }
+        if (key === 'expirationDate') {
+          return ((new Date(valA || 0).getTime()) - (new Date(valB || 0).getTime())) * dir;
+        }
+        return String(valA).localeCompare(String(valB)) * dir;
+      });
+    }
+
+    this.filteredIngredients = filtered;
+  }
+
+  onSort(event: { key: string; direction: 'asc' | 'desc' }): void {
+    this.sortKey = event.key;
+    this.sortDirection = event.direction;
+    this.applyFilter();
   }
 
   openAddForm(): void {

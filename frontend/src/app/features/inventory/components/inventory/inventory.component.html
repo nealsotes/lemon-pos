@@ -72,6 +72,7 @@
             [emptyMessage]="searchTerm ? 'No ingredients match your search' : 'Add your first ingredient to get started'"
             [emptyAction]="searchTerm ? '' : 'Add First Ingredient'"
             (rowClick)="openEditForm($event)"
+            (sortChange)="onSort($event)"
             (emptyActionClick)="openAddForm()">
 
             <ng-template cellDef="ingredient" let-row>

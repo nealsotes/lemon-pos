@@ -62,6 +62,7 @@
         [emptyAction]="searchTerm ? '' : 'Add First Product'"
         (rowClick)="editProduct($event)"
         (selectionChange)="onSelectionChange($event)"
+        (sortChange)="onColumnSort($event)"
         (emptyActionClick)="openAddProductDialog()">
 
         <ng-template cellDef="product" let-row>
