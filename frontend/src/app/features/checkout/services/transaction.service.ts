@@ -232,9 +232,7 @@ export class TransactionService {
 
   getSalesReport(startDate: Date, endDate: Date): Observable<any> {
     if (this.offlineService.isOnline$.value) {
-      const params: any = {};
-      if (startDate) params.startDate = startDate.toISOString();
-      if (endDate) params.endDate = endDate.toISOString();
+      const params = this.buildDateParams(startDate, endDate);
 
       return this.http.get<any>(`${this.apiUrl}/reports/sales`, { params }).pipe(
         catchError(error => {
@@ -249,8 +247,8 @@ export class TransactionService {
   getTopProducts(startDate?: Date, endDate?: Date, count: number = 10): Observable<any[]> {
     if (this.offlineService.isOnline$.value) {
       const params: any = { count };
-      if (startDate) params.startDate = startDate.toISOString();
-      if (endDate) params.endDate = endDate.toISOString();
+      if (startDate) params.startDate = this.toLocalDateString(startDate);
+      if (endDate) params.endDate = this.toLocalDateString(endDate);
 
       return this.http.get<any[]>(`${this.apiUrl}/reports/top-products`, { params }).pipe(
         catchError(error => {
@@ -275,66 +273,69 @@ export class TransactionService {
   }
 
   getProfitLossReport(startDate: Date, endDate: Date): Observable<any> {
-    const params: any = {};
-    if (startDate) params.startDate = startDate.toISOString();
-    if (endDate) params.endDate = endDate.toISOString();
+    const params = this.buildDateParams(startDate, endDate);
     return this.http.get<any>(`${this.apiUrl}/reports/profit-loss`, { params }).pipe(
-      catchError(() => of(null))
+      catchError((error) => {
+        console.error('P&L report error:', error);
+        return of(null);
+      })
     );
   }
 
   getInventoryValuation(startDate: Date, endDate: Date): Observable<any> {
-    const params: any = {};
-    if (startDate) params.startDate = startDate.toISOString();
-    if (endDate) params.endDate = endDate.toISOString();
+    const params = this.buildDateParams(startDate, endDate);
     return this.http.get<any>(`${this.apiUrl}/reports/inventory-valuation`, { params }).pipe(
       catchError(() => of(null))
     );
   }
 
   getAccountantSummary(startDate: Date, endDate: Date): Observable<any> {
-    const params: any = {};
-    if (startDate) params.startDate = startDate.toISOString();
-    if (endDate) params.endDate = endDate.toISOString();
+    const params = this.buildDateParams(startDate, endDate);
     return this.http.get<any>(`${this.apiUrl}/reports/accountant-summary`, { params }).pipe(
       catchError(() => of(null))
     );
   }
 
   getSupplierBreakdown(startDate: Date, endDate: Date): Observable<any> {
-    const params: any = {};
-    if (startDate) params.startDate = startDate.toISOString();
-    if (endDate) params.endDate = endDate.toISOString();
+    const params = this.buildDateParams(startDate, endDate);
     return this.http.get<any>(`${this.apiUrl}/reports/supplier-breakdown`, { params }).pipe(
       catchError(() => of(null))
     );
   }
 
   getCategoryReport(startDate: Date, endDate: Date): Observable<any> {
-    const params: any = {};
-    if (startDate) params.startDate = startDate.toISOString();
-    if (endDate) params.endDate = endDate.toISOString();
+    const params = this.buildDateParams(startDate, endDate);
     return this.http.get<any>(`${this.apiUrl}/reports/category`, { params }).pipe(
       catchError(() => of([]))
     );
   }
 
   getPeriodComparison(startDate: Date, endDate: Date): Observable<any> {
-    const params: any = {};
-    if (startDate) params.startDate = startDate.toISOString();
-    if (endDate) params.endDate = endDate.toISOString();
+    const params = this.buildDateParams(startDate, endDate);
     return this.http.get<any>(`${this.apiUrl}/reports/period-comparison`, { params }).pipe(
       catchError(() => of(null))
     );
   }
 
   getConsumption(startDate: Date, endDate: Date): Observable<any> {
-    const params: any = {};
-    if (startDate) params.startDate = startDate.toISOString();
-    if (endDate) params.endDate = endDate.toISOString();
+    const params = this.buildDateParams(startDate, endDate);
     return this.http.get<any>(`${this.apiUrl}/reports/consumption`, { params }).pipe(
       catchError(() => of(null))
     );
+  }
+
+  private toLocalDateString(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  private buildDateParams(startDate: Date, endDate: Date): any {
+    const params: any = {};
+    if (startDate) params.startDate = this.toLocalDateString(startDate);
+    if (endDate) params.endDate = this.toLocalDateString(endDate);
+    return params;
   }
 
   getRecentTransactions(count: number = 5): Observable<Transaction[]> {

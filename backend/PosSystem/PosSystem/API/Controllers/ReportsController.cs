@@ -34,28 +34,31 @@ public class ReportsController : ControllerBase
 
     [HttpGet("sales")]
     public async Task<ActionResult<object>> GetSalesReport(
-        [FromQuery] DateTime startDate, 
+        [FromQuery] DateTime startDate,
         [FromQuery] DateTime endDate)
     {
+        (startDate, endDate) = NormalizeDateRange(startDate, endDate);
         var report = await _reportingService.GetSalesReportAsync(startDate, endDate);
         return Ok(report);
     }
 
     [HttpGet("top-products")]
     public async Task<ActionResult<object>> GetTopSellingProducts(
-        [FromQuery] DateTime startDate, 
-        [FromQuery] DateTime endDate, 
+        [FromQuery] DateTime startDate,
+        [FromQuery] DateTime endDate,
         [FromQuery] int count = 10)
     {
+        (startDate, endDate) = NormalizeDateRange(startDate, endDate);
         var report = await _reportingService.GetTopSellingProductsAsync(startDate, endDate, count);
         return Ok(report);
     }
 
     [HttpGet("category")]
     public async Task<ActionResult<object>> GetCategoryReport(
-        [FromQuery] DateTime startDate, 
+        [FromQuery] DateTime startDate,
         [FromQuery] DateTime endDate)
     {
+        (startDate, endDate) = NormalizeDateRange(startDate, endDate);
         var report = await _reportingService.GetCategoryReportAsync(startDate, endDate);
         return Ok(report);
     }
@@ -72,6 +75,7 @@ public class ReportsController : ControllerBase
         [FromQuery] DateTime startDate,
         [FromQuery] DateTime endDate)
     {
+        (startDate, endDate) = NormalizeDateRange(startDate, endDate);
         var report = await _reportingService.GetProfitLossReportAsync(startDate, endDate);
         return Ok(report);
     }
@@ -81,6 +85,7 @@ public class ReportsController : ControllerBase
         [FromQuery] DateTime startDate,
         [FromQuery] DateTime endDate)
     {
+        (startDate, endDate) = NormalizeDateRange(startDate, endDate);
         var report = await _reportingService.GetInventoryValuationReportAsync(startDate, endDate);
         return Ok(report);
     }
@@ -90,6 +95,7 @@ public class ReportsController : ControllerBase
         [FromQuery] DateTime startDate,
         [FromQuery] DateTime endDate)
     {
+        (startDate, endDate) = NormalizeDateRange(startDate, endDate);
         var report = await _reportingService.GetAccountantSummaryAsync(startDate, endDate);
         return Ok(report);
     }
@@ -99,6 +105,7 @@ public class ReportsController : ControllerBase
         [FromQuery] DateTime startDate,
         [FromQuery] DateTime endDate)
     {
+        (startDate, endDate) = NormalizeDateRange(startDate, endDate);
         var report = await _reportingService.GetSupplierBreakdownAsync(startDate, endDate);
         return Ok(report);
     }
@@ -108,6 +115,7 @@ public class ReportsController : ControllerBase
         [FromQuery] DateTime startDate,
         [FromQuery] DateTime endDate)
     {
+        (startDate, endDate) = NormalizeDateRange(startDate, endDate);
         var report = await _reportingService.GetConsumptionReportAsync(startDate, endDate);
         return Ok(report);
     }
@@ -117,7 +125,18 @@ public class ReportsController : ControllerBase
         [FromQuery] DateTime startDate,
         [FromQuery] DateTime endDate)
     {
+        (startDate, endDate) = NormalizeDateRange(startDate, endDate);
         var report = await _reportingService.GetPeriodComparisonAsync(startDate, endDate);
         return Ok(report);
+    }
+
+    /// <summary>
+    /// Normalizes date range to full UTC day boundaries.
+    /// Frontend sends local-time ISO strings which shift when parsed as UTC.
+    /// This ensures all repositories query consistent date ranges.
+    /// </summary>
+    private static (DateTime start, DateTime end) NormalizeDateRange(DateTime startDate, DateTime endDate)
+    {
+        return (startDate.Date, endDate.Date.AddDays(1).AddTicks(-1));
     }
 }
