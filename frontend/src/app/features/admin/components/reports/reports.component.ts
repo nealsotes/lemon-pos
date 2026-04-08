@@ -172,7 +172,8 @@ export class ReportsComponent implements OnInit, OnDestroy {
   onStartDateChange(event: any): void {
     const dateValue = event.target.value;
     if (dateValue) {
-      this.startDate = new Date(dateValue);
+      const [y, m, d] = dateValue.split('-').map(Number);
+      this.startDate = new Date(y, m - 1, d);
       this.onDateRangeChange();
     }
   }
@@ -180,9 +181,17 @@ export class ReportsComponent implements OnInit, OnDestroy {
   onEndDateChange(event: any): void {
     const dateValue = event.target.value;
     if (dateValue) {
-      this.endDate = new Date(dateValue);
+      const [y, m, d] = dateValue.split('-').map(Number);
+      this.endDate = new Date(y, m - 1, d);
       this.onDateRangeChange();
     }
+  }
+
+  toLocalDateString(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   resetToToday(): void {

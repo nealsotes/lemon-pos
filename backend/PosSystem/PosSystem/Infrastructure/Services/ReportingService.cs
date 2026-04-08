@@ -307,14 +307,14 @@ public class ReportingService : IReportingService
                 .OrderBy(g => g.Key)
                 .ToList();
 
-            var breakdownTasks = weekGroups.Select(async g =>
+            breakdown = new List<ProfitLossPeriodDto>();
+            foreach (var g in weekGroups)
             {
                 var periodStart = g.Key;
                 var periodEnd = g.Key.AddDays(6);
                 if (periodEnd > endDate) periodEnd = endDate;
 
                 var rev = g.Sum(t => t.Total);
-                // Use movement-based COGS for this period
                 var periodCogs = allMovements
                     .Where(m => m.CreatedAt >= periodStart && m.CreatedAt <= periodEnd.AddDays(1).AddTicks(-1))
                     .Sum(m => Math.Abs(m.Quantity) * (m.UnitCost ?? 0));
@@ -326,7 +326,7 @@ public class ReportingService : IReportingService
                 var profit = rev - periodCogs;
                 var expenses = await _expenseService.GetProratedExpensesForPeriodAsync(periodStart, periodEnd, startDate, endDate);
                 var periodNetProfit = profit - expenses;
-                return new ProfitLossPeriodDto
+                breakdown.Add(new ProfitLossPeriodDto
                 {
                     Period = $"{periodStart:MMM dd} – {periodEnd:MMM dd}",
                     Revenue = rev,
@@ -336,9 +336,8 @@ public class ReportingService : IReportingService
                     Expenses = expenses,
                     NetProfit = periodNetProfit,
                     NetMarginPercent = rev > 0 ? (periodNetProfit / rev) * 100 : 0
-                };
-            });
-            breakdown = (await Task.WhenAll(breakdownTasks)).ToList();
+                });
+            }
         }
         else
         {
@@ -348,7 +347,8 @@ public class ReportingService : IReportingService
                 .OrderBy(g => g.Key)
                 .ToList();
 
-            var breakdownTasks = dayGroups.Select(async g =>
+            breakdown = new List<ProfitLossPeriodDto>();
+            foreach (var g in dayGroups)
             {
                 var dayStart = g.Key;
                 var dayEnd = g.Key.AddDays(1).AddTicks(-1);
@@ -365,7 +365,7 @@ public class ReportingService : IReportingService
                 var profit = rev - periodCogs;
                 var expenses = await _expenseService.GetProratedExpensesForPeriodAsync(dayStart, dayEnd, startDate, endDate);
                 var periodNetProfit = profit - expenses;
-                return new ProfitLossPeriodDto
+                breakdown.Add(new ProfitLossPeriodDto
                 {
                     Period = dayStart.ToString("MMM dd"),
                     Revenue = rev,
@@ -375,9 +375,8 @@ public class ReportingService : IReportingService
                     Expenses = expenses,
                     NetProfit = periodNetProfit,
                     NetMarginPercent = rev > 0 ? (periodNetProfit / rev) * 100 : 0
-                };
-            });
-            breakdown = (await Task.WhenAll(breakdownTasks)).ToList();
+                });
+            }
         }
 
         return new ProfitLossReportDto

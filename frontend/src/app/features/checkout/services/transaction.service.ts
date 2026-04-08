@@ -247,8 +247,8 @@ export class TransactionService {
   getTopProducts(startDate?: Date, endDate?: Date, count: number = 10): Observable<any[]> {
     if (this.offlineService.isOnline$.value) {
       const params: any = { count };
-      if (startDate) params.startDate = this.toLocalDateString(startDate);
-      if (endDate) params.endDate = this.toLocalDateString(endDate);
+      if (startDate) params.startDate = this.toLocalDateTimeString(startDate);
+      if (endDate) params.endDate = this.toLocalDateTimeString(endDate);
 
       return this.http.get<any[]>(`${this.apiUrl}/reports/top-products`, { params }).pipe(
         catchError(error => {
@@ -324,17 +324,17 @@ export class TransactionService {
     );
   }
 
-  private toLocalDateString(date: Date): string {
+  private toLocalDateTimeString(date: Date): string {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    return `${year}-${month}-${day}T00:00:00`;
   }
 
   private buildDateParams(startDate: Date, endDate: Date): any {
     const params: any = {};
-    if (startDate) params.startDate = this.toLocalDateString(startDate);
-    if (endDate) params.endDate = this.toLocalDateString(endDate);
+    if (startDate) params.startDate = this.toLocalDateTimeString(startDate);
+    if (endDate) params.endDate = this.toLocalDateTimeString(endDate);
     return params;
   }
 

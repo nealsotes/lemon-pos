@@ -12,12 +12,12 @@
       <div class="date-inputs">
         <div class="date-input-group">
           <label for="startDate">From</label>
-          <input type="date" id="startDate" [value]="startDate.toISOString().split('T')[0]"
+          <input type="date" id="startDate" [value]="toLocalDateString(startDate)"
             (change)="onStartDateChange($event)" class="date-input">
         </div>
         <div class="date-input-group">
           <label for="endDate">To</label>
-          <input type="date" id="endDate" [value]="endDate.toISOString().split('T')[0]"
+          <input type="date" id="endDate" [value]="toLocalDateString(endDate)"
             (change)="onEndDateChange($event)" class="date-input">
         </div>
       </div>
