@@ -68,7 +68,8 @@
         emptyIcon="💸"
         emptyTitle="No expenses"
         emptyMessage="No expenses found for this period."
-        (rowClick)="openEditModal($event)">
+        (rowClick)="openEditModal($event)"
+        (sortChange)="onSort($event)">
 
         <ng-template cellDef="date" let-row>
           <span class="cell-date">{{ formatDate(row.date) }}</span>

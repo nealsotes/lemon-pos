@@ -36,13 +36,16 @@ export class ExpensesComponent implements OnInit, OnDestroy {
   errorMessage = '';
 
   tableColumns: TableColumn[] = [
-    { key: 'date', label: 'Date', cellTemplate: 'date', width: '100px' },
-    { key: 'categoryName', label: 'Category', cellTemplate: 'category' },
-    { key: 'description', label: 'Description', cellTemplate: 'description' },
-    { key: 'isRecurring', label: 'Type', cellTemplate: 'type', width: '110px' },
-    { key: 'amount', label: 'Amount', cellTemplate: 'amount', align: 'right' },
+    { key: 'date', label: 'Date', cellTemplate: 'date', width: '100px', sortable: true },
+    { key: 'categoryName', label: 'Category', cellTemplate: 'category', sortable: true },
+    { key: 'description', label: 'Description', cellTemplate: 'description', sortable: true },
+    { key: 'isRecurring', label: 'Type', cellTemplate: 'type', width: '110px', sortable: true },
+    { key: 'amount', label: 'Amount', cellTemplate: 'amount', align: 'right', sortable: true },
     { key: 'actions', label: '', cellTemplate: 'actions', width: '100px', align: 'right' }
   ];
+
+  sortKey = '';
+  sortDirection: 'asc' | 'desc' = 'asc';
 
   // Filters
   selectedCategory = '';
@@ -167,11 +170,39 @@ export class ExpensesComponent implements OnInit, OnDestroy {
   }
 
   get allExpenses(): ExpenseResponse[] {
-    const recurring = this.recurringExpenses;
-    const oneTime = this.oneTimeExpenses;
-    return [...recurring, ...oneTime].sort((a, b) =>
-      new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
+    const combined = [...this.recurringExpenses, ...this.oneTimeExpenses];
+
+    const key = this.sortKey as keyof ExpenseResponse;
+    if (!key) {
+      return combined.sort((a, b) =>
+        new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+    }
+
+    const dir = this.sortDirection === 'asc' ? 1 : -1;
+    return combined.sort((a, b) => {
+      let valA: any = a[key];
+      let valB: any = b[key];
+
+      if (key === 'date') {
+        return (new Date(valA).getTime() - new Date(valB).getTime()) * dir;
+      }
+      if (key === 'amount') {
+        return ((valA as number) - (valB as number)) * dir;
+      }
+      if (key === 'isRecurring') {
+        return ((valA === valB) ? 0 : valA ? -1 : 1) * dir;
+      }
+
+      valA = (valA || '').toString().toLowerCase();
+      valB = (valB || '').toString().toLowerCase();
+      return valA.localeCompare(valB) * dir;
+    });
+  }
+
+  onSort(event: { key: string; direction: 'asc' | 'desc' }): void {
+    this.sortKey = event.key;
+    this.sortDirection = event.direction;
   }
 
   get totalThisPeriod(): number {
