@@ -12,15 +12,21 @@ public class ExportService : IExportService
     private readonly IReportingService _reportingService;
     private readonly ITransactionRepository _transactionRepository;
     private readonly IExpenseService _expenseService;
+    private readonly IProductService _productService;
+    private readonly IIngredientService _ingredientService;
 
     public ExportService(
         IReportingService reportingService,
         ITransactionRepository transactionRepository,
-        IExpenseService expenseService)
+        IExpenseService expenseService,
+        IProductService productService,
+        IIngredientService ingredientService)
     {
         _reportingService = reportingService;
         _transactionRepository = transactionRepository;
         _expenseService = expenseService;
+        _productService = productService;
+        _ingredientService = ingredientService;
     }
 
     public async Task<ExportResult> ExportAsync(ExportSection section, ExportFormat format, DateTime startDate, DateTime endDate)
@@ -35,7 +41,29 @@ public class ExportService : IExportService
             _ => throw new ArgumentException($"Unknown export section: {section}")
         };
 
-        var sectionName = section.ToString().ToLowerInvariant();
+        return RenderResult(workbook, section.ToString().ToLowerInvariant(), format);
+    }
+
+    public async Task<ExportResult> ExportProductsAsync(ExportFormat format)
+    {
+        var wb = await BuildProductsAsync();
+        return RenderResult(wb, "products", format);
+    }
+
+    public async Task<ExportResult> ExportIngredientsAsync(ExportFormat format)
+    {
+        var wb = await BuildIngredientsAsync();
+        return RenderResult(wb, "ingredients", format);
+    }
+
+    public async Task<ExportResult> ExportExpenseListAsync(ExportFormat format, DateTime startDate, DateTime endDate, string? categoryId)
+    {
+        var wb = await BuildExpenseListAsync(startDate, endDate, categoryId);
+        return RenderResult(wb, "expenses", format);
+    }
+
+    private static ExportResult RenderResult(SectionWorkbook workbook, string sectionName, ExportFormat format)
+    {
         var stamp = DateTime.UtcNow.ToString("yyyy-MM-dd");
 
         if (format == ExportFormat.Csv)
@@ -54,6 +82,103 @@ public class ExportService : IExportService
             FileName = $"{sectionName}_{stamp}.xlsx",
             ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         };
+    }
+
+    private async Task<SectionWorkbook> BuildProductsAsync()
+    {
+        var products = (await _productService.GetAllProductsAsync()).ToList();
+        var wb = new SectionWorkbook("Products");
+
+        var sheet = wb.AddSheet("Products");
+        sheet.AddHeader("Name", "Category", "Price", "Hot Price", "Cold Price", "Stock", "Low Stock Threshold", "Status", "Created", "Updated");
+        foreach (var p in products.OrderBy(p => p.Category).ThenBy(p => p.Name))
+        {
+            sheet.AddRow(
+                p.Name,
+                p.Category,
+                p.Price,
+                p.HotPrice,
+                p.ColdPrice,
+                p.Stock,
+                p.LowQuantityThreshold,
+                p.IsActive ? "Active" : "Inactive",
+                p.CreatedAt,
+                p.UpdatedAt);
+        }
+
+        var byCategory = products
+            .GroupBy(p => string.IsNullOrEmpty(p.Category) ? "(Uncategorized)" : p.Category)
+            .OrderBy(g => g.Key)
+            .ToList();
+        if (byCategory.Any())
+        {
+            var catSheet = wb.AddSheet("By Category");
+            catSheet.AddHeader("Category", "Items", "Active", "Total Stock", "Inventory Value");
+            foreach (var g in byCategory)
+            {
+                catSheet.AddRow(
+                    g.Key,
+                    g.Count(),
+                    g.Count(p => p.IsActive),
+                    g.Sum(p => p.Stock),
+                    g.Sum(p => p.Price * p.Stock));
+            }
+        }
+
+        return wb;
+    }
+
+    private async Task<SectionWorkbook> BuildIngredientsAsync()
+    {
+        var ingredients = (await _ingredientService.GetAllIngredientsAsync()).ToList();
+        var wb = new SectionWorkbook("Ingredients");
+
+        var sheet = wb.AddSheet("Ingredients");
+        sheet.AddHeader("Name", "Quantity", "Unit", "Unit Cost", "Total Value", "Supplier", "Low Stock Threshold", "Expiration", "Last Purchase", "Last Purchase Cost", "Status");
+        foreach (var i in ingredients.OrderBy(i => i.Name))
+        {
+            sheet.AddRow(
+                i.Name,
+                i.Quantity,
+                i.Unit,
+                i.UnitCost ?? 0m,
+                i.TotalCost,
+                i.Supplier ?? string.Empty,
+                i.LowStockThreshold,
+                i.ExpirationDate.HasValue ? i.ExpirationDate.Value.ToString("yyyy-MM-dd") : string.Empty,
+                i.LastPurchaseDate.HasValue ? i.LastPurchaseDate.Value.ToString("yyyy-MM-dd") : string.Empty,
+                i.LastPurchaseCost ?? 0m,
+                i.IsActive ? "Active" : "Inactive");
+        }
+
+        sheet.AddTotalRow("Total", null, null, null, ingredients.Sum(i => i.TotalCost), null, null, null, null, null, null);
+
+        return wb;
+    }
+
+    private async Task<SectionWorkbook> BuildExpenseListAsync(DateTime startDate, DateTime endDate, string? categoryId)
+    {
+        var expenses = (await _expenseService.GetExpensesAsync(startDate, endDate, categoryId)).ToList();
+        var wb = new SectionWorkbook("Expenses", startDate, endDate);
+
+        var sheet = wb.AddSheet("Expenses");
+        sheet.AddHeader("Date", "Category", "Description", "Amount", "Recurring", "Recurrence", "Notes", "Created By");
+        foreach (var e in expenses.OrderByDescending(x => x.Date))
+        {
+            sheet.AddRow(
+                e.Date.ToString("yyyy-MM-dd"),
+                e.CategoryName,
+                e.Description,
+                e.Amount,
+                e.IsRecurring ? "Yes" : "No",
+                e.RecurrenceType ?? string.Empty,
+                e.Notes ?? string.Empty,
+                e.CreatedBy);
+        }
+
+        sheet.AddTotalRow("Total", null, null, expenses.Sum(x => x.Amount), null, null, null, null);
+
+        return wb;
     }
 
     // ── Builders: each returns a SectionWorkbook describing the data to render ──
@@ -319,8 +444,11 @@ public class ExportService : IExportService
 
         csv.WriteField(wb.Title);
         csv.NextRecord();
-        csv.WriteField($"Date Range: {wb.StartDate:yyyy-MM-dd} to {wb.EndDate:yyyy-MM-dd}");
-        csv.NextRecord();
+        if (wb.HasDateRange)
+        {
+            csv.WriteField($"Date Range: {wb.StartDate:yyyy-MM-dd} to {wb.EndDate:yyyy-MM-dd}");
+            csv.NextRecord();
+        }
         csv.WriteField($"Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
         csv.NextRecord();
         csv.NextRecord();
@@ -371,9 +499,12 @@ public class ExportService : IExportService
             ws.Cell(row, 1).Style.Font.Bold = true;
             ws.Cell(row, 1).Style.Font.FontSize = 14;
             row++;
-            ws.Cell(row, 1).Value = $"Date Range: {wb.StartDate:yyyy-MM-dd} to {wb.EndDate:yyyy-MM-dd}";
-            ws.Cell(row, 1).Style.Font.Italic = true;
-            row++;
+            if (wb.HasDateRange)
+            {
+                ws.Cell(row, 1).Value = $"Date Range: {wb.StartDate:yyyy-MM-dd} to {wb.EndDate:yyyy-MM-dd}";
+                ws.Cell(row, 1).Style.Font.Italic = true;
+                row++;
+            }
             ws.Cell(row, 1).Value = $"Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC";
             ws.Cell(row, 1).Style.Font.Italic = true;
             row += 2;
@@ -494,6 +625,7 @@ internal class SectionWorkbook
     public string Title { get; }
     public DateTime StartDate { get; }
     public DateTime EndDate { get; }
+    public bool HasDateRange { get; }
     public List<SectionSheet> Sheets { get; } = new();
 
     public SectionWorkbook(string title, DateTime startDate, DateTime endDate)
@@ -501,6 +633,15 @@ internal class SectionWorkbook
         Title = title;
         StartDate = startDate;
         EndDate = endDate;
+        HasDateRange = true;
+    }
+
+    public SectionWorkbook(string title)
+    {
+        Title = title;
+        StartDate = DateTime.MinValue;
+        EndDate = DateTime.MinValue;
+        HasDateRange = false;
     }
 
     public SectionSheet AddSheet(string name)

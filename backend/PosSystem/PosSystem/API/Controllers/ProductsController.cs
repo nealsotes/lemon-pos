@@ -13,11 +13,13 @@ public class ProductsController : ControllerBase
 {
     private readonly IProductService _productService;
     private readonly IFileService _fileService;
+    private readonly IExportService _exportService;
 
-    public ProductsController(IProductService productService, IFileService fileService)
+    public ProductsController(IProductService productService, IFileService fileService, IExportService exportService)
     {
         _productService = productService;
         _fileService = fileService;
+        _exportService = exportService;
     }
 
     [HttpGet]
@@ -290,6 +292,19 @@ public class ProductsController : ControllerBase
     {
         var categories = await _productService.GetCategoriesAsync();
         return Ok(categories);
+    }
+
+    [HttpGet("export")]
+    [Authorize(Roles = "Owner,Admin")]
+    public async Task<IActionResult> ExportProductsAsync([FromQuery] string format = "xlsx")
+    {
+        if (!Enum.TryParse<ExportFormat>(format, ignoreCase: true, out var parsedFormat))
+        {
+            return BadRequest($"Invalid format '{format}'. Allowed: csv, xlsx.");
+        }
+
+        var result = await _exportService.ExportProductsAsync(parsedFormat);
+        return File(result.Content, result.ContentType, result.FileName);
     }
 
     [HttpGet("category/{category}")]

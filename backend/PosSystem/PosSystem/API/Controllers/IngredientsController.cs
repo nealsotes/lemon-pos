@@ -12,11 +12,25 @@ public class IngredientsController : ControllerBase
 {
     private readonly IIngredientService _ingredientService;
     private readonly IIngredientLotService _lotService;
+    private readonly IExportService _exportService;
 
-    public IngredientsController(IIngredientService ingredientService, IIngredientLotService lotService)
+    public IngredientsController(IIngredientService ingredientService, IIngredientLotService lotService, IExportService exportService)
     {
         _ingredientService = ingredientService;
         _lotService = lotService;
+        _exportService = exportService;
+    }
+
+    [HttpGet("export")]
+    public async Task<IActionResult> ExportIngredientsAsync([FromQuery] string format = "xlsx")
+    {
+        if (!Enum.TryParse<ExportFormat>(format, ignoreCase: true, out var parsedFormat))
+        {
+            return BadRequest($"Invalid format '{format}'. Allowed: csv, xlsx.");
+        }
+
+        var result = await _exportService.ExportIngredientsAsync(parsedFormat);
+        return File(result.Content, result.ContentType, result.FileName);
     }
 
     [HttpGet]

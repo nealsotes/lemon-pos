@@ -1,7 +1,9 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { environment } from '../../../../../environments/environment.prod';
 import { Ingredient } from '../../../pos/models/ingredient.model';
 import { IngredientService } from '../../../pos/services/ingredient.service';
 import { StockMovementHistoryComponent } from './stock-movement-history.component';
@@ -45,6 +47,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
   ingredients: Ingredient[] = [];
   filteredIngredients: Ingredient[] = [];
   isLoading = true;
+  isExporting = false;
 
   activeTab: 'ingredients' | 'recipes' = 'ingredients';
   searchTerm: string = '';
@@ -71,7 +74,8 @@ export class InventoryComponent implements OnInit, OnDestroy {
     private ingredientService: IngredientService,
     private toast: ToastService,
     private confirmDialog: ConfirmDialogService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private http: HttpClient
   ) { }
 
   ngOnInit(): void {
@@ -345,6 +349,50 @@ export class InventoryComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  exportIngredients(): void {
+    if (this.isExporting) return;
+    this.isExporting = true;
+
+    this.http.get(`${environment.apiUrl}/ingredients/export?format=xlsx`, { responseType: 'blob', observe: 'response' })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: response => {
+          const blob = response.body;
+          if (!blob) {
+            this.toast.error('Export returned no content.');
+            this.isExporting = false;
+            return;
+          }
+          const fallbackName = `ingredients_${new Date().toISOString().split('T')[0]}.xlsx`;
+          const filename = this.extractFilename(response.headers.get('content-disposition')) ?? fallbackName;
+          this.triggerDownload(blob, filename);
+          this.toast.success('Ingredients export ready.');
+          this.isExporting = false;
+        },
+        error: () => {
+          this.toast.error('Export failed. Please try again.');
+          this.isExporting = false;
+        }
+      });
+  }
+
+  private extractFilename(contentDisposition: string | null): string | null {
+    if (!contentDisposition) return null;
+    const match = /filename\*?=(?:UTF-8''|")?([^";]+)/i.exec(contentDisposition);
+    return match ? decodeURIComponent(match[1].replace(/"/g, '')) : null;
+  }
+
+  private triggerDownload(blob: Blob, filename: string): void {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
   }
 }
 

@@ -1,9 +1,12 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { Subject, Subscription, takeUntil } from 'rxjs';
 
+import { environment } from '../../../../../environments/environment.prod';
 import { ExpenseService, ExpenseCategory, ExpenseResponse } from '../../../../core/services/expense.service';
+import { ToastService } from '../../../../shared/ui/toast/toast.service';
 import { TopBarComponent } from '../../../../shared/ui/top-bar/top-bar.component';
 import { ButtonComponent } from '../../../../shared/ui/button/button.component';
 import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/loading-spinner.component';
@@ -33,6 +36,7 @@ export class ExpensesComponent implements OnInit, OnDestroy {
   expenses: ExpenseResponse[] = [];
   categories: ExpenseCategory[] = [];
   isLoading = false;
+  isExporting = false;
   errorMessage = '';
 
   tableColumns: TableColumn[] = [
@@ -65,7 +69,11 @@ export class ExpensesComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private loadSub?: Subscription;
 
-  constructor(private expenseService: ExpenseService) {}
+  constructor(
+    private expenseService: ExpenseService,
+    private http: HttpClient,
+    private toast: ToastService
+  ) {}
 
   ngOnInit(): void {
     this.setDatePreset('thisMonth');
@@ -284,5 +292,63 @@ export class ExpensesComponent implements OnInit, OnDestroy {
       case 'yearly': return 'Yearly';
       default: return 'Monthly';
     }
+  }
+
+  exportExpenses(): void {
+    if (this.isExporting) return;
+    this.isExporting = true;
+
+    const params = new URLSearchParams({
+      format: 'xlsx',
+      startDate: this.toIsoNoTz(this.startDate),
+      endDate: this.toIsoNoTz(this.endDate)
+    });
+    if (this.selectedCategory) {
+      params.set('categoryId', this.selectedCategory);
+    }
+
+    this.http.get(`${environment.apiUrl}/expenses/export?${params.toString()}`, { responseType: 'blob', observe: 'response' })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: response => {
+          const blob = response.body;
+          if (!blob) {
+            this.toast.error('Export returned no content.');
+            this.isExporting = false;
+            return;
+          }
+          const fallbackName = `expenses_${new Date().toISOString().split('T')[0]}.xlsx`;
+          const filename = this.extractFilename(response.headers.get('content-disposition')) ?? fallbackName;
+          this.triggerDownload(blob, filename);
+          this.toast.success('Expenses export ready.');
+          this.isExporting = false;
+        },
+        error: () => {
+          this.toast.error('Export failed. Please try again.');
+          this.isExporting = false;
+        }
+      });
+  }
+
+  private toIsoNoTz(date: Date): string {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+  }
+
+  private extractFilename(contentDisposition: string | null): string | null {
+    if (!contentDisposition) return null;
+    const match = /filename\*?=(?:UTF-8''|")?([^";]+)/i.exec(contentDisposition);
+    return match ? decodeURIComponent(match[1].replace(/"/g, '')) : null;
+  }
+
+  private triggerDownload(blob: Blob, filename: string): void {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
   }
 }

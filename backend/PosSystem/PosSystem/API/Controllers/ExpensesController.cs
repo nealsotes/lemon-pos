@@ -12,10 +12,31 @@ namespace PosSystem.API.Controllers;
 public class ExpensesController : ControllerBase
 {
     private readonly IExpenseService _expenseService;
+    private readonly IExportService _exportService;
 
-    public ExpensesController(IExpenseService expenseService)
+    public ExpensesController(IExpenseService expenseService, IExportService exportService)
     {
         _expenseService = expenseService;
+        _exportService = exportService;
+    }
+
+    [HttpGet("export")]
+    public async Task<IActionResult> ExportExpensesAsync(
+        [FromQuery] string format = "xlsx",
+        [FromQuery] DateTime? startDate = null,
+        [FromQuery] DateTime? endDate = null,
+        [FromQuery] string? categoryId = null)
+    {
+        if (!Enum.TryParse<ExportFormat>(format, ignoreCase: true, out var parsedFormat))
+        {
+            return BadRequest($"Invalid format '{format}'. Allowed: csv, xlsx.");
+        }
+
+        var start = (startDate ?? DateTime.UtcNow.Date.AddDays(-30)).Date;
+        var end = (endDate ?? DateTime.UtcNow.Date).Date.AddDays(1).AddTicks(-1);
+
+        var result = await _exportService.ExportExpenseListAsync(parsedFormat, start, end, categoryId);
+        return File(result.Content, result.ContentType, result.FileName);
     }
 
     [HttpGet]

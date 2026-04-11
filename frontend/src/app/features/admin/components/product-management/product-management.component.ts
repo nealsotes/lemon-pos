@@ -1,6 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { environment } from '../../../../../environments/environment.prod';
 import { Product } from '../../../pos/models/product.model';
 import { ProductService } from '../../../pos/services/product.service';
 import { ProductEditorDialogComponent } from './product-editor-dialog.component';
@@ -16,6 +18,8 @@ import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/l
 import { ButtonComponent } from '../../../../shared/ui/button/button.component';
 import { ToastService } from '../../../../shared/ui/toast/toast.service';
 import { ConfirmDialogService } from '../../../../shared/ui/confirm-dialog/confirm-dialog.service';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 
 @Component({
   selector: 'app-product-management',
@@ -37,11 +41,13 @@ import { ConfirmDialogService } from '../../../../shared/ui/confirm-dialog/confi
   templateUrl: './product-management.component.html',
   styleUrls: ['./product-management.component.css']
 })
-export class ProductManagementComponent implements OnInit {
+export class ProductManagementComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   products: Product[] = [];
   filteredProducts: Product[] = [];
   categories: string[] = [];
   isLoading = true;
+  isExporting = false;
   selectedProducts: Product[] = [];
 
   // Filter and search properties
@@ -73,7 +79,8 @@ export class ProductManagementComponent implements OnInit {
     private productService: ProductService,
     private toast: ToastService,
     private confirmService: ConfirmDialogService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private http: HttpClient
   ) {}
 
   ngOnInit(): void {
@@ -81,8 +88,13 @@ export class ProductManagementComponent implements OnInit {
     this.loadCategories();
   }
 
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
   private loadProducts(): void {
-    this.productService.getProducts().subscribe(products => {
+    this.productService.getProducts().pipe(takeUntil(this.destroy$)).subscribe(products => {
       this.products = products;
       this.filteredProducts = products;
       this.isLoading = false;
@@ -90,7 +102,7 @@ export class ProductManagementComponent implements OnInit {
   }
 
   private loadCategories(): void {
-    this.productService.getCategories().subscribe(categories => {
+    this.productService.getCategories().pipe(takeUntil(this.destroy$)).subscribe(categories => {
       this.categories = categories;
     });
   }
@@ -382,5 +394,49 @@ export class ProductManagementComponent implements OnInit {
     this.productService.refreshData();
     this.loadProducts();
     this.loadCategories();
+  }
+
+  exportProducts(): void {
+    if (this.isExporting) return;
+    this.isExporting = true;
+
+    this.http.get(`${environment.apiUrl}/products/export?format=xlsx`, { responseType: 'blob', observe: 'response' })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: response => {
+          const blob = response.body;
+          if (!blob) {
+            this.toast.error('Export returned no content.');
+            this.isExporting = false;
+            return;
+          }
+          const fallbackName = `products_${new Date().toISOString().split('T')[0]}.xlsx`;
+          const filename = this.extractFilename(response.headers.get('content-disposition')) ?? fallbackName;
+          this.triggerDownload(blob, filename);
+          this.toast.success('Products export ready.');
+          this.isExporting = false;
+        },
+        error: () => {
+          this.toast.error('Export failed. Please try again.');
+          this.isExporting = false;
+        }
+      });
+  }
+
+  private extractFilename(contentDisposition: string | null): string | null {
+    if (!contentDisposition) return null;
+    const match = /filename\*?=(?:UTF-8''|")?([^";]+)/i.exec(contentDisposition);
+    return match ? decodeURIComponent(match[1].replace(/"/g, '')) : null;
+  }
+
+  private triggerDownload(blob: Blob, filename: string): void {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
   }
 }
