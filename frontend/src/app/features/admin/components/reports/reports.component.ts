@@ -1,7 +1,9 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
+import { environment } from '../../../../../environments/environment.prod';
 import { Transaction } from '../../../checkout/models/transaction.model';
 import { Product } from '../../../pos/models/product.model';
 import { TransactionService } from '../../../checkout/services/transaction.service';
@@ -9,6 +11,7 @@ import { ProductService } from '../../../pos/services/product.service';
 import { IngredientService } from '../../../pos/services/ingredient.service';
 import { StockMovementService } from '../../../inventory/services/stock-movement.service';
 import { ThermalPrinterService } from '../../../checkout/services/thermal-printer.service';
+import { ExpenseModalComponent } from '../expense-modal/expense-modal.component';
 import { TopBarComponent } from '../../../../shared/ui/top-bar/top-bar.component';
 import { ToastService } from '../../../../shared/ui/toast/toast.service';
 import { KpiStripComponent, KpiItem } from '../../../../shared/ui/kpi-strip/kpi-strip.component';
@@ -16,13 +19,17 @@ import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/l
 import { ButtonComponent } from '../../../../shared/ui/button/button.component';
 import { BadgeComponent } from '../../../../shared/ui/badge/badge.component';
 import { FilterBarComponent } from '../../../../shared/ui/filter-bar/filter-bar.component';
-import { ExpenseModalComponent } from '../expense-modal/expense-modal.component';
+import { DataTableComponent, TableColumn } from '../../../../shared/ui/data-table/data-table.component';
+import { CellDefDirective } from '../../../../shared/ui/data-table/cell-def.directive';
+import { NgxChartsModule, ScaleType, Color } from '@swimlane/ngx-charts';
+import { curveMonotoneX } from 'd3-shape';
 import { Subject, firstValueFrom } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 
 @Component({
   selector: 'app-reports',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, TopBarComponent, KpiStripComponent, LoadingSpinnerComponent, ButtonComponent, BadgeComponent, FilterBarComponent, ExpenseModalComponent],
+  imports: [CommonModule, RouterModule, FormsModule, TopBarComponent, KpiStripComponent, LoadingSpinnerComponent, ButtonComponent, BadgeComponent, FilterBarComponent, ExpenseModalComponent, NgxChartsModule, DataTableComponent, CellDefDirective],
   templateUrl: './reports.component.html',
   styleUrls: ['./reports.component.css']
 })
@@ -38,6 +45,7 @@ export class ReportsComponent implements OnInit, OnDestroy {
   products: Product[] = [];
   errorMessage: string = '';
   isLoading: boolean = false;
+  exportingKey: string | null = null;
 
   // Properties for date range and sales data
   startDate: Date = new Date();
@@ -50,6 +58,56 @@ export class ReportsComponent implements OnInit, OnDestroy {
   salesTrendData: any[] = [];
   chartData: any[] = [];
   trendPeriod: string = '7d'; // 7d, 30d, 90d
+
+  // ngx-charts configuration
+  ngxChartData: { name: string; series: { name: string; value: number; extra?: any }[] }[] = [];
+  readonly chartCurve = curveMonotoneX;
+  readonly chartColorScheme: Color = {
+    name: 'quickserve',
+    selectable: true,
+    group: ScaleType.Ordinal,
+    domain: ['#3b82f6', '#10b981']
+  };
+  readonly chartGradient = true;
+
+  // Profit Snapshot table
+  readonly profitColumns: TableColumn[] = [
+    { key: 'metric', label: 'Metric', cellTemplate: 'metric' },
+    { key: 'amount', label: 'Amount', cellTemplate: 'amount', align: 'right', width: '140px' }
+  ];
+
+  // Quick Stats table
+  readonly quickStatsColumns: TableColumn[] = [
+    { key: 'metric', label: 'Metric', cellTemplate: 'metric' },
+    { key: 'value', label: 'Value', cellTemplate: 'value', align: 'right', width: '140px' }
+  ];
+
+  get profitRows(): Array<{ id: string; metric: string; amount: number; type: 'revenue' | 'cogs' | 'profit' | 'expenses' | 'net'; tooltip?: string }> {
+    if (!this.profitLossData) return [];
+    const totalExpenses = this.profitLossData.totalExpenses || 0;
+    const netIncome = this.profitLossData.netProfit ?? (this.profitLossData.grossProfit - totalExpenses);
+    return [
+      { id: 'revenue', metric: 'Revenue', amount: this.profitLossData.grossRevenue, type: 'revenue' },
+      { id: 'cogs', metric: 'Cost of Goods', amount: this.profitLossData.cogs, type: 'cogs', tooltip: this.METRIC_TOOLTIPS['costOfGoods'] },
+      { id: 'profit', metric: 'Gross Profit', amount: this.profitLossData.grossProfit, type: 'profit' },
+      { id: 'expenses', metric: 'Expenses', amount: totalExpenses, type: 'expenses' },
+      { id: 'net', metric: 'Net Income', amount: netIncome, type: 'net' }
+    ];
+  }
+
+  get quickStatsRows(): Array<{ id: string; metric: string; value: string; accent?: boolean }> {
+    const rows: Array<{ id: string; metric: string; value: string; accent?: boolean }> = [];
+    rows.push({ id: 'best-seller', metric: 'Best Seller', value: this.getTopProductName() });
+    if (this.categoryBreakdown.length > 0) {
+      rows.push({ id: 'top-category', metric: 'Top Category', value: this.categoryBreakdown[0].category });
+    }
+    for (const p of this.paymentBreakdown) {
+      const label = p.method === 'cash' ? 'Cash' : p.method === 'gcash' ? 'GCash' : p.method;
+      const pct = Math.round(this.getPaymentPercent(p.total));
+      rows.push({ id: `pay-${p.method}`, metric: label, value: `${pct}%` });
+    }
+    return rows;
+  }
 
   // All-time product sales (no date filtering)
   allTimeProductSales: any[] = [];
@@ -86,7 +144,7 @@ export class ReportsComponent implements OnInit, OnDestroy {
   ingredientsMap: Map<string, { name: string; unit: string }> = new Map();
 
   // Tab navigation
-  activeTab: 'dashboard' | 'sales' | 'pnl' | 'inventory' | 'export' = 'dashboard';
+  activeTab: 'dashboard' | 'sales' | 'pnl' | 'inventory' = 'dashboard';
 
   // Inventory tab collapsible sections
   inventoryExpanded: Record<string, boolean> = {
@@ -128,7 +186,8 @@ export class ReportsComponent implements OnInit, OnDestroy {
     private ingredientService: IngredientService,
     private stockMovementService: StockMovementService,
     private thermalPrinter: ThermalPrinterService,
-    private toast: ToastService
+    private toast: ToastService,
+    private http: HttpClient
   ) {
     this.initializeDateRange();
   }
@@ -251,21 +310,35 @@ export class ReportsComponent implements OnInit, OnDestroy {
   private processChartData(): void {
     if (!this.salesTrendData || this.salesTrendData.length === 0) {
       this.chartData = [];
+      this.ngxChartData = [];
       return;
     }
 
-    // Process daily sales data for chart
     this.chartData = this.salesTrendData.map((day: any, index: number) => ({
       date: new Date(day.date),
       sales: day.totalSales || 0,
       transactions: day.transactionCount || 0,
       formattedDate: this.formatChartDate(new Date(day.date)),
-      color: this.getBarColor(index) // Add color property
+      color: this.getBarColor(index)
     }));
 
-    // Sort by date
     this.chartData.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+    this.ngxChartData = [
+      {
+        name: 'Revenue',
+        series: this.chartData.map(d => ({
+          name: d.formattedDate,
+          value: d.sales,
+          extra: { transactions: d.transactions, date: d.date }
+        }))
+      }
+    ];
   }
+
+  formatYAxisTick = (value: number): string => {
+    return this.formatCompact(value);
+  };
 
   private formatChartDate(date: Date): string {
     if (this.trendPeriod === '7d') {
@@ -1140,268 +1213,66 @@ export class ReportsComponent implements OnInit, OnDestroy {
     return Math.max(...data, 1);
   }
 
-  // --- Per-section export ---
-  exportSection(section: 'full' | 'sales' | 'pnl' | 'inventory' | 'expenses', format: 'csv' | 'excel'): void {
-    try {
-      let csvContent = '';
-      const dateLabel = this.getDateRangeLabel();
-
-      switch (section) {
-        case 'full':
-          this.exportData(format);
-          return;
-        case 'sales':
-          csvContent = this.buildSalesCSV(dateLabel);
-          break;
-        case 'pnl':
-          csvContent = this.buildPnlCSV(dateLabel);
-          break;
-        case 'inventory':
-          csvContent = this.buildInventoryCSV(dateLabel);
-          break;
-      }
-
-      if (format === 'csv') {
-        this.downloadFile(csvContent, `${section}_${this.getExportDate()}.csv`, 'text/csv');
-      } else {
-        const html = `<html><head><meta charset="utf-8"></head><body><pre>${csvContent}</pre></body></html>`;
-        this.downloadFile(html, `${section}_${this.getExportDate()}.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      }
-      this.toast.success(`${section.toUpperCase()} export completed!`);
-    } catch (error) {
-      this.toast.error('Export failed. Please try again.');
+  canExportCurrentTab(): boolean {
+    switch (this.activeTab) {
+      case 'pnl': return !!this.profitLossData;
+      case 'inventory': return !!this.inventoryData;
+      default: return this.hasData();
     }
   }
 
-  private buildSalesCSV(dateLabel: string): string {
-    let csv = `Sales Detail Report\nDate Range,${dateLabel}\nGenerated,${new Date().toLocaleString('en-PH')}\n\n`;
-    csv += 'TRANSACTIONS\nID,Timestamp,Items,Total,Status\n';
-    this.recentTransactions.forEach(t => {
-      csv += `${t.id},${this.formatDateTime(t.timestamp)},${t.items.length},${t.total},${t.status}\n`;
+  exportCurrentTab(): void {
+    if (this.exportingKey) return;
+    const section = this.activeTab === 'dashboard' ? 'full' : this.activeTab;
+    this.exportingKey = `${section}:xlsx`;
+
+    const start = new Date(this.startDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(this.endDate);
+    end.setHours(23, 59, 59, 999);
+
+    const params = new URLSearchParams({
+      section,
+      format: 'xlsx',
+      startDate: this.toIsoNoTz(start),
+      endDate: this.toIsoNoTz(end)
     });
-    csv += '\nTOP PRODUCTS\nRank,Name,Category,Sales,Quantity\n';
-    this.topProducts.forEach((p, i) => {
-      csv += `${i + 1},${p.name},${p.category},${p.sales},${p.quantity}\n`;
-    });
-    return csv;
-  }
 
-  private buildPnlCSV(dateLabel: string): string {
-    let csv = `Profit & Loss Report\nDate Range,${dateLabel}\n\n`;
-    if (this.profitLossData) {
-      csv += `Gross Revenue,${this.profitLossData.grossRevenue}\nTotal Discounts,${this.profitLossData.totalDiscounts || 0}\nNet Revenue,${this.profitLossData.netRevenue || this.profitLossData.grossRevenue}\nCost of Goods,${this.profitLossData.cogs}\nGross Profit,${this.profitLossData.grossProfit}\nMargin %,${this.profitLossData.marginPercent}\n`;
-      if (this.profitLossData.breakdown?.length) {
-        csv += '\nPERIOD BREAKDOWN\nPeriod,Revenue,Cost of Goods,Profit,Margin %\n';
-        this.profitLossData.breakdown.forEach((r: any) => {
-          csv += `${r.period},${r.revenue},${r.cogs},${r.grossProfit},${r.marginPercent}\n`;
-        });
-      }
-    }
-    return csv;
-  }
-
-  private buildInventoryCSV(dateLabel: string): string {
-    let csv = `Inventory & Stock Report\nDate Range,${dateLabel}\n\n`;
-    if (this.inventoryData) {
-      csv += `Total Value,${this.inventoryData.totalValue}\nPeriod Change,${this.inventoryData.periodChange}\nWaste,${this.inventoryData.wasteAndShrinkage}\nLow Stock Count,${this.inventoryData.lowStockCount}\n`;
-    }
-    if (this.consumptionData?.items?.length) {
-      csv += '\nCONSUMPTION\nIngredient,Qty Used,Unit,Cost,% of Total,Avg Daily\n';
-      this.consumptionData.items.forEach((item: any) => {
-        csv += `${item.ingredientName},${item.qtyUsed},${item.unit},${item.costConsumed},${item.percentOfTotal},${item.avgDaily}\n`;
-      });
-    }
-    if (this.supplierData?.supplierSummary?.length) {
-      csv += '\nSUPPLIER SPEND\nSupplier,Purchases,Total Spent,Avg/Purchase\n';
-      this.supplierData.supplierSummary.forEach((s: any) => {
-        csv += `${s.supplier},${s.purchaseCount},${s.totalSpent},${s.avgCostPerPurchase}\n`;
-      });
-    }
-    return csv;
-  }
-
-  // Export functionality
-  exportData(format: 'csv' | 'excel' | 'pdf'): void {
-    try {
-      switch (format) {
-        case 'csv':
-          this.exportToCSV();
-          break;
-        case 'excel':
-          this.exportToExcel();
-          break;
-        case 'pdf':
-          this.exportToPDF();
-          break;
-      }
-    } catch (error) {
-      this.toast.error(`Failed to export to ${format.toUpperCase()}. Please try again.`);
-    }
-  }
-
-  private exportToCSV(): void {
-    const data = this.prepareExportData();
-    const csvContent = this.convertToCSV(data);
-    this.downloadFile(csvContent, `reports_${this.getExportDate()}.csv`, 'text/csv');
-    this.toast.success('CSV export completed successfully!');
-  }
-
-  private exportToExcel(): void {
-    const data = this.prepareExportData();
-    const excelContent = this.convertToExcel(data);
-    this.downloadFile(excelContent, `reports_${this.getExportDate()}.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    this.toast.success('Excel export completed successfully!');
-  }
-
-  private exportToPDF(): void {
-    const data = this.prepareExportData();
-    this.generatePDF(data);
-  }
-
-  private prepareExportData(): any {
-    const exportData = {
-      reportInfo: {
-        title: this.isCustomDateRange ? 'Custom Date Range Report' : 'Today\'s Report',
-        dateRange: this.getDateRangeLabel(),
-        generatedAt: new Date().toLocaleString('en-PH'),
-        summary: {
-          totalSales: this.getTotalSales(),
-          transactionCount: this.getTransactionCount(),
-          averageTransactionValue: this.getAverageTransactionValue()
+    this.http.get(`${environment.apiUrl}/reports/export?${params.toString()}`, { responseType: 'blob', observe: 'response' })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: response => {
+          const blob = response.body;
+          if (!blob) {
+            this.toast.error('Export returned no content.');
+            this.exportingKey = null;
+            return;
+          }
+          const fallbackName = `${section}_${new Date().toISOString().split('T')[0]}.xlsx`;
+          const filename = this.extractFilename(response.headers.get('content-disposition')) ?? fallbackName;
+          this.triggerDownload(blob, filename);
+          this.toast.success(`${section.toUpperCase()} export ready.`);
+          this.exportingKey = null;
+        },
+        error: () => {
+          this.toast.error('Export failed. Please try again.');
+          this.exportingKey = null;
         }
-      },
-      salesTrend: this.chartData.map((item, index) => ({
-        date: item.formattedDate,
-        sales: item.sales,
-        transactions: item.transactions,
-        color: this.getBarColor(index)
-      })),
-      topProducts: this.topProducts.map((product, index) => ({
-        rank: index + 1,
-        name: product.name,
-        category: product.category,
-        sales: product.sales,
-        quantity: product.quantity
-      })),
-      recentTransactions: this.recentTransactions.map(transaction => ({
-        id: transaction.id,
-        timestamp: this.formatDateTime(transaction.timestamp),
-        items: transaction.items.length,
-        total: transaction.total,
-        status: transaction.status
-      }))
-    };
-
-    return exportData;
+      });
   }
 
-  private convertToCSV(data: any): string {
-    let csv = 'Report Data\n\n';
-
-    // Summary Section
-    csv += 'SUMMARY\n';
-    csv += 'Title,' + data.reportInfo.title + '\n';
-    csv += 'Date Range,' + data.reportInfo.dateRange + '\n';
-    csv += 'Generated At,' + data.reportInfo.generatedAt + '\n';
-    csv += 'Total Sales,' + data.reportInfo.summary.totalSales + '\n';
-    csv += 'Transaction Count,' + data.reportInfo.summary.transactionCount + '\n';
-    csv += 'Average Transaction Value,' + data.reportInfo.summary.averageTransactionValue + '\n\n';
-
-    // Sales Trend Section
-    csv += 'SALES TREND\n';
-    csv += 'Date,Sales,Transactions\n';
-    data.salesTrend.forEach((item: any) => {
-      csv += `${item.date},${item.sales},${item.transactions}\n`;
-    });
-    csv += '\n';
-
-    // Top Products Section
-    csv += 'TOP PRODUCTS\n';
-    csv += 'Rank,Name,Category,Sales,Quantity\n';
-    data.topProducts.forEach((product: any) => {
-      csv += `${product.rank},${product.name},${product.category},${product.sales},${product.quantity}\n`;
-    });
-    csv += '\n';
-
-    // Recent Transactions Section
-    csv += 'RECENT TRANSACTIONS\n';
-    csv += 'ID,Timestamp,Items,Total,Status\n';
-    data.recentTransactions.forEach((transaction: any) => {
-      csv += `${transaction.id},${transaction.timestamp},${transaction.items},${transaction.total},${transaction.status}\n`;
-    });
-
-    return csv;
+  private toIsoNoTz(date: Date): string {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
   }
 
-  private convertToExcel(data: any): string {
-    // For now, we'll create a simple HTML table that can be opened in Excel
-    // In a production app, you'd use a library like SheetJS or similar
-    let html = `
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <title>Reports Export</title>
-          <style>
-            table { border-collapse: collapse; width: 100%; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            th { background-color: #f2f2f2; font-weight: bold; }
-            .section { margin-top: 20px; }
-            .section-title { font-size: 18px; font-weight: bold; margin: 10px 0; }
-          </style>
-        </head>
-        <body>
-          <h1>${data.reportInfo.title}</h1>
-          <p><strong>Date Range:</strong> ${data.reportInfo.dateRange}</p>
-          <p><strong>Generated At:</strong> ${data.reportInfo.generatedAt}</p>
-          
-          <div class="section">
-            <div class="section-title">Summary</div>
-            <table>
-              <tr><th>Metric</th><th>Value</th></tr>
-              <tr><td>Total Sales</td><td>${data.reportInfo.summary.totalSales}</td></tr>
-              <tr><td>Transaction Count</td><td>${data.reportInfo.summary.transactionCount}</td></tr>
-              <tr><td>Average Transaction Value</td><td>${data.reportInfo.summary.averageTransactionValue}</td></tr>
-            </table>
-          </div>
-          
-          <div class="section">
-            <div class="section-title">Sales Trend</div>
-            <table>
-              <tr><th>Date</th><th>Sales</th><th>Transactions</th></tr>
-              ${data.salesTrend.map((item: any) => `<tr><td>${item.date}</td><td>${item.sales}</td><td>${item.transactions}</td></tr>`).join('')}
-            </table>
-          </div>
-          
-          <div class="section">
-            <div class="section-title">Top Products</div>
-            <table>
-              <tr><th>Rank</th><th>Name</th><th>Category</th><th>Sales</th><th>Quantity</th></tr>
-              ${data.topProducts.map((product: any) => `<tr><td>${product.rank}</td><td>${product.name}</td><td>${product.category}</td><td>${product.sales}</td><td>${product.quantity}</td></tr>`).join('')}
-            </table>
-          </div>
-          
-          <div class="section">
-            <div class="section-title">Recent Transactions</div>
-            <table>
-              <tr><th>ID</th><th>Timestamp</th><th>Items</th><th>Total</th><th>Status</th></tr>
-              ${data.recentTransactions.map((transaction: any) => `<tr><td>${transaction.id}</td><td>${transaction.timestamp}</td><td>${transaction.items}</td><td>${transaction.total}</td><td>${transaction.status}</td></tr>`).join('')}
-            </table>
-          </div>
-        </body>
-      </html>
-    `;
-
-    return html;
+  private extractFilename(contentDisposition: string | null): string | null {
+    if (!contentDisposition) return null;
+    const match = /filename\*?=(?:UTF-8''|")?([^";]+)/i.exec(contentDisposition);
+    return match ? decodeURIComponent(match[1].replace(/"/g, '')) : null;
   }
 
-  private generatePDF(data: any): void {
-    // For now, we'll show a message that PDF export is coming soon
-    // In a production app, you'd use a library like jsPDF or similar
-    this.toast.info('PDF export is coming soon! For now, please use CSV or Excel export.');
-  }
-
-  private downloadFile(content: string, filename: string, mimeType: string): void {
-    const blob = new Blob([content], { type: mimeType });
+  private triggerDownload(blob: Blob, filename: string): void {
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -1410,11 +1281,6 @@ export class ReportsComponent implements OnInit, OnDestroy {
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
-  }
-
-  private getExportDate(): string {
-    const now = new Date();
-    return now.toISOString().split('T')[0];
   }
 
   get filteredAllTimeSales(): any[] {

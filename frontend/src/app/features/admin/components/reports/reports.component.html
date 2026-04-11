@@ -28,6 +28,14 @@
         <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/>
       </svg>
     </app-button>
+    <app-button variant="primary" size="sm" [disabled]="isLoading || !canExportCurrentTab() || !!exportingKey" (click)="exportCurrentTab()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; vertical-align: -2px;">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      {{ exportingKey ? 'Exporting...' : 'Export' }}
+    </app-button>
   </app-top-bar>
 
   <!-- Tabs -->
@@ -61,16 +69,8 @@
       </svg>
       Inventory
     </button>
-    <button class="tab" [class.active]="activeTab === 'export'" (click)="activeTab = 'export'">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-        <polyline points="14,2 14,8 20,8"/>
-        <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
-        <polyline points="10,9 9,9 8,9"/>
-      </svg>
-      Export
-    </button>
   </div>
+
 
   <div class="reports-body">
     <!-- Loading -->
@@ -105,6 +105,23 @@
       <!-- TAB: DASHBOARD                               -->
       <!-- ============================================ -->
       <ng-container *ngIf="!errorMessage && activeTab === 'dashboard'">
+        <!-- Empty state: no data for selected range -->
+        <div *ngIf="!hasData()" class="tab-empty-state">
+          <div class="tab-empty-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 3v18h18"/>
+              <path d="M7 14l4-4 4 4 4-4"/>
+            </svg>
+          </div>
+          <h3 class="tab-empty-title">No data for {{ getDateRangeLabel() }}</h3>
+          <p class="tab-empty-description">There are no sales or transactions in this date range. Try a different range or start making sales to see your dashboard light up.</p>
+          <div class="tab-empty-actions">
+            <app-button variant="secondary" size="sm" (click)="setDatePreset('7d')">Try 7 Days</app-button>
+            <app-button variant="secondary" size="sm" (click)="setDatePreset('30d')">Try 30 Days</app-button>
+            <app-button variant="primary" size="sm" routerLink="/pos">Go to POS</app-button>
+          </div>
+        </div>
+
         <!-- KPI Strip -->
         <app-kpi-strip *ngIf="hasData()" [kpis]="kpiItems"></app-kpi-strip>
 
@@ -141,6 +158,57 @@
           </div>
         </div>
 
+        <!-- Profit Snapshot + Quick Stats -->
+        <div *ngIf="hasData()" class="two-col-row">
+          <!-- Profit Snapshot -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Profit Snapshot</h3>
+              <span class="tooltip-icon" [title]="METRIC_TOOLTIPS['grossProfit']">&#9432;</span>
+            </div>
+            <app-data-table
+              [columns]="profitColumns"
+              [data]="profitRows"
+              trackBy="id"
+              emptyIcon="&#128202;"
+              emptyTitle="No profit data"
+              emptyMessage="No profit data available for this period.">
+              <ng-template cellDef="metric" let-row>
+                <span [class.row-profit-label]="row.type === 'profit' || row.type === 'net'">{{ row.metric }}</span>
+                <span *ngIf="row.tooltip" class="tooltip-icon" [title]="row.tooltip">&#9432;</span>
+              </ng-template>
+              <ng-template cellDef="amount" let-row>
+                <span class="cell-amount"
+                  [class.cogs]="row.type === 'cogs' || row.type === 'expenses' || (row.type === 'net' && row.amount < 0)"
+                  [class.profit]="row.type === 'profit' || (row.type === 'net' && row.amount >= 0)">
+                  {{ (row.type === 'cogs' || row.type === 'expenses') ? '-' : '' }}{{ (row.type === 'net' && row.amount < 0) ? '-' : '' }}{{ formatCurrency(row.type === 'net' ? Math.abs(row.amount) : row.amount) }}
+                </span>
+              </ng-template>
+            </app-data-table>
+          </div>
+
+          <!-- Quick Stats -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Quick Stats</h3>
+            </div>
+            <app-data-table
+              [columns]="quickStatsColumns"
+              [data]="quickStatsRows"
+              trackBy="id"
+              emptyIcon="&#9889;"
+              emptyTitle="No stats"
+              emptyMessage="No quick stats available for this period.">
+              <ng-template cellDef="metric" let-row>
+                <span>{{ row.metric }}</span>
+              </ng-template>
+              <ng-template cellDef="value" let-row>
+                <span class="cell-value">{{ row.value }}</span>
+              </ng-template>
+            </app-data-table>
+          </div>
+        </div>
+
         <!-- Sales Trend -->
         <div *ngIf="hasData()" class="card">
           <div class="card-header">
@@ -166,82 +234,40 @@
                 <span class="chart-summary-value">{{ formatCurrency(peak) }}</span>
               </div>
             </div>
-            <div class="chart-grid">
-              <div class="chart-y-axis">
-                <span class="y-label">{{ formatCompact(getChartMax()) }}</span>
-                <span class="y-label">{{ formatCompact(getChartMax() * 0.5) }}</span>
-                <span class="y-label">0</span>
-              </div>
-              <div class="chart-area">
-                <div class="grid-line" style="bottom: 100%"></div>
-                <div class="grid-line" style="bottom: 50%"></div>
-                <div class="grid-line" style="bottom: 0%"></div>
-                <div *ngFor="let data of chartData; let i = index" class="chart-col"
-                  [class.is-highest]="data.sales === getChartPeak()"
-                  [class.is-zero]="data.sales === 0">
-                  <div class="bar-wrapper">
-                    <div class="bar-tooltip">
-                      <span class="tooltip-value">{{ formatCurrency(data.sales) }}</span>
-                      <span class="tooltip-meta">{{ data.transactions }} txn{{ data.transactions !== 1 ? 's' : '' }}</span>
-                    </div>
-                    <div class="chart-bar" [style.height.%]="getBarHeight(data.sales)">
-                      <div class="bar-shine"></div>
+            <div class="ngx-chart-wrap">
+              <ngx-charts-line-chart
+                [results]="ngxChartData"
+                [scheme]="chartColorScheme"
+                [curve]="chartCurve"
+                [xAxis]="true"
+                [yAxis]="true"
+                [showGridLines]="true"
+                [animations]="true"
+                [yAxisTickFormatting]="formatYAxisTick"
+                [tooltipDisabled]="false">
+                <ng-template #tooltipTemplate let-model="model">
+                  <div class="ngx-tooltip">
+                    <div class="ngx-tooltip-label">{{ model.name }}</div>
+                    <div class="ngx-tooltip-value">{{ formatCurrency(model.value) }}</div>
+                    <div class="ngx-tooltip-meta" *ngIf="model.extra">
+                      {{ model.extra.transactions }} txn{{ model.extra.transactions !== 1 ? 's' : '' }}
                     </div>
                   </div>
-                  <span class="bar-label">{{ data.formattedDate }}</span>
-                </div>
-              </div>
+                </ng-template>
+                <ng-template #seriesTooltipTemplate let-model="model">
+                  <div class="ngx-tooltip" *ngIf="model && model[0]">
+                    <div class="ngx-tooltip-label">{{ model[0].name }}</div>
+                    <div class="ngx-tooltip-value">{{ formatCurrency(model[0].value) }}</div>
+                    <div class="ngx-tooltip-meta" *ngIf="model[0].extra">
+                      {{ model[0].extra.transactions }} txn{{ model[0].extra.transactions !== 1 ? 's' : '' }}
+                    </div>
+                  </div>
+                </ng-template>
+              </ngx-charts-line-chart>
             </div>
           </div>
           <div class="chart-empty" *ngIf="chartData.length === 0">
             <p>No sales data for this period</p>
-          </div>
-        </div>
-
-        <!-- Profit Snapshot + Quick Stats -->
-        <div *ngIf="hasData()" class="two-col-row">
-          <!-- Profit Snapshot -->
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">Profit Snapshot</h3>
-              <span class="tooltip-icon" [title]="METRIC_TOOLTIPS['grossProfit']">&#9432;</span>
-            </div>
-            <div class="card-list" *ngIf="profitLossData">
-              <div class="list-row">
-                <span class="row-name">Revenue</span>
-                <span class="row-value">{{ formatCurrency(profitLossData.grossRevenue) }}</span>
-              </div>
-              <div class="list-row">
-                <span class="row-name">Cost of Goods <span class="tooltip-icon" [title]="METRIC_TOOLTIPS['costOfGoods']">&#9432;</span></span>
-                <span class="row-value cogs">-{{ formatCurrency(profitLossData.cogs) }}</span>
-              </div>
-              <div class="list-row profit-row">
-                <span class="row-name"><strong>Gross Profit</strong></span>
-                <span class="row-value profit"><strong>{{ formatCurrency(profitLossData.grossProfit) }}</strong></span>
-              </div>
-            </div>
-            <div *ngIf="!profitLossData" class="card-empty">No profit data available</div>
-          </div>
-
-          <!-- Quick Stats -->
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">Quick Stats</h3>
-            </div>
-            <div class="card-list">
-              <div class="list-row">
-                <span class="row-name">Best Seller</span>
-                <span class="row-value">{{ getTopProductName() }}</span>
-              </div>
-              <div class="list-row" *ngIf="categoryBreakdown.length > 0">
-                <span class="row-name">Top Category</span>
-                <span class="row-value">{{ categoryBreakdown[0].category }}</span>
-              </div>
-              <div class="list-row" *ngFor="let p of paymentBreakdown">
-                <span class="row-name">{{ p.method === 'cash' ? 'Cash' : p.method === 'gcash' ? 'GCash' : p.method }}</span>
-                <span class="row-value">{{ getPaymentPercent(p.total) | number:'1.0-0' }}%</span>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -251,7 +277,6 @@
       <!-- TAB: SALES                                   -->
       <!-- ============================================ -->
       <ng-container *ngIf="!errorMessage && activeTab === 'sales'">
-
         <!-- Category + Payment Breakdown -->
         <div *ngIf="hasData() && (categoryBreakdown.length > 0 || paymentBreakdown.length > 0)" class="two-col-row">
           <!-- Category Breakdown -->
@@ -413,7 +438,6 @@
       <!-- TAB: PROFIT & LOSS                            -->
       <!-- ============================================ -->
       <ng-container *ngIf="!errorMessage && activeTab === 'pnl'">
-
         <!-- COGS Warning Banner -->
         <div class="cogs-warning" *ngIf="profitLossData?.cogsWarning">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -489,10 +513,12 @@
               No expenses recorded. <a routerLink="/expenses">Add expenses</a> to see your Net Profit.
             </div>
 
-            <!-- Net Profit -->
-            <div class="pnl-line grand-total" style="margin-top: 12px;">
+            <!-- Net Profit (highlighted bottom-line row) -->
+            <div class="pnl-line grand-total net-profit"
+              [class.net-profit-positive]="profitLossData.netProfit >= 0"
+              [class.net-profit-negative]="profitLossData.netProfit < 0">
               <span class="pnl-line-name">NET PROFIT</span>
-              <span class="pnl-line-value" [class.profit]="profitLossData.netProfit >= 0" [class.cogs]="profitLossData.netProfit < 0">
+              <span class="pnl-line-value net-profit-value">
                 {{ profitLossData.netProfit >= 0 ? '' : '-' }}{{ formatCurrency(Math.abs(profitLossData.netProfit)) }}
               </span>
             </div>
@@ -524,6 +550,68 @@
           </div>
         </div>
 
+        <!-- Accountant Summary (moved from deleted Export tab) -->
+        <div *ngIf="accountantSummary" class="card accountant-card">
+          <div class="card-header">
+            <h3 class="card-title">Accountant Summary</h3>
+            <div class="export-header-actions">
+              <span class="card-subtitle">{{ getDateRangeLabel() }}</span>
+              <app-button variant="secondary" size="sm" (click)="printSummary()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 9V2h12v7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 14h12v8H6z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                Print
+              </app-button>
+            </div>
+          </div>
+
+          <div class="acct-grid">
+            <div class="acct-section">
+              <div class="acct-section-label">Sales Summary</div>
+              <div class="acct-row"><span>Gross Revenue</span><span>{{ formatCurrency(accountantSummary.grossRevenue) }}</span></div>
+              <div class="acct-row negative"><span>Less: Discounts</span><span>({{ formatCurrency(accountantSummary.totalDiscounts) }})</span></div>
+              <div class="acct-row"><span>Net Revenue <span class="tooltip-icon" [title]="METRIC_TOOLTIPS['netRevenue']">&#9432;</span></span><span>{{ formatCurrency(accountantSummary.netRevenue) }}</span></div>
+              <div class="acct-row negative"><span>Cost of Goods <span class="tooltip-icon" [title]="METRIC_TOOLTIPS['costOfGoods']">&#9432;</span></span><span>({{ formatCurrency(accountantSummary.cogs) }})</span></div>
+              <div class="acct-row bold"><span>Gross Profit</span><span>{{ formatCurrency(accountantSummary.grossProfit) }}</span></div>
+              <div class="acct-row bold"><span>Gross Margin</span><span [class]="getMarginClass(accountantSummary.grossMarginPercent)">{{ accountantSummary.grossMarginPercent | number:'1.1-1' }}%</span></div>
+            </div>
+
+            <div class="acct-section" *ngIf="accountantSummary.expensesByCategory?.length > 0">
+              <div class="acct-section-label">Expenses</div>
+              <div class="acct-row" *ngFor="let exp of accountantSummary.expensesByCategory">
+                <span>{{ exp.categoryName }}</span>
+                <span>({{ formatCurrency(exp.total) }})</span>
+              </div>
+              <div class="acct-row negative bold"><span>Total Expenses</span><span>({{ formatCurrency(accountantSummary.totalExpenses) }})</span></div>
+              <div class="acct-row bold"><span>Net Profit</span><span [class.profit]="accountantSummary.netProfit >= 0" [class.cogs]="accountantSummary.netProfit < 0">{{ formatCurrency(accountantSummary.netProfit) }}</span></div>
+              <div class="acct-row bold"><span>Net Margin</span><span [class]="getMarginClass(accountantSummary.netMarginPercent)">{{ accountantSummary.netMarginPercent | number:'1.1-1' }}%</span></div>
+            </div>
+
+            <div class="acct-section">
+              <div class="acct-section-label">Transaction Breakdown</div>
+              <div class="acct-row"><span>Total Transactions</span><span>{{ accountantSummary.transactionCount }}</span></div>
+              <div class="acct-row"><span>Average Ticket <span class="tooltip-icon" [title]="METRIC_TOOLTIPS['averageTicket']">&#9432;</span></span><span>{{ formatCurrency(accountantSummary.averageTicket) }}</span></div>
+              <div class="acct-row" *ngFor="let pm of accountantSummary.paymentMethodBreakdown">
+                <span>{{ pm.method === 'cash' ? 'Cash' : pm.method === 'gcash' ? 'GCash' : pm.method }} Payments</span>
+                <span>{{ pm.count }} ({{ formatCurrency(pm.total) }})</span>
+              </div>
+            </div>
+
+            <div class="acct-section" *ngIf="accountantSummary.categoryBreakdown?.length > 0">
+              <div class="acct-section-label">Sales by Category</div>
+              <div class="acct-row" *ngFor="let cat of accountantSummary.categoryBreakdown">
+                <span>{{ cat.category }}</span>
+                <span>{{ formatCurrency(cat.total) }} ({{ cat.percent | number:'1.1-1' }}%)</span>
+              </div>
+            </div>
+
+            <div class="acct-section">
+              <div class="acct-section-label">Inventory Snapshot</div>
+              <div class="acct-row"><span>Current Inventory Value</span><span>{{ formatCurrency(accountantSummary.currentInventoryValue) }}</span></div>
+              <div class="acct-row"><span>Ingredients Consumed</span><span>{{ formatCurrency(accountantSummary.ingredientsConsumed) }}</span></div>
+              <div class="acct-row"><span>Waste / Shrinkage <span class="tooltip-icon" [title]="METRIC_TOOLTIPS['waste']">&#9432;</span></span><span class="cogs">{{ formatCurrency(accountantSummary.wasteAndShrinkage) }}</span></div>
+            </div>
+          </div>
+        </div>
+
         <div *ngIf="!profitLossData" class="card-empty-state"><p>No profitability data available for this period.</p></div>
       </ng-container>
 
@@ -531,7 +619,6 @@
       <!-- TAB: INVENTORY                                -->
       <!-- ============================================ -->
       <ng-container *ngIf="!errorMessage && activeTab === 'inventory'">
-
         <!-- SECTION: Inventory Valuation (collapsible) -->
         <div class="collapsible-section" [class.expanded]="inventoryExpanded['valuation']">
           <div class="collapsible-header" (click)="toggleInventorySection('valuation')">
@@ -744,143 +831,6 @@
             </div>
             <div *ngIf="!consumptionData?.items?.length" class="card-empty-state"><p>No consumption data for this period.</p></div>
           </div>
-        </div>
-      </ng-container>
-
-      <!-- ============================================ -->
-      <!-- TAB: EXPORT                                  -->
-      <!-- ============================================ -->
-      <ng-container *ngIf="!errorMessage && activeTab === 'export'">
-
-        <!-- Accountant Summary -->
-        <div *ngIf="accountantSummary" class="card accountant-card">
-          <div class="card-header">
-            <h3 class="card-title">Accountant Summary</h3>
-            <div class="export-header-actions">
-              <span class="card-subtitle">{{ getDateRangeLabel() }}</span>
-              <app-button variant="secondary" size="sm" (click)="printSummary()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 9V2h12v7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 14h12v8H6z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                Print
-              </app-button>
-            </div>
-          </div>
-
-          <div class="acct-grid">
-            <div class="acct-section">
-              <div class="acct-section-label">Sales Summary</div>
-              <div class="acct-row"><span>Gross Revenue</span><span>{{ formatCurrency(accountantSummary.grossRevenue) }}</span></div>
-              <div class="acct-row negative"><span>Less: Discounts</span><span>({{ formatCurrency(accountantSummary.totalDiscounts) }})</span></div>
-              <div class="acct-row"><span>Net Revenue <span class="tooltip-icon" [title]="METRIC_TOOLTIPS['netRevenue']">&#9432;</span></span><span>{{ formatCurrency(accountantSummary.netRevenue) }}</span></div>
-              <div class="acct-row negative"><span>Cost of Goods <span class="tooltip-icon" [title]="METRIC_TOOLTIPS['costOfGoods']">&#9432;</span></span><span>({{ formatCurrency(accountantSummary.cogs) }})</span></div>
-              <div class="acct-row bold"><span>Gross Profit</span><span>{{ formatCurrency(accountantSummary.grossProfit) }}</span></div>
-              <div class="acct-row bold"><span>Gross Margin</span><span [class]="getMarginClass(accountantSummary.grossMarginPercent)">{{ accountantSummary.grossMarginPercent | number:'1.1-1' }}%</span></div>
-            </div>
-
-            <div class="acct-section" *ngIf="accountantSummary.expensesByCategory?.length > 0">
-              <div class="acct-section-label">Expenses</div>
-              <div class="acct-row" *ngFor="let exp of accountantSummary.expensesByCategory">
-                <span>{{ exp.categoryName }}</span>
-                <span>({{ formatCurrency(exp.total) }})</span>
-              </div>
-              <div class="acct-row negative bold"><span>Total Expenses</span><span>({{ formatCurrency(accountantSummary.totalExpenses) }})</span></div>
-              <div class="acct-row bold"><span>Net Profit</span><span [class.profit]="accountantSummary.netProfit >= 0" [class.cogs]="accountantSummary.netProfit < 0">{{ formatCurrency(accountantSummary.netProfit) }}</span></div>
-              <div class="acct-row bold"><span>Net Margin</span><span [class]="getMarginClass(accountantSummary.netMarginPercent)">{{ accountantSummary.netMarginPercent | number:'1.1-1' }}%</span></div>
-            </div>
-
-            <div class="acct-section">
-              <div class="acct-section-label">Transaction Breakdown</div>
-              <div class="acct-row"><span>Total Transactions</span><span>{{ accountantSummary.transactionCount }}</span></div>
-              <div class="acct-row"><span>Average Ticket <span class="tooltip-icon" [title]="METRIC_TOOLTIPS['averageTicket']">&#9432;</span></span><span>{{ formatCurrency(accountantSummary.averageTicket) }}</span></div>
-              <div class="acct-row" *ngFor="let pm of accountantSummary.paymentMethodBreakdown">
-                <span>{{ pm.method === 'cash' ? 'Cash' : pm.method === 'gcash' ? 'GCash' : pm.method }} Payments</span>
-                <span>{{ pm.count }} ({{ formatCurrency(pm.total) }})</span>
-              </div>
-            </div>
-
-            <div class="acct-section" *ngIf="accountantSummary.categoryBreakdown?.length > 0">
-              <div class="acct-section-label">Sales by Category</div>
-              <div class="acct-row" *ngFor="let cat of accountantSummary.categoryBreakdown">
-                <span>{{ cat.category }}</span>
-                <span>{{ formatCurrency(cat.total) }} ({{ cat.percent | number:'1.1-1' }}%)</span>
-              </div>
-            </div>
-
-            <div class="acct-section">
-              <div class="acct-section-label">Inventory Snapshot</div>
-              <div class="acct-row"><span>Current Inventory Value</span><span>{{ formatCurrency(accountantSummary.currentInventoryValue) }}</span></div>
-              <div class="acct-row"><span>Ingredients Consumed</span><span>{{ formatCurrency(accountantSummary.ingredientsConsumed) }}</span></div>
-              <div class="acct-row"><span>Waste / Shrinkage <span class="tooltip-icon" [title]="METRIC_TOOLTIPS['waste']">&#9432;</span></span><span class="cogs">{{ formatCurrency(accountantSummary.wasteAndShrinkage) }}</span></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Download Reports -->
-        <div class="card">
-          <div class="card-header">
-            <h3 class="card-title">Download Reports</h3>
-            <span class="card-subtitle">Export data for the selected date range</span>
-          </div>
-          <div class="export-grid">
-            <div class="export-card export-card-primary">
-              <div class="export-card-icon">&#128202;</div>
-              <div class="export-card-info">
-                <div class="export-card-title">Full Report</div>
-                <div class="export-card-desc">Complete summary — all sections in one file</div>
-              </div>
-              <div class="export-card-actions">
-                <app-button variant="secondary" size="sm" (click)="exportSection('full', 'csv')">CSV</app-button>
-                <app-button variant="secondary" size="sm" (click)="exportSection('full', 'excel')">Excel</app-button>
-              </div>
-            </div>
-            <div class="export-card">
-              <div class="export-card-icon">&#128722;</div>
-              <div class="export-card-info">
-                <div class="export-card-title">Sales Detail</div>
-                <div class="export-card-desc">Transaction-level data with items, payments, timestamps</div>
-              </div>
-              <div class="export-card-actions">
-                <app-button variant="secondary" size="sm" (click)="exportSection('sales', 'csv')">CSV</app-button>
-                <app-button variant="secondary" size="sm" (click)="exportSection('sales', 'excel')">Excel</app-button>
-              </div>
-            </div>
-            <div class="export-card">
-              <div class="export-card-icon">&#128176;</div>
-              <div class="export-card-info">
-                <div class="export-card-title">Profit &amp; Loss</div>
-                <div class="export-card-desc">Period breakdown with revenue, costs, margins</div>
-              </div>
-              <div class="export-card-actions">
-                <app-button variant="secondary" size="sm" (click)="exportSection('pnl', 'csv')">CSV</app-button>
-                <app-button variant="secondary" size="sm" (click)="exportSection('pnl', 'excel')">Excel</app-button>
-              </div>
-            </div>
-            <div class="export-card">
-              <div class="export-card-icon">&#128230;</div>
-              <div class="export-card-info">
-                <div class="export-card-title">Inventory &amp; Stock</div>
-                <div class="export-card-desc">Movements, consumption, supplier costs</div>
-              </div>
-              <div class="export-card-actions">
-                <app-button variant="secondary" size="sm" (click)="exportSection('inventory', 'csv')">CSV</app-button>
-                <app-button variant="secondary" size="sm" (click)="exportSection('inventory', 'excel')">Excel</app-button>
-              </div>
-            </div>
-            <div class="export-card">
-              <div class="export-card-icon">&#128179;</div>
-              <div class="export-card-info">
-                <div class="export-card-title">Expenses</div>
-                <div class="export-card-desc">All expenses with categories, dates, recurring flags</div>
-              </div>
-              <div class="export-card-actions">
-                <app-button variant="secondary" size="sm" (click)="exportSection('expenses', 'csv')">CSV</app-button>
-                <app-button variant="secondary" size="sm" (click)="exportSection('expenses', 'excel')">Excel</app-button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div *ngIf="!accountantSummary" class="card-empty-state">
-          <p>No summary data available for this period.</p>
         </div>
       </ng-container>
 

@@ -11,10 +11,12 @@ namespace PosSystem.API.Controllers;
 public class ReportsController : ControllerBase
 {
     private readonly IReportingService _reportingService;
+    private readonly IExportService _exportService;
 
-    public ReportsController(IReportingService reportingService)
+    public ReportsController(IReportingService reportingService, IExportService exportService)
     {
         _reportingService = reportingService;
+        _exportService = exportService;
     }
 
     [HttpGet("daily")]
@@ -128,6 +130,27 @@ public class ReportsController : ControllerBase
         (startDate, endDate) = NormalizeDateRange(startDate, endDate);
         var report = await _reportingService.GetPeriodComparisonAsync(startDate, endDate);
         return Ok(report);
+    }
+
+    [HttpGet("export")]
+    public async Task<IActionResult> ExportReport(
+        [FromQuery] string section,
+        [FromQuery] string format,
+        [FromQuery] DateTime startDate,
+        [FromQuery] DateTime endDate)
+    {
+        if (!Enum.TryParse<ExportSection>(section, ignoreCase: true, out var parsedSection))
+        {
+            return BadRequest($"Invalid section '{section}'. Allowed: full, sales, pnl, inventory, expenses.");
+        }
+        if (!Enum.TryParse<ExportFormat>(format, ignoreCase: true, out var parsedFormat))
+        {
+            return BadRequest($"Invalid format '{format}'. Allowed: csv, xlsx.");
+        }
+
+        (startDate, endDate) = NormalizeDateRange(startDate, endDate);
+        var result = await _exportService.ExportAsync(parsedSection, parsedFormat, startDate, endDate);
+        return File(result.Content, result.ContentType, result.FileName);
     }
 
     /// <summary>
