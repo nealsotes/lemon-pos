@@ -31,6 +31,10 @@ export class CartComponent implements OnInit {
   total = 0;
   isCheckoutOpen = false;
 
+  get totalQuantity(): number {
+    return this.cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  }
+
   constructor(
     private cartService: CartService
   ) {}

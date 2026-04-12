@@ -15,136 +15,165 @@ import { ThermalPrinterService } from '../../services/thermal-printer.service';
     <div class="receipt-overlay" [class.active]="isOpen" (click)="closeReceipt()">
       <div class="receipt-sidebar" (click)="$event.stopPropagation()">
         <!-- Header -->
-        <div class="receipt-header">
-          <h2>Receipt</h2>
-          <button class="close-btn" (click)="closeReceipt()">
+        <header class="receipt-header">
+          <h2 class="ed-display ed-display--sm">Receipt</h2>
+          <button class="header-icon-btn close-btn" (click)="closeReceipt()" aria-label="Close">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
-        </div>
+        </header>
 
         <!-- Receipt Content -->
         <div class="receipt-content" id="receipt-print" *ngIf="transaction">
-          <!-- Success Banner -->
-          <div class="success-banner">
+          <!-- Success Hero (compact) -->
+          <div class="success-hero">
             <div class="success-icon">
               <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </div>
-            <span class="success-text">Transaction Complete</span>
-            <span class="success-amount">{{ formatPrice(getTotal()) }}</span>
-          </div>
-
-          <!-- Transaction Details -->
-          <div class="transaction-details">
-            <div class="detail-row">
-              <span>Receipt #</span>
-              <span class="detail-value">{{ getReceiptNumber() }}</span>
-            </div>
-            <div class="detail-row">
-              <span>Date</span>
-              <span class="detail-value">{{ formatDate(transaction?.timestamp) }}</span>
-            </div>
-            <div class="detail-row">
-              <span>Payment</span>
-              <span class="detail-value">{{ getPaymentMethodDisplay(transaction?.paymentMethod) }}</span>
-            </div>
-            <div class="detail-row" *ngIf="transaction?.serviceType">
-              <span>Service</span>
-              <span class="detail-value">{{ transaction?.serviceType === 'dineIn' ? 'Dine-in' : 'Take-out' }}</span>
-            </div>
-            <div class="detail-row" *ngIf="transaction?.customerInfo?.name">
-              <span>Customer</span>
-              <span class="detail-value">{{ transaction?.customerInfo?.name }}</span>
+            <div class="success-text-block">
+              <span class="success-eyebrow">Paid · № {{ getReceiptNumber() }}</span>
+              <div class="success-total">
+                <span class="success-currency">₱</span>
+                <span class="success-amount">{{ getTotal() | number:'1.2-2' }}</span>
+              </div>
             </div>
           </div>
 
-          <!-- Items List -->
-          <div class="items-section">
-            <div class="section-label">Items</div>
-            <div class="items-list">
-              <div class="item-row" *ngFor="let item of transactionItems; trackBy: trackByItem">
-                <div class="item-left">
-                  <span class="item-name">
-                    {{ item.name || item.Name || 'Unknown Item' }}
-                    <span *ngIf="getTemperature(item)" class="temperature-badge" [class.hot]="isHot(item)" [class.cold]="isCold(item)">
-                      {{ isHot(item) ? 'Hot' : 'Iced' }}
-                    </span>
-                  </span>
-                  <div class="item-addons" *ngIf="hasAddOns(item)">
-                    <span *ngFor="let addOn of getAddOns(item)" class="addon-item">
-                      <span *ngIf="addOn.quantity && addOn.quantity > 1">{{ addOn.quantity }}x </span>+ {{ addOn.name }} ({{ formatPrice(addOn.price * (addOn.quantity || 1)) }})
-                    </span>
-                  </div>
-                  <span class="item-meta">{{ formatPrice(getItemBasePrice(item)) }} x {{ item.quantity || item.Quantity || 0 }}</span>
+          <!-- Receipt panel: details + items + totals -->
+          <article class="ed-receipt printed-receipt">
+            <div class="ed-receipt__perforation ed-receipt__perforation--top"></div>
+            <div class="ed-receipt__body printed-body">
+
+              <!-- Transaction details as stat rows -->
+              <div class="receipt-stats">
+                <div class="ed-stat-row">
+                  <span class="ed-stat-row__label">Date</span>
+                  <span class="ed-stat-row__value">{{ formatDate(transaction?.timestamp) }}</span>
                 </div>
-                <span class="item-total">{{ formatPrice(getItemTotal(item)) }}</span>
+                <div class="ed-stat-row">
+                  <span class="ed-stat-row__label">Payment</span>
+                  <span class="ed-stat-row__value">{{ getPaymentMethodDisplay(transaction?.paymentMethod) }}</span>
+                </div>
+                <div class="ed-stat-row" *ngIf="transaction?.serviceType">
+                  <span class="ed-stat-row__label">Service</span>
+                  <span class="ed-stat-row__value">{{ transaction?.serviceType === 'dineIn' ? 'Dine-in' : 'Take-out' }}</span>
+                </div>
+                <div class="ed-stat-row" *ngIf="transaction?.customerInfo?.name">
+                  <span class="ed-stat-row__label">Customer</span>
+                  <span class="ed-stat-row__value">{{ transaction?.customerInfo?.name }}</span>
+                </div>
+              </div>
+
+              <div class="ed-receipt__divider ed-receipt__divider--dashed"></div>
+
+              <!-- Items list -->
+              <div class="receipt-section">
+                <div class="items-list">
+                  <div class="item-row" *ngFor="let item of transactionItems; trackBy: trackByItem">
+                    <div class="item-left">
+                      <div class="item-name-row">
+                        <span class="item-name">{{ item.name || item.Name || 'Unknown Item' }}</span>
+                        <span *ngIf="getTemperature(item)" class="ed-pill"
+                          [class.ed-pill--danger]="isHot(item)"
+                          [class.ed-pill--info]="isCold(item)">
+                          {{ isHot(item) ? '🔥 hot' : '❄️ Iced' }}
+                        </span>
+                      </div>
+                      <div class="item-addons" *ngIf="hasAddOns(item)">
+                        <span *ngFor="let addOn of getAddOns(item)" class="addon-item">
+                          <span *ngIf="addOn.quantity && addOn.quantity > 1">{{ addOn.quantity }}× </span>+ {{ addOn.name }} <span class="addon-price">{{ formatPrice(addOn.price * (addOn.quantity || 1)) }}</span>
+                        </span>
+                      </div>
+                      <span class="item-meta">{{ formatPrice(getItemBasePrice(item)) }} × {{ item.quantity || item.Quantity || 0 }}</span>
+                    </div>
+                    <span class="item-total">{{ formatPrice(getItemTotal(item)) }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="ed-receipt__divider ed-receipt__divider--dashed"></div>
+
+              <!-- Totals -->
+              <div class="receipt-section">
+                <div class="receipt-stats">
+                  <div class="ed-stat-row">
+                    <span class="ed-stat-row__label">Subtotal</span>
+                    <span class="ed-stat-row__value">{{ formatPrice(getSubtotal()) }}</span>
+                  </div>
+                  <div class="ed-stat-row" *ngIf="getDiscountTotal() > 0">
+                    <span class="ed-stat-row__label">Discount<span *ngIf="getDiscountTypeLabel()"> ({{ getDiscountTypeLabel() }})</span></span>
+                    <span class="ed-stat-row__value discount-value">−{{ formatPrice(getDiscountTotal()) }}</span>
+                  </div>
+                </div>
+
+                <div class="ed-receipt__divider"></div>
+
+                <div class="ed-total-block printed-total">
+                  <span class="ed-total-block__label">Total paid</span>
+                  <div class="ed-total-block__display">
+                    <span class="ed-total-block__currency">₱</span>
+                    <span class="ed-total-block__amount">{{ getTotal() | number:'1.2-2' }}</span>
+                  </div>
+                  <span class="ed-total-block__note">{{ getPaymentMethodDisplay(transaction?.paymentMethod) }}</span>
+                </div>
+              </div>
+
+              <!-- Cash details -->
+              <div *ngIf="transaction?.paymentMethod === 'cash' && transaction?.amountReceived" class="cash-details">
+                <div class="ed-receipt__divider ed-receipt__divider--dashed"></div>
+                <div class="receipt-stats">
+                  <div class="ed-stat-row">
+                    <span class="ed-stat-row__label">Received</span>
+                    <span class="ed-stat-row__value">{{ formatPrice(transaction?.amountReceived || transaction?.AmountReceived || 0) }}</span>
+                  </div>
+                </div>
+                <div class="change-block">
+                  <span class="change-label">Change due</span>
+                  <div class="change-display">
+                    <span class="change-currency">₱</span>
+                    <span class="change-amount">{{ getChange() | number:'1.2-2' }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Notes -->
+              <div class="receipt-section" *ngIf="transaction?.notes">
+                <div class="ed-receipt__divider ed-receipt__divider--dashed"></div>
+                <p class="receipt-notes">{{ transaction?.notes }}</p>
               </div>
             </div>
-          </div>
-
-          <!-- Totals Section -->
-          <div class="totals-section">
-            <div class="total-row" *ngIf="transaction">
-              <span>Subtotal</span>
-              <span>{{ formatPrice(getSubtotal()) }}</span>
-            </div>
-            <div class="total-row discount-row" *ngIf="getDiscountTotal() > 0">
-              <span>Discount <span *ngIf="getDiscountTypeLabel()">({{ getDiscountTypeLabel() }})</span></span>
-              <span>-{{ formatPrice(getDiscountTotal()) }}</span>
-            </div>
-            <div class="total-row grand-total">
-              <span>Total</span>
-              <span>{{ formatPrice(getTotal()) }}</span>
-            </div>
-
-            <!-- Cash Payment Details -->
-            <div *ngIf="transaction?.paymentMethod === 'cash' && transaction?.amountReceived" class="cash-details">
-              <div class="total-row">
-                <span>Received</span>
-                <span>{{ formatPrice(transaction?.amountReceived || transaction?.AmountReceived || 0) }}</span>
-              </div>
-              <div class="total-row change-row">
-                <span>Change</span>
-                <span class="change-amount">{{ formatPrice(getChange()) }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Notes -->
-          <div class="notes-section" *ngIf="transaction?.notes">
-            <div class="section-label">Notes</div>
-            <p>{{ transaction?.notes }}</p>
-          </div>
+            <div class="ed-receipt__perforation ed-receipt__perforation--bottom"></div>
+          </article>
         </div>
 
         <!-- Action Buttons -->
-        <div class="receipt-actions">
-          <button class="btn btn-new-sale" (click)="startNewSale()">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <footer class="receipt-actions">
+          <button class="ed-btn ed-btn--primary ed-btn--block ed-btn--arrow new-sale-btn" (click)="startNewSale()">
+            <span>Start new sale</span>
+            <svg class="ed-btn__icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            New Sale
           </button>
           <div class="actions-row">
-            <button class="btn btn-print" (click)="printReceipt()" [disabled]="isPrinting || isOpeningDrawer">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <button class="ed-btn ed-btn--secondary" (click)="printReceipt()" [disabled]="isPrinting || isOpeningDrawer">
+              <svg class="ed-btn__icon" [class.spinner]="isPrinting" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 <rect x="6" y="14" width="12" height="8" rx="1" stroke="currentColor" stroke-width="2"/>
               </svg>
-              {{ isPrinting ? 'Printing...' : 'Print' }}
+              <span>{{ isPrinting ? 'Printing' : 'Print' }}</span>
             </button>
-            <button class="btn btn-drawer" (click)="openCashDrawer()" [disabled]="isPrinting || isOpeningDrawer" title="Open Cash Drawer">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <button class="ed-btn ed-btn--secondary" (click)="openCashDrawer()" [disabled]="isPrinting || isOpeningDrawer" title="Open Cash Drawer">
+              <svg class="ed-btn__icon" [class.spinner]="isOpeningDrawer" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <rect x="2" y="6" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/>
                 <path d="M2 10h20M12 14v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
               </svg>
-              {{ isOpeningDrawer ? 'Opening...' : 'Drawer' }}
+              <span>{{ isOpeningDrawer ? 'Opening' : 'Drawer' }}</span>
             </button>
           </div>
-        </div>
+        </footer>
       </div>
     </div>
   `,

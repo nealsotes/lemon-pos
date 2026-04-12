@@ -1,9 +1,12 @@
-<div class="pos-container" [class.desktop]="isDesktop">
+<div class="pos-container ed-backdrop" [class.desktop]="isDesktop">
   <!-- Left: Main POS area -->
   <div class="pos-main">
     <!-- Top Bar -->
     <app-top-bar title="Point of Sale">
-      <button class="btn btn-ghost btn-sm" (click)="refreshData()" title="Refresh">
+      <span *ngIf="!isLoading && filteredProducts.length > 0" class="ed-pill ed-pill--accent">
+        {{ filteredProducts.length }} {{ filteredProducts.length === 1 ? 'product' : 'products' }}
+      </span>
+      <button class="header-icon-btn" (click)="refreshData()" title="Refresh">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M1 4v6h6M23 20v-6h-6"/>
           <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/>
@@ -34,15 +37,18 @@
 
     <!-- Loading -->
     <div *ngIf="isLoading" class="loading-state">
-      <div class="spinner"></div>
-      <p>Loading products...</p>
+      <div class="loading-receipt">
+        <span></span><span></span><span></span><span></span>
+      </div>
+      <p class="ed-eyebrow ed-eyebrow--accent">Loading the menu</p>
     </div>
 
     <!-- Product Grid -->
     <div *ngIf="!isLoading && paginatedProducts.length > 0" class="product-grid">
-      <div *ngFor="let product of paginatedProducts; trackBy: trackByProduct"
-           class="product-card"
+      <article *ngFor="let product of paginatedProducts; let i = index; trackBy: trackByProduct"
+           class="product-card ed-card ed-card--rail ed-enter"
            [class.out-of-stock]="product.stock <= 0"
+           [style.--ed-enter-delay.ms]="i * 24"
            (click)="addToCart(product)">
         <div class="card-image">
           <img *ngIf="isImageLoaded(product)" [src]="product.image" [alt]="product.name" loading="lazy" (error)="onImageError($event, product)">
@@ -53,21 +59,28 @@
               <path d="M21 15l-5-5L5 21"/>
             </svg>
           </div>
-          <span class="stock-badge badge-warning" *ngIf="isLowStock(product)">Low Stock</span>
-          <span class="stock-badge badge-danger" *ngIf="product.stock <= 0">Out of Stock</span>
+          <span class="ed-pill ed-pill--warning stock-badge" *ngIf="isLowStock(product) && product.stock > 0">Low</span>
+          <span class="ed-pill ed-pill--danger stock-badge" *ngIf="product.stock <= 0">Sold out</span>
         </div>
         <div class="card-body">
           <span class="card-name">{{ product.name }}</span>
           <span class="card-category">{{ product.category }}</span>
-          <span class="card-price">&#x20B1;{{ product.price | number:'1.2-2' }}</span>
+          <div class="card-foot">
+            <span class="card-price">&#x20B1;{{ product.price | number:'1.2-2' }}</span>
+            <span class="card-stock">{{ product.stock }} left</span>
+          </div>
         </div>
-        <span class="stock-count">{{ product.stock }} left</span>
-      </div>
+      </article>
     </div>
 
     <!-- Load More -->
     <div *ngIf="!isLoading && hasMoreProducts()" class="load-more">
-      <button class="btn btn-secondary btn-sm" (click)="loadMoreProducts()">Load More</button>
+      <button class="ed-btn ed-btn--secondary ed-btn--sm" (click)="loadMoreProducts()">
+        Load more
+        <svg class="ed-btn__icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
     </div>
 
     <!-- Empty State -->

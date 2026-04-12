@@ -13,7 +13,20 @@
       "Bash(git status*)",
       "Bash(git diff*)",
       "Bash(git log*)",
-      "Bash(git branch*)"
+      "Bash(git branch*)",
+      "Bash(npm ls:*)",
+      "Bash(npm view:*)",
+      "mcp__plugin_context7_context7__resolve-library-id",
+      "mcp__plugin_context7_context7__query-docs",
+      "Bash(npm install:*)",
+      "mcp__plugin_playwright_playwright__browser_wait_for",
+      "mcp__plugin_playwright_playwright__browser_network_requests",
+      "mcp__plugin_playwright_playwright__browser_evaluate",
+      "Bash(grep -l \"ProfitLossReportDto\\\\|InventoryValuationReportDto\\\\|ConsumptionReportDto\\\\|SupplierBreakdownReportDto\" \"backend/PosSystem/PosSystem/Core/Models/\"*.cs)",
+      "Bash(grep -n \"class ExpenseResponseDto\\\\|class TransactionDto\\\\|class TransactionResponseDto\" \"backend/PosSystem/PosSystem/Core/Models/\"*.cs)",
+      "Bash(dotnet restore:*)",
+      "Bash(npx tsc:*)",
+      "Bash(ls tsconfig*)"
     ]
   },
   "hooks": {

@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CartService } from '../../services/cart.service';
@@ -20,12 +20,26 @@ export class POSCartSidebarComponent implements OnInit, OnDestroy {
     @Output() close = new EventEmitter<void>();
     @Output() checkout = new EventEmitter<void>();
 
+    @ViewChild('renameInputEl') renameInputEl?: ElementRef<HTMLInputElement>;
+
     cartItems: CartItem[] = [];
     openOrders: OpenOrder[] = [];
     openOrderName = '';
     isOpenOrderActive = false;
     total = 0;
+    ticketModalMode: 'park' | 'rename' | null = null;
+    ticketModalOrder: OpenOrder | null = null;
+    editingName = '';
+    readonly ticketNameSuggestions = ['Table 1', 'Table 2', 'Take-out', 'Dine-in'];
     private destroy$ = new Subject<void>();
+
+    get totalQuantity(): number {
+        return this.cartItems.reduce((sum, item) => sum + item.quantity, 0);
+    }
+
+    get activeOpenOrderId(): number | null {
+        return this.cartService.getActiveOpenOrderId();
+    }
 
     constructor(
         private cartService: CartService,
@@ -80,11 +94,70 @@ export class POSCartSidebarComponent implements OnInit, OnDestroy {
         this.cartService.clearCart();
     }
 
-    saveOpenOrder(): void {
+    loadOpenOrder(order: OpenOrder): void {
+        this.cartService.loadOpenOrder(order.id);
+    }
+
+    removeOpenOrder(order: OpenOrder, event: Event): void {
+        event.stopPropagation();
+        if (this.ticketModalOrder?.id === order.id) {
+            this.closeTicketModal();
+        }
+        this.cartService.removeOpenOrder(order.id);
+    }
+
+    openParkModal(): void {
         if (this.cartItems.length === 0) return;
-        this.cartService.saveOpenOrder(this.openOrderName);
-        this.openOrderName = '';
-        this.closeSidebar();
+        this.ticketModalMode = 'park';
+        this.ticketModalOrder = null;
+        this.editingName = '';
+        this.focusTicketInput();
+    }
+
+    openRenameModal(order: OpenOrder, event: Event): void {
+        event.stopPropagation();
+        this.ticketModalMode = 'rename';
+        this.ticketModalOrder = order;
+        this.editingName = order.name || '';
+        this.focusTicketInput();
+    }
+
+    closeTicketModal(): void {
+        this.ticketModalMode = null;
+        this.ticketModalOrder = null;
+        this.editingName = '';
+    }
+
+    confirmTicketModal(): void {
+        const next = this.editingName.trim();
+        if (this.ticketModalMode === 'park') {
+            if (this.cartItems.length === 0) {
+                this.closeTicketModal();
+                return;
+            }
+            this.cartService.saveOpenOrder(next);
+        } else if (this.ticketModalMode === 'rename' && this.ticketModalOrder) {
+            if (next && next !== this.ticketModalOrder.name) {
+                this.cartService.renameOpenOrder(this.ticketModalOrder.id, next);
+            }
+        }
+        this.closeTicketModal();
+    }
+
+    applySuggestion(name: string): void {
+        this.editingName = name;
+        this.renameInputEl?.nativeElement.focus();
+    }
+
+    private focusTicketInput(): void {
+        // Focus the input once Angular has rendered the modal
+        setTimeout(() => {
+            const input = this.renameInputEl?.nativeElement;
+            if (input) {
+                input.focus();
+                input.select();
+            }
+        }, 0);
     }
 
     proceedToCheckout(): void {

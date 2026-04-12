@@ -1,9 +1,9 @@
-<div class="cart-container">
+<div class="cart-container ed-backdrop">
   <!-- Top Bar -->
-  <app-top-bar title="Shopping Cart">
-    <span *ngIf="cartItems.length > 0" class="cart-count-badge">{{ cartItems.length }} items</span>
-    <span *ngIf="isOpenOrderActive" class="open-order-badge">
-      Open order<span *ngIf="activeOpenOrderName">: {{ activeOpenOrderName }}</span>
+  <app-top-bar title="Cart">
+    <span *ngIf="cartItems.length > 0" class="ed-pill ed-pill--accent">{{ cartItems.length }} {{ cartItems.length === 1 ? 'item' : 'items' }}</span>
+    <span *ngIf="isOpenOrderActive" class="ed-pill ed-pill--warning">
+      Resumed<span *ngIf="activeOpenOrderName">: {{ activeOpenOrderName }}</span>
     </span>
     <button *ngIf="openOrders.length === 0" class="header-btn" (click)="clearCart()" [disabled]="cartItems.length === 0" title="Clear Cart">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -17,145 +17,172 @@
   <div class="cart-content">
     <!-- Cart Items Container -->
     <div class="cart-items-container">
-      <div *ngIf="cartItems.length === 0" class="empty-cart">
-        <div class="empty-cart-icon">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M9 22a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" fill="currentColor"/>
-            <path d="M20 22a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" fill="currentColor"/>
-            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+      <!-- Empty State -->
+      <div *ngIf="cartItems.length === 0 && openOrders.length === 0" class="ed-empty">
+        <div class="empty-stage">
+          <div class="empty-receipt">
+            <span class="empty-receipt-line"></span>
+            <span class="empty-receipt-line short"></span>
+            <span class="empty-receipt-line"></span>
+            <span class="empty-receipt-line short"></span>
+            <span class="empty-receipt-line"></span>
+          </div>
+          <div class="ed-empty__icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 22a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" fill="currentColor"/>
+              <path d="M20 22a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" fill="currentColor"/>
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
         </div>
-        <h3 class="empty-title">Your order cart is empty</h3>
-        <p class="empty-description">Add some products to get started with your order</p>
-        <button class="btn btn-primary" routerLink="/pos">
-          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <p class="ed-eyebrow ed-eyebrow--accent ed-empty__eyebrow">No active order</p>
+        <h3 class="ed-display ed-display--md ed-empty__title">Your cart is empty</h3>
+        <p class="ed-empty__description">Start a new order by adding products from the menu.</p>
+        <button class="ed-btn ed-btn--primary ed-btn--arrow" routerLink="/pos">
+          <span>Browse the menu</span>
+          <svg class="ed-btn__icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          Browse Products
         </button>
       </div>
 
       <ng-container *ngIf="cartItems.length > 0">
-        <div class="section-header">
-          <h3>Items</h3>
-          <span class="section-subtitle">{{ cartItems.length }} products</span>
-        </div>
         <!-- Cart Items -->
         <div class="cart-items">
-          <div *ngFor="let item of cartItems; trackBy: trackByItem" class="cart-item">
-          <div class="item-image">
-            <img *ngIf="isImageUrl(item.image)" [src]="getCartImageUrl(item.image)" [alt]="item.name" (error)="onImageError($event)">
-            <div *ngIf="!isImageUrl(item.image)" class="image-placeholder">
-              <svg class="placeholder-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
-                <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
-                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+          <article *ngFor="let item of cartItems; let i = index; trackBy: trackByItem"
+                   class="cart-item ed-card ed-card--rail ed-enter"
+                   [style.--ed-enter-delay.ms]="i * 32">
+            <div class="item-image">
+              <img *ngIf="isImageUrl(item.image)" [src]="getCartImageUrl(item.image)" [alt]="item.name" (error)="onImageError($event)">
+              <div *ngIf="!isImageUrl(item.image)" class="image-placeholder">
+                <svg class="placeholder-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
+                  <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
+                  <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
             </div>
-          </div>
-          
-          <div class="item-details">
-            <div class="item-name-row">
-              <h4 class="item-name">{{ item.name }}</h4>
-              <span *ngIf="item.temperature" class="temperature-badge" [class.hot]="item.temperature === 'hot'" [class.cold]="item.temperature === 'cold'">
-                <span *ngIf="item.temperature === 'hot'">🔥 hot</span>
-                <span *ngIf="item.temperature === 'cold'">❄️ Iced</span>
-              </span>
+
+            <div class="item-details">
+              <div class="item-name-row">
+                <h4 class="item-name">{{ item.name }}</h4>
+                <span *ngIf="item.temperature" class="ed-pill" [class.ed-pill--danger]="item.temperature === 'hot'" [class.ed-pill--info]="item.temperature === 'cold'">
+                  <span *ngIf="item.temperature === 'hot'">🔥 hot</span>
+                  <span *ngIf="item.temperature === 'cold'">❄️ Iced</span>
+                </span>
+              </div>
+              <p class="ed-meta">
+                <span class="ed-meta__num">₱{{ item.price | number:'1.2-2' }}</span>
+              </p>
+              <div class="item-addons" *ngIf="item.addOns && item.addOns.length > 0">
+                <span *ngFor="let addOn of item.addOns" class="addon-badge">
+                  + {{ addOn.name }} <span class="addon-price">₱{{ addOn.price | number:'1.2-2' }}</span>
+                </span>
+              </div>
             </div>
-            <p class="item-category">{{ item.category }}</p>
-            <div class="item-addons" *ngIf="item.addOns && item.addOns.length > 0">
-              <span *ngFor="let addOn of item.addOns" class="addon-badge">
-                +{{ addOn.name }} (+₱{{ addOn.price | number:'1.2-2' }})
-              </span>
-            </div>
-            <div class="item-price">₱{{ item.price | number:'1.2-2' }}</div>
-          </div>
-          
-          <div class="item-quantity">
-            <div class="quantity-controls">
-              <button 
-                class="quantity-btn" 
-                (click)="decreaseQuantity(item)"
-                [disabled]="item.quantity <= 1"
-              >
+
+            <div class="item-controls">
+              <div class="quantity-controls">
+                <button
+                  class="quantity-btn"
+                  (click)="decreaseQuantity(item)"
+                  [disabled]="item.quantity <= 1"
+                  aria-label="Decrease quantity"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+                <span class="quantity-display">{{ item.quantity }}</span>
+                <button
+                  class="quantity-btn"
+                  (click)="increaseQuantity(item)"
+                  [disabled]="item.quantity >= item.stock"
+                  aria-label="Increase quantity"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+
+              <span class="total-amount">₱{{ (item.price * item.quantity) | number:'1.2-2' }}</span>
+
+              <button class="remove-btn" (click)="removeFromCart(item)" aria-label="Remove item">
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
               </button>
-              <span class="quantity-display">{{ item.quantity }}</span>
-              <button 
-                class="quantity-btn" 
-                (click)="increaseQuantity(item)"
-                [disabled]="item.quantity >= item.stock"
-              >
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </button>
             </div>
-            <div class="stock-info">Stock: {{ item.stock }}</div>
-          </div>
-          
-          <div class="item-total">
-            <div class="total-amount">₱{{ (item.price * item.quantity) | number:'1.2-2' }}</div>
-          </div>
-          
-          <div class="item-actions">
-            <button class="remove-btn" (click)="removeFromCart(item)">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </button>
-          </div>
-          </div>
+          </article>
         </div>
       </ng-container>
 
-      <div *ngIf="openOrders.length > 0" class="open-orders">
-        <div class="open-orders-header">Open Orders</div>
+      <!-- Open Orders -->
+      <section *ngIf="openOrders.length > 0" class="open-orders">
+        <header class="open-orders-header">
+          <span class="ed-eyebrow ed-eyebrow--warning">On hold</span>
+          <h3 class="ed-display ed-display--sm">Saved orders</h3>
+        </header>
         <div class="open-orders-list">
-          <div *ngFor="let order of openOrders" class="open-order-item" [class.active-open-order]="order.id === activeOpenOrderId">
+          <article *ngFor="let order of openOrders"
+                   class="open-order-item ed-card ed-card--lift ed-card--top-rail ed-card--top-rail-warning"
+                   [class.is-active]="order.id === activeOpenOrderId">
             <div class="open-order-info">
               <div class="open-order-name">{{ order.name }}</div>
               <div class="open-order-meta">
-                {{ order.items.length }} items • {{ order.createdAt | date:'short' }}
+                {{ order.items.length }} {{ order.items.length === 1 ? 'item' : 'items' }} · {{ order.createdAt | date:'short' }}
               </div>
             </div>
             <div class="open-order-actions">
               <button class="open-order-btn load" (click)="loadOpenOrder(order)">Load</button>
               <button class="open-order-btn delete" (click)="removeOpenOrder(order)">Delete</button>
             </div>
-          </div>
+          </article>
         </div>
-      </div>
+      </section>
     </div>
 
-    <!-- Cart Summary -->
-    <div *ngIf="cartItems.length > 0" class="cart-summary">
-      <div class="summary-row total-row">
-        <span class="summary-label">Total:</span>
-        <span class="summary-value total-value">₱{{ total | number:'1.2-2' }}</span>
+    <!-- Receipt-Style Summary -->
+    <aside *ngIf="cartItems.length > 0" class="cart-summary ed-receipt" aria-label="Order summary">
+      <div class="ed-receipt__perforation ed-receipt__perforation--top"></div>
+
+      <div class="ed-receipt__body">
+        <div class="ed-total-block">
+          <span class="ed-total-block__label">Total · {{ totalQuantity }} {{ totalQuantity === 1 ? 'item' : 'items' }}</span>
+          <div class="ed-total-block__display">
+            <span class="ed-total-block__currency">₱</span>
+            <span class="ed-total-block__amount">{{ total | number:'1.2-2' }}</span>
+          </div>
+        </div>
+
+        <div class="ed-receipt__divider ed-receipt__divider--dashed"></div>
+
+        <div class="cart-actions">
+          <button class="ed-btn ed-btn--primary ed-btn--block ed-btn--arrow checkout-btn" (click)="proceedToCheckout()">
+            <span>Checkout</span>
+            <svg class="ed-btn__icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <button class="ed-btn ed-btn--secondary ed-btn--block" (click)="saveOpenOrder()">
+            <svg class="ed-btn__icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M17 21v-8H7v8M7 3v5h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>Save for later</span>
+          </button>
+        </div>
       </div>
-      
-      <div class="cart-actions">
-        <button class="btn btn-secondary" (click)="saveOpenOrder()">
-          Save Open Order
-        </button>
-        <button class="btn btn-primary checkout-btn" (click)="proceedToCheckout()">
-          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          Proceed to Checkout
-        </button>
-      </div>
-    </div>
+
+      <div class="ed-receipt__perforation ed-receipt__perforation--bottom"></div>
+    </aside>
   </div>
 
   <!-- Checkout Sidebar -->
-  <app-checkout-sidebar 
+  <app-checkout-sidebar
     [isOpen]="isCheckoutOpen"
     (close)="closeCheckout()"
     (transactionComplete)="onTransactionComplete($event)"
   ></app-checkout-sidebar>
 </div>
-

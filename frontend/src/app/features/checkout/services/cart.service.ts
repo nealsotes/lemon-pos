@@ -96,6 +96,17 @@ export class CartService {
     }
   }
 
+  renameOpenOrder(id: number, name: string): void {
+    const trimmed = name?.trim();
+    if (!trimmed) return;
+    const current = this.openOrdersSubject.value;
+    const updated = current.map(order =>
+      order.id === id ? { ...order, name: trimmed } : order
+    );
+    this.openOrdersSubject.next(updated);
+    this.saveOpenOrdersToStorage();
+  }
+
   addToCart(product: Product, quantity: number = 1, temperature: 'hot' | 'cold' | null = null, addOns?: AddOn[]): void {
     const currentItems = this.cartItemsSubject.value;
 

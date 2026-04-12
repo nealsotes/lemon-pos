@@ -22,25 +22,17 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
     <!-- Checkout Sidebar Overlay -->
     <div class="checkout-overlay" [class.active]="isOpen" [class.inline]="inline" (click)="!inline && closeCheckout()">
       <div class="checkout-sidebar" [class.inline]="inline" (click)="$event.stopPropagation()">
-        <!-- Header -->
-        <div class="checkout-header">
+        <!-- Editorial Header -->
+        <header class="checkout-header">
           <div class="header-left">
-            <button *ngIf="inline" class="back-btn" (click)="back.emit()" title="Back to Cart">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </button>
-            <h2>Checkout</h2>
+            <h2 class="ed-display ed-display--sm">Checkout</h2>
             <div class="form-status" *ngIf="isFormDirty">
-              <svg class="status-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              <span class="status-text">Saving...</span>
+              <span class="ed-pulse-dot"></span>
+              <span class="status-text">Auto-saving</span>
             </div>
           </div>
           <div class="header-actions">
-            <button class="restore-btn" *ngIf="hasSavedData() && !hasFormData()" (click)="restoreSavedData()" title="Restore Saved Data">
+            <button class="header-icon-btn" *ngIf="hasSavedData() && !hasFormData()" (click)="restoreSavedData()" title="Restore Saved Data">
               <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 <path d="M21 3v5h-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -48,100 +40,89 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
                 <path d="M3 21v-5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </button>
-            <button class="clear-btn" (click)="clearFormData()" title="Clear Form">
+            <button class="header-icon-btn" (click)="clearFormData()" title="Clear Form">
               <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </button>
-            <button *ngIf="!inline" class="close-btn" (click)="closeCheckout()">
+            <button *ngIf="!inline" class="header-icon-btn close-btn" (click)="closeCheckout()">
               <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </button>
           </div>
-        </div>
+        </header>
 
         <!-- Success/Error Messages -->
-        <div *ngIf="message" class="message-container" [class]="messageType">
-          <div class="message-content">
-            <span class="message-icon">
-              <svg *ngIf="messageType === 'success'" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              <svg *ngIf="messageType === 'error'" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </span>
-            <span class="message-text">{{ message }}</span>
-            <button class="message-close" (click)="clearMessage()">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </button>
+        <div *ngIf="message" class="message-container" [class]="messageType" [class.shake]="messageShake" role="alert">
+          <span class="message-icon">
+            <svg *ngIf="messageType === 'success'" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <svg *ngIf="messageType === 'error'" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="12" cy="17" r="1" fill="currentColor"/>
+            </svg>
+          </span>
+          <div class="message-body">
+            <div class="message-title">{{ messageTitle }}</div>
+            <div class="message-text">{{ message }}</div>
           </div>
+          <button class="message-close" (click)="clearMessage()" aria-label="Dismiss">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
         </div>
 
         <!-- Content -->
         <div class="checkout-content">
-          <!-- Open Orders -->
-          <div class="section">
-            <div class="open-orders-header-row">
-              <h3>Open Orders</h3>
-            </div>
-            <div class="open-order-name-row">
+          <!-- Customer (compact) -->
+          <section class="section">
+            <h3 class="ed-display ed-display--xs section-title">Customer</h3>
+            <div class="form-group">
               <input
                 type="text"
-                [(ngModel)]="openOrderName"
-                placeholder="Optional name (e.g., Table 3, John)"
-              >
-            </div>
-            <button class="open-order-save-btn" (click)="saveOpenOrder()" [disabled]="cartItems.length === 0">
-              Save Open Order
-            </button>
-          </div>
-
-          <!-- Customer Information -->
-          <div class="section">
-            <h3>Customer Information</h3>
-            <div class="form-group">
-              <label>Full Name</label>
-              <input 
-                type="text" 
+                class="ed-input"
                 [(ngModel)]="customerInfo.name"
                 (ngModelChange)="onCustomerInfoChange()"
-                placeholder="Enter customer name"
+                placeholder="Customer name (optional)"
               >
             </div>
-            <div class="form-group">
-              <label>Email</label>
-              <input 
-                type="email" 
+            <button type="button" class="more-fields-toggle" (click)="showMoreCustomerFields = !showMoreCustomerFields">
+              {{ showMoreCustomerFields ? '− Hide' : '+ Add' }} email & phone
+            </button>
+            <div *ngIf="showMoreCustomerFields" class="form-group">
+              <input
+                type="email"
+                class="ed-input"
                 [(ngModel)]="customerInfo.email"
                 (ngModelChange)="onCustomerInfoChange()"
-                placeholder="Enter email address"
+                placeholder="Email address"
               >
             </div>
-            <div class="form-group">
-              <label>Phone</label>
-              <input 
-                type="tel" 
+            <div *ngIf="showMoreCustomerFields" class="form-group">
+              <input
+                type="tel"
+                class="ed-input"
                 [(ngModel)]="customerInfo.phone"
                 (ngModelChange)="onCustomerInfoChange()"
-                placeholder="Enter phone number"
+                placeholder="Phone number"
               >
             </div>
             
             <!-- Discount Toggle -->
-            <div class="form-group checkbox-group">
+            <div class="form-group toggle-group">
               <label class="toggle-switch">
-                <input 
-                  type="checkbox" 
-                  [ngModel]="isDiscountEnabled" 
+                <input
+                  type="checkbox"
+                  [ngModel]="isDiscountEnabled"
                   (ngModelChange)="toggleDiscount($event)"
                 >
                 <span class="slider"></span>
               </label>
-              <span class="toggle-label" (click)="toggleDiscount(!isDiscountEnabled)">Apply Discount</span>
+              <span class="toggle-label" (click)="toggleDiscount(!isDiscountEnabled)">Apply discount</span>
             </div>
 
             <!-- Discount Details (only shown if discount is enabled) -->
@@ -149,10 +130,10 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
               <div class="discount-row">
                 <!-- Discount Category -->
                 <div class="form-group flex-grow">
-                  <label>Category</label>
-                  <select 
+                  <label class="ed-label">Category</label>
+                  <select
                     [ngModel]="customerInfo.discountType"
-                    class="form-select"
+                    class="ed-input ed-select"
                     (ngModelChange)="onDiscountCategoryChange($event)"
                   >
                     <option value="manual">Other</option>
@@ -162,18 +143,18 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
                 </div>
 
                 <!-- Discount Value (Amount) -->
-                <div class="form-group percentage-group amount-group">
-                  <label>Amount</label>
-                  <div class="percentage-input-wrapper">
-                    <input 
-                      type="number" 
+                <div class="form-group amount-group">
+                  <label class="ed-label">Amount</label>
+                  <div class="amount-input-wrapper">
+                    <span class="amount-prefix">₱</span>
+                    <input
+                      type="number"
                       [(ngModel)]="manualDiscountAmount"
                       (ngModelChange)="onManualDiscountChange()"
-                      class="form-input"
+                      class="ed-input ed-input--prefix"
                       min="0"
                       placeholder="0.00"
                     >
-                    <span class="percentage-symbol">₱</span>
                   </div>
                   <div *ngIf="showDiscountAmountError" class="error-message">
                     Discount cannot exceed ₱{{ subtotalBeforeDiscount | number:'1.2-2' }}
@@ -181,16 +162,16 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
                 </div>
               </div>
             </div>
-            
+
             <!-- Discount ID (shown only for Senior/PWD) -->
             <div class="form-group" *ngIf="isDiscountEnabled && (customerInfo.discountType === 'senior' || customerInfo.discountType === 'pwd')">
-              <label>Discount ID Number *</label>
-              <input 
-                type="text" 
+              <label class="ed-label">Discount ID number *</label>
+              <input
+                type="text"
                 [(ngModel)]="customerInfo.discountId"
                 (ngModelChange)="onCustomerInfoChange()"
                 placeholder="Enter Senior Citizen or PWD ID number"
-                class="form-input"
+                class="ed-input"
                 [class.error]="isDiscountIdRequired"
                 required
               >
@@ -198,11 +179,11 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
                 Discount ID is required for {{ customerInfo.discountType === 'senior' ? 'Senior Citizen' : 'PWD' }} discount
               </div>
             </div>
-          </div>
+          </section>
 
           <!-- Payment Method -->
-          <div class="section">
-            <h3>Payment Method</h3>
+          <section class="section">
+            <h3 class="ed-display ed-display--xs section-title">Payment</h3>
             <div class="payment-options">
               <label class="payment-option" [class.selected]="paymentMethod === 'cash'">
                 <input 
@@ -256,12 +237,12 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
               </label>
             </div>
             <div *ngIf="showPaymentError" class="error-message">Please select a payment method</div>
-          </div>
+          </section>
 
           <!-- Service Type -->
-          <div class="section">
-            <h3>Service Type</h3>
-            <div class="payment-options">
+          <section class="section">
+            <h3 class="ed-display ed-display--xs section-title">Service</h3>
+            <div class="payment-options service-options">
               <label class="payment-option" [class.selected]="serviceType === 'dineIn'">
                 <input 
                   type="radio" 
@@ -296,69 +277,66 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
                 </span>
               </label>
             </div>
-          </div>
+          </section>
 
           <!-- Order Summary -->
-          <div class="section">
-            <h3>Order Summary</h3>
-            <div class="order-items">
-              <div *ngFor="let item of cartItems; trackBy: trackByItem" class="order-item">
-                <div class="item-info">
-                  <div class="item-name-row">
-                    <span class="item-name">{{ item.name }}</span>
-                    <span *ngIf="item.temperature" class="temperature-badge" [class.hot]="item.temperature === 'hot'" [class.cold]="item.temperature === 'cold'">
-                      <span *ngIf="item.temperature === 'hot'">🔥 hot</span>
-                      <span *ngIf="item.temperature === 'cold'">❄️ Iced</span>
-                    </span>
-                  </div>
-                  <div class="item-addons" *ngIf="item.addOns && item.addOns.length > 0">
-                    <span *ngFor="let addOn of item.addOns" class="addon-item">
-                      <span *ngIf="addOn.quantity && addOn.quantity > 1">{{ addOn.quantity }}x </span>+ {{ addOn.name }} (+₱{{ (addOn.price * (addOn.quantity || 1)) | number:'1.2-2' }})
-                    </span>
-                  </div>
-                  <span class="item-qty">x{{ item.quantity }}</span>
+          <section class="section summary-section">
+            <h3 class="ed-display ed-display--xs section-title">Order summary</h3>
+            <div class="summary-items">
+              <div *ngFor="let item of cartItems; trackBy: trackByItem" class="summary-item">
+                <div class="summary-item__info">
+                  <span class="summary-item__qty">{{ item.quantity }}×</span>
+                  <span class="summary-item__name">{{ item.name }}</span>
+                  <span *ngIf="item.temperature" class="summary-item__temp">
+                    {{ item.temperature === 'hot' ? '🔥' : '❄️' }}
+                  </span>
                 </div>
-                <span class="item-price">₱{{ item.total | number:'1.2-2' }}</span>
+                <span class="summary-item__price">₱{{ item.total | number:'1.2-2' }}</span>
               </div>
             </div>
-            
-            <div class="order-totals">
-              <div class="total-row" *ngIf="hasDiscount && discountTotal > 0">
-                <span>Subtotal:</span>
-                <span>₱{{ subtotalBeforeDiscount | number:'1.2-2' }}</span>
+            <div class="compact-summary">
+              <div class="ed-stat-row" *ngIf="hasDiscount && discountTotal > 0">
+                <span class="ed-stat-row__label">Subtotal</span>
+                <span class="ed-stat-row__value">₱{{ subtotalBeforeDiscount | number:'1.2-2' }}</span>
               </div>
-              <div class="total-row" *ngIf="hasDiscount && discountTotal > 0">
-                <span>Discount ({{ customerInfo.discountType === 'senior' ? 'Senior' : customerInfo.discountType === 'pwd' ? 'PWD' : 'Other' }}):</span>
-                <span class="discount-value">-₱{{ discountTotal | number:'1.2-2' }}</span>
+              <div class="ed-stat-row" *ngIf="hasDiscount && discountTotal > 0">
+                <span class="ed-stat-row__label">Discount</span>
+                <span class="ed-stat-row__value discount-value">−₱{{ discountTotal | number:'1.2-2' }}</span>
               </div>
-              <div class="total-row final-total">
-                <span>Total</span>
-                <span>₱{{ total | number:'1.2-2' }}</span>
+              <div class="grand-total-row">
+                <span class="grand-total-label">Total</span>
+                <div class="grand-total-display">
+                  <span class="grand-total-currency">₱</span>
+                  <span class="grand-total-amount">{{ total | number:'1.2-2' }}</span>
+                </div>
               </div>
             </div>
-          </div>
+          </section>
 
           <!-- Cash Payment Input (shown only for cash) -->
-          <div *ngIf="paymentMethod === 'cash'" class="section">
-            <h3>Cash Payment</h3>
+          <section *ngIf="paymentMethod === 'cash'" class="section">
+            <h3 class="ed-display ed-display--xs section-title">Cash received</h3>
             <div class="form-group">
-              <label>Amount Received</label>
-              <input 
-                type="number" 
-                [(ngModel)]="amountReceived"
-                (ngModelChange)="onAmountReceivedChange()"
-                (focus)="onAmountFocus()"
-                placeholder="Enter amount received"
-                min="0"
-                step="0.01"
-                [class.error]="showAmountError"
-              >
+              <div class="amount-input-wrapper">
+                <span class="amount-prefix">₱</span>
+                <input
+                  type="number"
+                  class="ed-input ed-input--prefix ed-input--big"
+                  [(ngModel)]="amountReceived"
+                  (ngModelChange)="onAmountReceivedChange()"
+                  (focus)="onAmountFocus()"
+                  placeholder="0.00"
+                  min="0"
+                  step="0.01"
+                  [class.error]="showAmountError"
+                >
+              </div>
               <div *ngIf="showAmountError" class="error-message">Amount must be at least ₱{{ total | number:'1.2-2' }}</div>
-              
+
               <!-- Quick Amount Buttons -->
               <div class="quick-amount-buttons">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   class="quick-amount-btn"
                   *ngFor="let amount of quickAmounts"
                   (click)="setQuickAmount(amount)"
@@ -368,73 +346,70 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
                 </button>
               </div>
             </div>
-            <!-- Order Breakdown - Always visible -->
-            <div class="breakdown-section">
-              <div class="breakdown-row">
-                <span>Subtotal:</span>
-                <span>₱{{ getSubtotal() | number:'1.2-2' }}</span>
-              </div>
-              
-              <!-- Show discount if greater than 0 -->
-              <div class="breakdown-row" *ngIf="getDiscount() > 0 || discountTotal > 0">
-                <span>Discount:</span>
-                <span class="discount-value">-₱{{ (getDiscount() || discountTotal || 0) | number:'1.2-2' }}</span>
-              </div>
-              
-              <div class="breakdown-row total-row">
-                <span>Total Amount:</span>
-                <span>₱{{ total | number:'1.2-2' }}</span>
-              </div>
-            </div>
-            
+
             <div *ngIf="amountReceived > 0" class="change-display">
               <div class="change-row">
-                <span>Amount Received:</span>
-                <span>₱{{ amountReceived | number:'1.2-2' }}</span>
+                <span class="change-label">Amount received</span>
+                <span class="change-value">₱{{ amountReceived | number:'1.2-2' }}</span>
               </div>
+              <div class="ed-receipt__divider ed-receipt__divider--dashed"></div>
               <div class="change-row change-amount">
-                <span>Change:</span>
-                <span>₱{{ change | number:'1.2-2' }}</span>
+                <span class="change-label">Change due</span>
+                <div class="change-display-amount">
+                  <span class="ed-total-block__currency">₱</span>
+                  <span class="change-big">{{ change | number:'1.2-2' }}</span>
+                </div>
               </div>
             </div>
-          </div>
+          </section>
 
-          <!-- Notes -->
-          <div class="section">
-            <h3>Additional Notes</h3>
-            <div class="form-group">
-            <textarea 
-              [(ngModel)]="notes"
-              (ngModelChange)="onNotesChange()"
-              placeholder="Add any special instructions or notes..."
-              rows="3"
-            ></textarea>
+          <!-- Notes (collapsible) -->
+          <section class="section">
+            <button type="button" class="more-fields-toggle notes-toggle" (click)="showNotes = !showNotes">
+              {{ showNotes ? '−' : '+' }} {{ showNotes ? 'Hide' : 'Add' }} note
+            </button>
+            <div *ngIf="showNotes" class="form-group">
+              <textarea
+                class="ed-input ed-textarea"
+                [(ngModel)]="notes"
+                (ngModelChange)="onNotesChange()"
+                placeholder="Special instructions..."
+                rows="2"
+              ></textarea>
             </div>
-          </div>
+          </section>
         </div>
 
         <!-- Footer Actions -->
-        <div class="checkout-footer">
-          <button class="btn btn-secondary" (click)="inline ? back.emit() : closeCheckout()">
-            {{ inline ? 'Back to Cart' : 'Cancel' }}
+        <footer class="checkout-footer">
+          <button class="ed-btn ed-btn--secondary" (click)="inline ? back.emit() : closeCheckout()">
+            <svg class="ed-btn__icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>{{ inline ? 'Back' : 'Cancel' }}</span>
           </button>
-          <button 
-            class="btn btn-primary" 
+          <button
+            class="ed-btn ed-btn--primary ed-btn--arrow checkout-complete-btn"
             (click)="processTransaction()"
             [disabled]="isProcessing"
           >
-            <span *ngIf="!isProcessing">Complete Transaction</span>
-            <span *ngIf="isProcessing" class="loading">
-              <svg class="spinner" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <ng-container *ngIf="!isProcessing">
+              <span>Complete transaction</span>
+              <svg class="ed-btn__icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </ng-container>
+            <ng-container *ngIf="isProcessing">
+              <svg class="ed-btn__icon spinner" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="31.416" stroke-dashoffset="31.416">
                   <animate attributeName="stroke-dasharray" dur="2s" values="0 31.416;15.708 15.708;0 31.416" repeatCount="indefinite"/>
                   <animate attributeName="stroke-dashoffset" dur="2s" values="0;-15.708;-31.416" repeatCount="indefinite"/>
                 </circle>
               </svg>
-              Processing...
-            </span>
+              <span>Processing</span>
+            </ng-container>
           </button>
-        </div>
+        </footer>
       </div>
     </div>
 
@@ -491,7 +466,9 @@ export class CheckoutSidebarComponent implements OnInit {
   // UI states
   isProcessing = false;
   message = '';
+  messageTitle = '';
   messageType: 'success' | 'error' = 'success';
+  messageShake = false;
 
   // Receipt states
   isReceiptOpen = false;
@@ -501,6 +478,10 @@ export class CheckoutSidebarComponent implements OnInit {
   private readonly STORAGE_KEY = 'checkout_form_data';
   private autoSaveTimeout: any;
   isFormDirty = false;
+
+  // UI state
+  showMoreCustomerFields = false;
+  showNotes = false;
 
   constructor(
     private cartService: CartService,
@@ -618,12 +599,22 @@ export class CheckoutSidebarComponent implements OnInit {
 
   clearMessage(): void {
     this.message = '';
+    this.messageTitle = '';
     this.messageType = 'success';
+    this.messageShake = false;
   }
 
-  showMessage(text: string, type: 'success' | 'error' = 'success'): void {
+  showMessage(text: string, type: 'success' | 'error' = 'success', title: string = ''): void {
     this.message = text;
+    this.messageTitle = title || (type === 'success' ? 'Success' : 'Heads up');
     this.messageType = type;
+
+    // Trigger shake animation on error to grab attention
+    if (type === 'error') {
+      this.messageShake = false;
+      this.cdr.detectChanges();
+      this.messageShake = true;
+    }
 
     // Auto-hide success messages after 3 seconds
     if (type === 'success') {
@@ -656,8 +647,8 @@ export class CheckoutSidebarComponent implements OnInit {
     this.manualDiscountAmount = 0;
   }
 
-  validateForm(): boolean {
-    let isValid = true;
+  validateForm(): { valid: boolean; issues: string[] } {
+    const issues: string[] = [];
 
     // Clear previous errors
     this.showPaymentError = false;
@@ -665,40 +656,43 @@ export class CheckoutSidebarComponent implements OnInit {
     this.showDiscountAmountError = false;
 
     // Validate discount ID if discount is selected (Only for Senior/PWD)
-    // isDiscountIdRequired getter handles the logic: (Senior OR PWD) AND ID is empty
     if (this.isDiscountIdRequired) {
-      isValid = false;
+      const label = this.customerInfo.discountType === 'senior' ? 'Senior Citizen' : 'PWD';
+      issues.push(`${label} discount needs an ID number.`);
     }
 
     // Validate discount amount
     if (this.isDiscountEnabled && this.manualDiscountAmount > this.subtotalBeforeDiscount) {
       this.showDiscountAmountError = true;
-      isValid = false;
+      issues.push(`Discount can't exceed the subtotal of ₱${this.subtotalBeforeDiscount.toFixed(2)}.`);
     }
 
     // Validate payment method
     if (!this.paymentMethod) {
       this.showPaymentError = true;
-      isValid = false;
+      issues.push('Choose a payment method.');
     }
 
     // Validate cash amount
     if (this.paymentMethod === 'cash' && this.amountReceived < this.total) {
       this.showAmountError = true;
-      isValid = false;
+      const short = (this.total - this.amountReceived).toFixed(2);
+      issues.push(`Cash received is short by ₱${short}.`);
     }
 
-    return isValid;
+    return { valid: issues.length === 0, issues };
   }
 
   processTransaction(): void {
-    if (!this.validateForm()) {
-      this.showMessage('Please fix the errors above', 'error');
+    if (this.cartItems.length === 0) {
+      this.showMessage('Add at least one product to the cart before checking out.', 'error', 'Cart is empty');
       return;
     }
 
-    if (this.cartItems.length === 0) {
-      this.showMessage('Cart is empty', 'error');
+    const validation = this.validateForm();
+    if (!validation.valid) {
+      const title = validation.issues.length === 1 ? 'One thing to fix' : `${validation.issues.length} things to fix`;
+      this.showMessage(validation.issues.join(' '), 'error', title);
       return;
     }
 
@@ -723,12 +717,86 @@ export class CheckoutSidebarComponent implements OnInit {
     this.completeTransaction();
   }
 
+  private translateTransactionError(error: any): { title: string; body: string } {
+    const status = error?.status ?? 0;
+
+    // Extract any server-provided message for fallback
+    let serverMessage = '';
+    if (error?.error) {
+      if (typeof error.error === 'string') {
+        serverMessage = error.error;
+      } else if (error.error.message) {
+        serverMessage = error.error.message;
+      } else if (error.error.userMessage) {
+        serverMessage = error.error.userMessage;
+      } else if (Array.isArray(error.error.errors)) {
+        serverMessage = error.error.errors.join(' ');
+      }
+    }
+
+    // Network / offline
+    if (status === 0) {
+      return {
+        title: 'No connection',
+        body: 'Your device looks offline. Reconnect to the internet and try again.'
+      };
+    }
+
+    // Auth
+    if (status === 401) {
+      return {
+        title: 'Session expired',
+        body: 'Please log in again to complete this sale.'
+      };
+    }
+    if (status === 403) {
+      return {
+        title: 'Not allowed',
+        body: 'Your account does not have permission to complete sales.'
+      };
+    }
+
+    // Validation
+    if (status === 400 || status === 422) {
+      return {
+        title: 'Order can\'t be processed',
+        body: serverMessage || 'Please review the cart and customer details, then try again.'
+      };
+    }
+
+    // Stock
+    if (status === 409) {
+      return {
+        title: 'Stock changed',
+        body: serverMessage || 'One or more items just ran out of stock. Refresh and try again.'
+      };
+    }
+
+    // Server errors
+    if (status >= 500) {
+      return {
+        title: 'Server error',
+        body: 'Something went wrong on our end. Wait a moment and try again — your cart is safe.'
+      };
+    }
+
+    // Generic fallback
+    return {
+      title: 'Couldn\'t complete the sale',
+      body: serverMessage || 'Something unexpected happened. Try again — your cart is still here.'
+    };
+  }
+
   private completeTransaction(): void {
     // Set a timeout to prevent infinite loading
     const timeoutId = setTimeout(() => {
       if (this.isProcessing) {
         this.isProcessing = false;
-        this.showMessage('Transaction request timed out. Please check your connection and try again.', 'error');
+        this.showMessage(
+          'The server is taking longer than expected. Check your connection and try again.',
+          'error',
+          'Request timed out'
+        );
         this.cdr.detectChanges();
       }
     }, 30000); // 30 second timeout
@@ -924,25 +992,8 @@ export class CheckoutSidebarComponent implements OnInit {
         clearTimeout(timeoutId);
         this.isProcessing = false;
 
-        // Extract error message
-        let errorMessage = 'Transaction failed. Please try again.';
-        if (error?.error) {
-          if (typeof error.error === 'string') {
-            errorMessage = error.error;
-          } else if (error.error.message) {
-            errorMessage = error.error.message;
-          } else if (error.error.errors && Array.isArray(error.error.errors)) {
-            errorMessage = `Validation errors: ${error.error.errors.join(', ')}`;
-          } else if (error.error.userMessage) {
-            errorMessage = error.error.userMessage;
-          }
-        } else if (error?.message) {
-          errorMessage = error.message;
-        } else if (error?.statusText) {
-          errorMessage = `Server error: ${error.status} ${error.statusText}`;
-        }
-
-        this.showMessage(errorMessage, 'error');
+        const { title, body } = this.translateTransactionError(error);
+        this.showMessage(body, 'error', title);
         this.cdr.detectChanges();
       },
       complete: () => {
