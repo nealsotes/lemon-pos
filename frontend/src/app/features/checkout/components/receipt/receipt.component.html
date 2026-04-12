@@ -65,7 +65,7 @@
           </div>
         </div>
         <span class="item-qty">{{ item.quantity }}</span>
-        <span class="item-price">{{ formatPrice(item.price) }}</span>
+        <span class="item-price">{{ formatPrice(getBasePrice(item)) }}</span>
         <span class="item-total">{{ formatPrice(item.price * item.quantity) }}</span>
       </div>
     </div>

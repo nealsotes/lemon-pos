@@ -118,6 +118,14 @@ export class ReceiptComponent implements OnInit {
     return subtotalAfterDiscount * vatRate;
   }
 
+  getBasePrice(item: any): number {
+    if (!item.addOns || item.addOns.length === 0) return item.price;
+    const addOnsTotal = item.addOns.reduce((sum: number, addOn: any) => {
+      return sum + ((addOn.price || 0) * (addOn.quantity || 1));
+    }, 0);
+    return item.price - addOnsTotal;
+  }
+
   getTemperature(item: any): string | null {
     if (!item) return null;
     const temp = item.temperature;

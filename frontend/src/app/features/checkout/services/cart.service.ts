@@ -131,7 +131,7 @@ export class CartService {
     const existingItemIndex = currentItems.findIndex(item => {
       const itemAddOnsKey = item.addOns ? item.addOns.map(a => `${a.name}:${a.quantity || 1}`).sort().join(',') : '';
       return item.productId === product.id &&
-        item.temperature === temperature &&
+        (item.temperature || null) === (temperature || null) &&
         itemAddOnsKey === addOnsKey;
     });
 
