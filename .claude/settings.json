@@ -26,7 +26,8 @@
       "Bash(grep -n \"class ExpenseResponseDto\\\\|class TransactionDto\\\\|class TransactionResponseDto\" \"backend/PosSystem/PosSystem/Core/Models/\"*.cs)",
       "Bash(dotnet restore:*)",
       "Bash(npx tsc:*)",
-      "Bash(ls tsconfig*)"
+      "Bash(ls tsconfig*)",
+      "Bash(grep -r \"styleUrls\" c:\\\\Users\\\\Full Scale\\\\Desktop\\\\PROJECTS\\\\lemon-pos\\\\frontend\\\\src\\\\app\\\\features\\\\admin\\\\components\\\\**\\\\*.ts)"
     ]
   },
   "hooks": {

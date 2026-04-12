@@ -38,7 +38,7 @@ export const NAV_ITEMS: NavItem[] = [
     roles: [UserRole.Owner, UserRole.Admin]
   },
   {
-    icon: '<path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
+    icon: '<path d="M8 4v16" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/><path d="M8 4h5a5 5 0 010 10H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="5" y1="7" x2="17" y2="7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="5" y1="10" x2="17" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
     label: 'Expenses',
     route: '/expenses',
     roles: [UserRole.Owner, UserRole.Admin]
