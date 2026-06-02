@@ -719,6 +719,16 @@ using (var scope = app.Services.CreateScope())
     {
         // Column already exists - expected, ignore
     }
+
+    // Widen Products.Image to MEDIUMTEXT so base64-encoded images fit (Railway has no persistent FS for uploads)
+    try
+    {
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE `Products` MODIFY COLUMN `Image` MEDIUMTEXT NULL");
+    }
+    catch
+    {
+        // Already widened - expected, ignore
+    }
     
     await SeedData.InitializeAsync(context); // Seed full product list
     await SeedData.InitializeUsersAsync(context); // Seed default users

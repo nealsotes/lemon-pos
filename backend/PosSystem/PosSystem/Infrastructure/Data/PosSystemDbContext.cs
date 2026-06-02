@@ -33,7 +33,7 @@ public class PosSystemDbContext : DbContext
             entity.Property(e => e.ColdPrice).HasPrecision(18, 2);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
             entity.Property(e => e.Category).IsRequired().HasMaxLength(50);
-            entity.Property(e => e.Image).HasMaxLength(200);
+            entity.Property(e => e.Image).HasColumnType("mediumtext");
             entity.Property(e => e.LowQuantityThreshold).IsRequired().HasDefaultValue(10);
             entity.Property(e => e.HasHotCold).HasDefaultValue(false);
             entity.Property(e => e.HasAddOns).HasDefaultValue(false);

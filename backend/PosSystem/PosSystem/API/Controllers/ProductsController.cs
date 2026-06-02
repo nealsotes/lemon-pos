@@ -118,31 +118,21 @@ public class ProductsController : ControllerBase
                 AddOns = productDto.AddOns
             };
 
-                         // Handle image processing
-             if (!string.IsNullOrEmpty(productDto.Image))
-             {
-                 if (productDto.Image.StartsWith("data:image/"))
-                 {
-                     // Convert base64 data URL to file
-                     var imageData = ConvertBase64ToBytes(productDto.Image);
-                     
-                     // Validate file size (max 5MB after compression)
-                     if (imageData.Length > 5 * 1024 * 1024)
-                     {
-                         return BadRequest("Image file is too large. Please use a smaller image or compress it.");
-                     }
-                     
-                    var fileName = $"product_{Guid.NewGuid()}.jpg";
-                    var imagePath = await _fileService.SaveImageAsync(imageData, fileName);
-                    // Use relative path for Railway (same-domain deployment)
-                    product.Image = $"/{imagePath}";
-                 }
-                 else
-                 {
-                     // Emoji or existing URL
-                     product.Image = productDto.Image;
-                 }
-             }
+            // Image is stored inline in the DB (data URL or emoji/URL passthrough).
+            // Railway's container FS is ephemeral, so uploads on disk vanish on redeploy.
+            if (!string.IsNullOrEmpty(productDto.Image))
+            {
+                if (productDto.Image.StartsWith("data:image/"))
+                {
+                    // Validate size before persisting (5MB raw -> ~6.7MB base64, fits in MEDIUMTEXT)
+                    var imageData = ConvertBase64ToBytes(productDto.Image);
+                    if (imageData.Length > 5 * 1024 * 1024)
+                    {
+                        return BadRequest("Image file is too large. Please use a smaller image or compress it.");
+                    }
+                }
+                product.Image = productDto.Image;
+            }
 
             var createdProduct = await _productService.CreateProductAsync(product);
             // Fix image URL for Railway deployment
@@ -167,32 +157,19 @@ public class ProductsController : ControllerBase
                 return NotFound($"Product with ID {id} not found");
             }
 
-            // Handle image processing
+            // Image is stored inline in the DB (see CreateProduct for rationale).
             string newImagePath = existingProduct.Image;
             if (!string.IsNullOrEmpty(productDto.Image))
             {
                 if (productDto.Image.StartsWith("data:image/"))
                 {
-                    // Convert base64 data URL to file
                     var imageData = ConvertBase64ToBytes(productDto.Image);
-                    var fileName = $"product_{Guid.NewGuid()}.jpg";
-                    var imagePath = await _fileService.SaveImageAsync(imageData, fileName);
-                    // Use relative path for Railway (same-domain deployment)
-                    newImagePath = $"/{imagePath}";
-                    
-                    // Delete old image if it's not an emoji
-                    if (!string.IsNullOrEmpty(existingProduct.Image) && 
-                        !existingProduct.Image.StartsWith("data:") && 
-                        !existingProduct.Image.StartsWith("http"))
+                    if (imageData.Length > 5 * 1024 * 1024)
                     {
-                        await _fileService.DeleteImageAsync(existingProduct.Image);
+                        return BadRequest("Image file is too large. Please use a smaller image or compress it.");
                     }
                 }
-                else
-                {
-                    // Emoji or existing URL
-                    newImagePath = productDto.Image;
-                }
+                newImagePath = productDto.Image;
             }
 
             var product = new Product
