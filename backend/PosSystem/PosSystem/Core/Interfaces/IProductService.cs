@@ -11,6 +11,7 @@ public interface IProductService
     Task<Product> UpdateProductAsync(string id, Product product);
     Task DeleteProductAsync(string id);
     Task DeleteProductsBulkAsync(List<string> ids);
+    Task<int> BulkUpdateProductsAsync(List<string> ids, BulkUpdateFieldsDto updates);
     Task<IEnumerable<string>> GetCategoriesAsync();
     Task<IEnumerable<Product>> GetProductsByCategoryAsync(string category);
     Task UpdateStockAsync(string productId, int quantity);

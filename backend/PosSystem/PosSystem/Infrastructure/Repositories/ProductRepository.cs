@@ -110,4 +110,50 @@ public class ProductRepository : IProductRepository
             $"UPDATE Products SET Stock = Stock - {quantity}, UpdatedAt = {now} WHERE Id = {productId} AND IsActive = 1 AND Stock >= {quantity}"
         );
     }
-} 
+
+    public async Task<int> BulkUpdateAsync(List<string> ids, BulkUpdateFieldsDto updates)
+    {
+        // Load without IsActive filter — bulk update may reactivate soft-deleted products
+        var products = await _context.Products
+            .Where(p => ids.Contains(p.Id))
+            .ToListAsync();
+
+        foreach (var product in products)
+        {
+            if (updates.IsActive.HasValue)
+            {
+                product.IsActive = updates.IsActive.Value;
+            }
+
+            if (!string.IsNullOrWhiteSpace(updates.Category))
+            {
+                product.Category = updates.Category;
+            }
+
+            if (updates.Price != null)
+            {
+                product.Price = updates.Price.Mode == "percent"
+                    ? Math.Max(0m, Math.Round(product.Price * (1 + (updates.Price.Value / 100m)), 2))
+                    : Math.Max(0m, updates.Price.Value);
+            }
+
+            if (updates.Stock != null)
+            {
+                product.Stock = updates.Stock.Mode == "delta"
+                    ? Math.Max(0, product.Stock + updates.Stock.Value)
+                    : Math.Max(0, updates.Stock.Value);
+            }
+
+            if (updates.AddOns != null)
+            {
+                product.AddOns = updates.AddOns.Items;
+                product.HasAddOns = updates.AddOns.Items.Count > 0;
+            }
+
+            product.UpdatedAt = DateTime.UtcNow;
+        }
+
+        await _context.SaveChangesAsync();
+        return products.Count;
+    }
+}

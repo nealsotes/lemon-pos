@@ -11,6 +11,7 @@ public interface IProductRepository
     Task<Product> UpdateAsync(Product product);
     Task DeleteAsync(string id);
     Task DeleteBulkAsync(List<string> ids);
+    Task<int> BulkUpdateAsync(List<string> ids, BulkUpdateFieldsDto updates);
     Task<IEnumerable<string>> GetCategoriesAsync();
     Task<IEnumerable<Product>> GetByCategoryAsync(string category);
     Task<int> DecrementStockAsync(string productId, int quantity);

@@ -4,8 +4,9 @@ import { HttpClient } from '@angular/common/http';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { environment } from '../../../../../environments/environment.prod';
 import { Product } from '../../../pos/models/product.model';
-import { ProductService } from '../../../pos/services/product.service';
+import { ProductService, BulkUpdateFields } from '../../../pos/services/product.service';
 import { ProductEditorDialogComponent } from './product-editor-dialog.component';
+import { BulkEditDialogComponent, BulkEditDialogData } from './bulk-edit-dialog.component';
 import { TopBarComponent } from '../../../../shared/ui/top-bar/top-bar.component';
 import { KpiStripComponent, KpiItem } from '../../../../shared/ui/kpi-strip/kpi-strip.component';
 import { FilterBarComponent } from '../../../../shared/ui/filter-bar/filter-bar.component';
@@ -256,6 +257,34 @@ export class ProductManagementComponent implements OnInit, OnDestroy {
 
   onSelectionChange(selected: Product[]): void {
     this.selectedProducts = selected;
+  }
+
+  openBulkEditDialog(): void {
+    const count = this.selectedProducts.length;
+    if (count === 0) return;
+
+    const dialogRef = this.dialog.open(BulkEditDialogComponent, {
+      width: '540px',
+      maxWidth: '95vw',
+      data: { productCount: count, categories: this.categories } as BulkEditDialogData,
+      disableClose: false
+    });
+
+    dialogRef.afterClosed().subscribe((updates: BulkUpdateFields | null) => {
+      if (!updates) return;
+      const ids = this.selectedProducts.map(p => p.id);
+      this.productService.bulkUpdateProducts(ids, updates).subscribe({
+        next: result => {
+          this.toast.success(`${result.updated} product${result.updated === 1 ? '' : 's'} updated`);
+          this.selectedProducts = [];
+          this.loadProducts();
+          this.loadCategories();
+        },
+        error: () => {
+          this.toast.error('Error updating products');
+        }
+      });
+    });
   }
 
   async deleteSelectedProducts(): Promise<void> {

@@ -74,6 +74,11 @@ public class ProductService : IProductService
         await _productRepository.DeleteBulkAsync(ids);
     }
 
+    public Task<int> BulkUpdateProductsAsync(List<string> ids, BulkUpdateFieldsDto updates)
+    {
+        return _productRepository.BulkUpdateAsync(ids, updates);
+    }
+
     public async Task<IEnumerable<string>> GetCategoriesAsync()
     {
         return await _productRepository.GetCategoriesAsync();

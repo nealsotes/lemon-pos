@@ -5,6 +5,28 @@ import { catchError, tap } from 'rxjs/operators';
 import { Product } from '../models/product.model';
 import { OfflineService } from '../../../core/services/offline.service';
 
+export interface BulkPriceUpdate {
+  mode: 'set' | 'percent';
+  value: number;
+}
+
+export interface BulkStockUpdate {
+  mode: 'set' | 'delta';
+  value: number;
+}
+
+export interface BulkAddOnsUpdate {
+  items: { name: string; price: number }[];
+}
+
+export interface BulkUpdateFields {
+  isActive?: boolean;
+  category?: string;
+  price?: BulkPriceUpdate;
+  stock?: BulkStockUpdate;
+  addOns?: BulkAddOnsUpdate;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -177,6 +199,16 @@ export class ProductService {
       this.updateCategories();
       return of(void 0);
     }
+  }
+
+  bulkUpdateProducts(ids: string[], updates: BulkUpdateFields): Observable<{ updated: number }> {
+    return this.http.post<{ updated: number }>(
+      `${this.apiUrl}/products/bulk-update`,
+      { ids, updates }
+    ).pipe(
+      tap(() => this.refreshData()),
+      catchError(error => { throw error; })
+    );
   }
 
   deleteProductsBulk(ids: string[]): Observable<void> {

@@ -33,4 +33,38 @@ public class ProductImageDto
 public class BulkDeleteDto
 {
     public List<string> Ids { get; set; } = new();
-} 
+}
+
+public class BulkUpdateProductsDto
+{
+    public List<string> Ids { get; set; } = new();
+    public BulkUpdateFieldsDto Updates { get; set; } = new();
+}
+
+public class BulkUpdateFieldsDto
+{
+    public bool? IsActive { get; set; }
+    public string? Category { get; set; }
+    public PriceUpdateDto? Price { get; set; }
+    public StockUpdateDto? Stock { get; set; }
+    public AddOnsUpdateDto? AddOns { get; set; }
+}
+
+public class PriceUpdateDto
+{
+    // "set" replaces the price with Value; "percent" applies Value as a percentage delta (+10 = +10%).
+    public string Mode { get; set; } = "set";
+    public decimal Value { get; set; }
+}
+
+public class StockUpdateDto
+{
+    // "set" replaces stock with Value; "delta" adds Value (can be negative).
+    public string Mode { get; set; } = "set";
+    public int Value { get; set; }
+}
+
+public class AddOnsUpdateDto
+{
+    public List<AddOnDto> Items { get; set; } = new();
+}

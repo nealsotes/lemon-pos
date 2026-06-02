@@ -239,6 +239,30 @@ public class ProductsController : ControllerBase
         return NoContent();
     }
 
+    [HttpPost("bulk-update")]
+    [Authorize(Roles = "Owner,Admin")]
+    public async Task<IActionResult> BulkUpdateProducts(BulkUpdateProductsDto dto)
+    {
+        if (dto.Ids == null || dto.Ids.Count == 0)
+        {
+            return BadRequest("No product IDs provided.");
+        }
+        if (dto.Updates == null)
+        {
+            return BadRequest("No updates specified.");
+        }
+
+        try
+        {
+            var updated = await _productService.BulkUpdateProductsAsync(dto.Ids, dto.Updates);
+            return Ok(new { updated });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest($"Error updating products: {ex.Message}");
+        }
+    }
+
     [HttpGet("image/{fileName}")]
     [AllowAnonymous]
     public IActionResult GetImage(string fileName)
