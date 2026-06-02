@@ -1085,11 +1085,16 @@ export class ThermalPrinterService {
       ? transaction.total
       : (subtotalAfterDiscount + serviceFee);
 
-    // ── Success hero (matches .success-hero in the sidebar) ─────────────────
+    // ── Brand header ────────────────────────────────────────────────────────
     const receiptNumber = transaction.receiptNumber || transaction.ReceiptNumber || transaction.id || transaction.Id || 'N/A';
 
     commands.push(ESC + 'a' + '\x01'); // Center
-    commands.push(`PAID - NO ${receiptNumber}\n`);
+    commands.push(ESC + '!' + '\x30'); // Double height + double width
+    commands.push('FinnBites\n');
+    commands.push(ESC + '!' + '\x00'); // Reset
+
+    // ── Success hero (matches .success-hero in the sidebar) ─────────────────
+    commands.push(`PAID - RECEIPT NO ${receiptNumber}\n`);
     commands.push(ESC + '!' + '\x30'); // Double height + double width
     commands.push(`${this.formatPrice(total)}\n`);
     commands.push(ESC + '!' + '\x00'); // Reset
