@@ -1048,218 +1048,193 @@ export class ThermalPrinterService {
 
   /**
    * Build ESC/POS commands for receipt printing
+   * Mirrors the on-screen receipt sidebar layout (receipt-sidebar.component):
+   *   success hero -> stat rows -> items -> totals -> total-paid block -> change block -> notes
    */
   private buildReceiptCommands(transaction: any, openDrawer: boolean): any[] {
     const commands: any[] = [];
     const ESC = '\x1B';
     const GS = '\x1D';
 
-    // Normalize property names (handle both camelCase and PascalCase)
     const paymentMethod = transaction.paymentMethod || transaction.PaymentMethod || 'cash';
     const amountReceived = transaction.amountReceived || transaction.AmountReceived || 0;
-    const change = transaction.change || transaction.Change;
 
-    // Initialize printer
-    commands.push(ESC + '@'); // Initialize
+    commands.push(ESC + '@'); // Initialize printer
 
-    // Open cash drawer IMMEDIATELY at start for faster response
-    // Send multiple drawer kicks for better reliability, especially on Android/RawBT
+    // Drawer kicks up front so the drawer pops while the print is still composing
     if (openDrawer) {
-      // First drawer kick
-      commands.push(this.getDrawerKickCommand());
-      // Add delay to ensure command is processed
-      commands.push('\x00\x00\x00'); // Multiple NULL commands for delay
-
-      // Second drawer kick for reliability (some printers need retry)
       commands.push(this.getDrawerKickCommand());
       commands.push('\x00\x00\x00');
-
-      // Third drawer kick for maximum reliability
+      commands.push(this.getDrawerKickCommand());
+      commands.push('\x00\x00\x00');
       commands.push(this.getDrawerKickCommand());
       commands.push('\x00\x00\x00');
     }
+    commands.push('\x00\x00\x00\x00');
 
-    // Additional delay to ensure drawer kick is fully processed before printing starts
-    // This is especially important for Android/RawBT where timing can be critical
-    commands.push('\x00\x00\x00\x00'); // Multiple NULL commands for longer delay
-
-    // Center alignment
-    commands.push(ESC + 'a' + '\x01');
-
-    // Store name (large text)
-    commands.push(ESC + '!' + '\x10'); // Double height only (reduced from double height and width)
-    commands.push('Lemon POS Advance\n');
-    commands.push(ESC + '!' + '\x00'); // Reset text size
-
-    // Subtitle and date (matching receipt sidebar)
-    commands.push('Point of Sale Terminal\n');
-    commands.push(`${this.formatDate(transaction.timestamp)}\n`);
-    commands.push(this.drawLine());
-
-    // Left alignment
-    commands.push(ESC + 'a' + '\x00');
-
-    // Transaction details (matching receipt sidebar order)
-    // Use daily receipt number if available, otherwise fallback to transaction ID
-    const receiptNumber = transaction.receiptNumber || transaction.ReceiptNumber || transaction.id || transaction.Id || 'N/A';
-    commands.push(`Receipt #: ${receiptNumber}\n`);
-    commands.push(`Payment Method: ${this.capitalize(paymentMethod)}\n`);
-
-    // Service Type (matching receipt sidebar)
-    if (transaction.serviceType) {
-      const serviceTypeDisplay = transaction.serviceType === 'dineIn' ? 'Dine-in' : 'Take-out';
-      commands.push(`Service Type: ${serviceTypeDisplay}\n`);
-    }
-
-    if (transaction.customerInfo?.name) {
-      commands.push(`Customer: ${transaction.customerInfo.name}\n`);
-    }
-
-    if (transaction.customerInfo?.phone) {
-      commands.push(`Phone: ${transaction.customerInfo.phone}\n`);
-    }
-
-    if (transaction.customerInfo?.email) {
-      commands.push(`Email: ${transaction.customerInfo.email}\n`);
-    }
-
-    commands.push(this.drawLine());
-
-    // Items header (matching receipt sidebar: Item, Qty, Price, Total)
-    commands.push(ESC + '!' + '\x08'); // Bold
-    commands.push(this.formatItemsHeader());
-    commands.push(ESC + '!' + '\x00'); // Reset to normal size (ensure normal font for items and add-ons)
-
-    // Items list (matching receipt sidebar format)
-    // Font size is set to normal and will NOT reduce, even when items have add-ons
-    if (transaction.items && transaction.items.length > 0) {
-      transaction.items.forEach((item: any) => {
-        // Ensure normal font size for each item (including add-ons)
-        commands.push(ESC + '!' + '\x00'); // Explicitly set normal font size
-
-        // Calculate item total (with discount if applicable)
-        const itemTotal = item.price * item.quantity;
-        const itemTotalAfterDiscount = item.discount
-          ? itemTotal - item.discount.amount
-          : itemTotal;
-
-        // Ensure addOns is an array (handle undefined/null/object)
-        // Create a deep copy to prevent reference sharing between items
-        let addOns: any[] = [];
-        if (item.addOns) {
-          if (Array.isArray(item.addOns)) {
-            // Deep copy to prevent addon sharing between items
-            addOns = JSON.parse(JSON.stringify(item.addOns));
-          } else if (typeof item.addOns === 'object') {
-            // If it's an object, convert to array with deep copy
-            addOns = [JSON.parse(JSON.stringify(item.addOns))];
-          }
-        }
-
-        // Calculate base price per unit (without add-ons)
-        // Always calculate from item.price to correctly handle temperature-adjusted prices
-        // Account for addon quantities
-        const addOnsTotalPerUnit = addOns.reduce((sum: number, addOn: any) => {
-          const addonQty = addOn.quantity || 1;
-          return sum + ((addOn.price || 0) * addonQty);
-        }, 0);
-        const basePricePerUnit = item.price - addOnsTotalPerUnit;
-
-        const itemLine = this.formatItemLineDetailed(
-          item.name,
-          item.quantity,
-          basePricePerUnit,
-          itemTotalAfterDiscount,
-          item.temperature,
-          addOns.length > 0 ? addOns : undefined
-        );
-        commands.push(itemLine);
-      });
-    }
-
-    commands.push(this.drawLine());
-
-    // Calculate subtotal (sum of item prices)
-    const subtotal = transaction.items?.reduce((sum: number, item: any) => {
-      return sum + (item.price * item.quantity);
-    }, 0) || 0;
-
-    // Calculate total discount
-    const discountTotal = transaction.items?.reduce((sum: number, item: any) => {
-      if (item.discount) {
-        return sum + item.discount.amount;
-      }
-      return sum;
-    }, 0) || 0;
-
-    // Subtotal after discount
+    // Totals — computed up front because the success hero shows the grand total
+    const subtotal = (transaction.items || []).reduce((sum: number, item: any) => {
+      return sum + ((item.price || 0) * (item.quantity || 0));
+    }, 0);
+    const discountTotal = (transaction.items || []).reduce((sum: number, item: any) => {
+      return sum + (item.discount?.amount || 0);
+    }, 0);
     const subtotalAfterDiscount = subtotal - discountTotal;
-
-    // Component of Total: subtotal - discount + serviceFee
     const serviceFee = transaction.serviceFee || 0;
     const total = (transaction.total && transaction.total > 0)
       ? transaction.total
       : (subtotalAfterDiscount + serviceFee);
 
-    // Totals section (matching receipt sidebar format)
-    // Show subtotal (Gross)
-    commands.push(this.formatTotalLine('Subtotal', subtotal));
+    // ── Success hero (matches .success-hero in the sidebar) ─────────────────
+    const receiptNumber = transaction.receiptNumber || transaction.ReceiptNumber || transaction.id || transaction.Id || 'N/A';
 
-    // Show discount if any
+    commands.push(ESC + 'a' + '\x01'); // Center
+    commands.push(`PAID - NO ${receiptNumber}\n`);
+    commands.push(ESC + '!' + '\x30'); // Double height + double width
+    commands.push(`${this.formatPrice(total)}\n`);
+    commands.push(ESC + '!' + '\x00'); // Reset
+
+    commands.push('\n');
+    commands.push(this.drawLine());
+
+    // ── Stat rows (Date / Payment / Service / Customer) ─────────────────────
+    commands.push(ESC + 'a' + '\x00'); // Left
+    commands.push(this.formatStatRow('Date', this.formatReceiptDate(transaction.timestamp)));
+    commands.push(this.formatStatRow('Payment', this.getPaymentMethodDisplay(paymentMethod)));
+
+    if (transaction.serviceType) {
+      const serviceTypeDisplay = transaction.serviceType === 'dineIn' ? 'Dine-in' : 'Take-out';
+      commands.push(this.formatStatRow('Service', serviceTypeDisplay));
+    }
+
+    if (transaction.customerInfo?.name) {
+      commands.push(this.formatStatRow('Customer', transaction.customerInfo.name));
+    }
+    if (transaction.customerInfo?.phone) {
+      commands.push(this.formatStatRow('Phone', transaction.customerInfo.phone));
+    }
+    if (transaction.customerInfo?.email) {
+      commands.push(this.formatStatRow('Email', transaction.customerInfo.email));
+    }
+
+    commands.push(this.drawDashedLine());
+
+    // ── Items list (matches .item-row in the sidebar) ───────────────────────
+    if (transaction.items && transaction.items.length > 0) {
+      transaction.items.forEach((item: any, index: number) => {
+        commands.push(ESC + '!' + '\x00'); // Force normal size per item
+
+        let addOns: any[] = [];
+        if (item.addOns) {
+          if (Array.isArray(item.addOns)) {
+            addOns = JSON.parse(JSON.stringify(item.addOns));
+          } else if (typeof item.addOns === 'object') {
+            addOns = [JSON.parse(JSON.stringify(item.addOns))];
+          }
+        }
+
+        const itemTotal = (item.price || 0) * (item.quantity || 0);
+        const itemTotalAfterDiscount = item.discount
+          ? itemTotal - item.discount.amount
+          : itemTotal;
+
+        const addOnsTotalPerUnit = addOns.reduce((sum: number, addOn: any) => {
+          const addonQty = addOn.quantity || 1;
+          return sum + ((addOn.price || 0) * addonQty);
+        }, 0);
+        const basePricePerUnit = (item.price || 0) - addOnsTotalPerUnit;
+
+        // Item name + temperature pill text (🔥/❄️ glyphs aren't printable)
+        let nameLine = item.name || 'Unknown Item';
+        if (item.temperature === 'hot') nameLine += ' (hot)';
+        else if (item.temperature === 'cold') nameLine += ' (Iced)';
+        commands.push(ESC + '!' + '\x08'); // Bold (matches .item-name weight)
+        commands.push(`${nameLine}\n`);
+        commands.push(ESC + '!' + '\x00');
+
+        // Add-on lines (matches .addon-item under .item-addons)
+        addOns.forEach((addOn: any) => {
+          const addonQty = addOn.quantity || 1;
+          const qtyPrefix = addonQty > 1 ? `${addonQty}x ` : '';
+          const addOnTotal = (addOn.price || 0) * addonQty * (item.quantity || 0);
+          const left = `  + ${qtyPrefix}${addOn.name || ''}`;
+          const right = this.formatPrice(addOnTotal);
+          commands.push(this.formatJustifiedLine(left, right));
+        });
+
+        // Meta line + item total (matches .item-meta + .item-total flex row)
+        const metaText = `${this.formatPrice(basePricePerUnit)} x ${item.quantity || 0}`;
+        const itemTotalStr = this.formatPrice(itemTotalAfterDiscount);
+        commands.push(this.formatJustifiedLine(metaText, itemTotalStr));
+
+        // Dashed border between items (matches .item-row border-bottom: dashed)
+        if (index < transaction.items.length - 1) {
+          commands.push(this.drawDashedLine());
+        }
+      });
+    }
+
+    commands.push(this.drawDashedLine());
+
+    // ── Subtotal / Discount / Service Fee stat rows ─────────────────────────
+    commands.push(this.formatStatRow('Subtotal', this.formatPrice(subtotal)));
+
     if (discountTotal > 0) {
       let discountLabel = 'Discount';
-      // Add discount type if available
       if (transaction.customerInfo?.discountType) {
         const type = transaction.customerInfo.discountType;
         if (type === 'senior') discountLabel = 'Discount (Senior)';
         else if (type === 'pwd') discountLabel = 'Discount (PWD)';
         else if (type === 'manual') discountLabel = 'Discount (Custom)';
       }
-      commands.push(this.formatTotalLine(discountLabel, -discountTotal));
+      commands.push(this.formatStatRow(discountLabel, `-${this.formatPrice(discountTotal)}`));
     }
 
-    // Service Fee (matching receipt sidebar)
-    if (transaction.serviceFee && transaction.serviceFee > 0) {
+    if (serviceFee > 0) {
       const serviceTypeLabel = transaction.serviceType === 'dineIn' ? 'Dine-in (2%)' : 'Take-out';
-      commands.push(this.formatTotalLine(`Service Fee (${serviceTypeLabel})`, transaction.serviceFee));
-    }
-
-    // Total (bold)
-    commands.push(ESC + '!' + '\x08'); // Bold only (reduced from double height, bold)
-    commands.push(this.formatTotalLine('TOTAL', total));
-    commands.push(ESC + '!' + '\x00'); // Reset
-
-    // Cash Payment Details (if cash payment)
-    if (paymentMethod === 'cash' && amountReceived > 0) {
-      // Calculate change: Amount Received - Total (matching receipt sidebar logic)
-      // Always recalculate to ensure accuracy, matching receipt sidebar's getChange() method
-      const calculatedChange = amountReceived - total;
-      const finalChange = Math.max(0, calculatedChange);
-      commands.push(this.drawLine());
-      commands.push(this.formatTotalLine('Amount Received', amountReceived));
-      commands.push(this.formatTotalLine('Change', finalChange));
-    }
-
-    // Notes (matching receipt sidebar format)
-    if (transaction.notes) {
-      commands.push(this.drawLine());
-      commands.push(ESC + '!' + '\x08'); // Bold
-      commands.push('Notes:\n');
-      commands.push(ESC + '!' + '\x00'); // Reset
-      commands.push(`${transaction.notes}\n`);
+      commands.push(this.formatStatRow(`Service Fee (${serviceTypeLabel})`, this.formatPrice(serviceFee)));
     }
 
     commands.push(this.drawLine());
 
-    // Footer - centered (matching receipt sidebar)
+    // ── Total paid block (matches .ed-total-block.printed-total) ────────────
+    commands.push(ESC + 'a' + '\x01'); // Center
+    commands.push('TOTAL PAID\n');
+    commands.push(ESC + '!' + '\x30'); // Double height + double width
+    commands.push(`${this.formatPrice(total)}\n`);
+    commands.push(ESC + '!' + '\x00');
+    commands.push(`${this.getPaymentMethodDisplay(paymentMethod)}\n`);
+
+    // ── Cash details: Received + Change due block ───────────────────────────
+    if (paymentMethod === 'cash' && amountReceived > 0) {
+      const finalChange = Math.max(0, amountReceived - total);
+
+      commands.push(this.drawDashedLine());
+      commands.push(ESC + 'a' + '\x00'); // Left
+      commands.push(this.formatStatRow('Received', this.formatPrice(amountReceived)));
+
+      commands.push('\n');
+      commands.push(ESC + 'a' + '\x01'); // Center
+      commands.push('CHANGE DUE\n');
+      commands.push(ESC + '!' + '\x30'); // Double height + double width
+      commands.push(`${this.formatPrice(finalChange)}\n`);
+      commands.push(ESC + '!' + '\x00');
+    }
+
+    // ── Notes (matches .receipt-notes) ──────────────────────────────────────
+    if (transaction.notes) {
+      commands.push(this.drawDashedLine());
+      commands.push(ESC + 'a' + '\x00'); // Left
+      commands.push(`${transaction.notes}\n`);
+    }
+
+    // ── Footer ──────────────────────────────────────────────────────────────
+    commands.push('\n');
+    commands.push(this.drawLine());
     commands.push(ESC + 'a' + '\x01'); // Center
     commands.push('Thank you for your purchase!\n');
-    commands.push('Please keep this receipt for your records\n');
 
-    // QR Code (optional - if you want to add transaction ID or URL)
-    // commands.push(this.generateQRCode(transaction.id));
-
-    // Cut paper - reduced blank lines for speed
+    // Cut paper
     commands.push('\n\n');
     commands.push(GS + 'V' + '\x41' + '\x03'); // Partial cut
 
@@ -1307,79 +1282,74 @@ export class ThermalPrinterService {
   }
 
   /**
-   * Format items header (compact format)
+   * Stat row — label left, value right, justified to the receipt width.
+   * Mirrors .ed-stat-row in the sidebar. If the label+value don't fit on one
+   * line, the value wraps onto the next line and is right-aligned.
    */
-  private formatItemsHeader(): string {
-    // 32 char width: Item (20) | Qty (3) | Amount (9)
-    return 'Item                Qty  Amount\n';
-  }
-
-  /**
-   * Format item line for receipt (compact format)
-   * Shows: Item name, Temperature, Quantity, Add-ons, Total
-   */
-  private formatItemLineDetailed(
-    name: string,
-    quantity: number,
-    unitPrice: number,
-    total: number,
-    temperature?: string | null,
-    addOns?: any[]
-  ): string {
-    const maxNameLength = 18;
-    const truncatedName = name.length > maxNameLength
-      ? name.substring(0, maxNameLength - 2) + '..'
-      : name;
-
-    // Add temperature indicator
-    let tempIndicator = '';
-    if (temperature === 'hot') {
-      tempIndicator = ' (hot)';
-    } else if (temperature === 'cold') {
-      tempIndicator = ' (Iced)';
+  private formatStatRow(label: string, value: string): string {
+    const width = 32;
+    if (label.length + value.length + 1 > width) {
+      const padding = Math.max(0, width - value.length);
+      return `${label}\n${' '.repeat(padding)}${value}\n`;
     }
-
-    // Format: "Item Name (hot/cold) x2     ₱100.00" (base price only)
-    let nameQtyPart = `${truncatedName}${tempIndicator} x${quantity}`;
-
-    // Show base item price (unitPrice * quantity) in the main line
-    const baseItemTotal = unitPrice * quantity;
-    const baseItemPriceStr = this.formatPrice(baseItemTotal);
-    const baseSpacing = Math.max(1, 32 - nameQtyPart.length - baseItemPriceStr.length);
-
-    // Format base item price line
-    let receiptText = `${nameQtyPart}${' '.repeat(baseSpacing)}${baseItemPriceStr}\n`;
-
-    // Format add-ons - display each on its own line with prices and quantities
-    if (addOns && addOns.length > 0) {
-      addOns.forEach((addOn) => {
-        const addonQty = addOn.quantity || 1;
-        const qtyPrefix = addonQty > 1 ? `${addonQty}x ` : '';
-        const addOnLine = `  + ${qtyPrefix}${addOn.name}`;
-        const addOnTotal = addOn.price * addonQty * quantity; // Add-on price * addon qty * item qty
-        const addOnPriceStr = this.formatPrice(addOnTotal);
-        const addOnSpacing = Math.max(1, 30 - addOnLine.length - addOnPriceStr.length);
-        receiptText += `${addOnLine}${' '.repeat(addOnSpacing)}${addOnPriceStr}\n`;
-      });
-    }
-
-    return receiptText;
+    const spacing = width - label.length - value.length;
+    return `${label}${' '.repeat(spacing)}${value}\n`;
   }
 
   /**
-   * Format total line for receipt
+   * Justified line — arbitrary left/right text, used for item rows and addons.
    */
-  private formatTotalLine(label: string, amount: number): string {
-    const priceStr = this.formatPrice(amount);
-    const spacing = Math.max(1, 32 - label.length - priceStr.length);
-    return `${label}${' '.repeat(spacing)}${priceStr}\n`;
+  private formatJustifiedLine(left: string, right: string): string {
+    const width = 32;
+    if (left.length + right.length + 1 > width) {
+      const padding = Math.max(0, width - right.length);
+      return `${left}\n${' '.repeat(padding)}${right}\n`;
+    }
+    const spacing = width - left.length - right.length;
+    return `${left}${' '.repeat(spacing)}${right}\n`;
   }
 
   /**
-   * Draw a line separator
+   * Solid divider (matches .ed-receipt__divider)
    */
   private drawLine(): string {
     return '--------------------------------\n';
+  }
+
+  /**
+   * Dashed divider (matches .ed-receipt__divider--dashed)
+   */
+  private drawDashedLine(): string {
+    return '- - - - - - - - - - - - - - - -\n';
+  }
+
+  /**
+   * Payment method display — mirrors the sidebar's getPaymentMethodDisplay()
+   */
+  private getPaymentMethodDisplay(paymentMethod: string): string {
+    if (!paymentMethod) return 'Cash';
+    switch (paymentMethod.toLowerCase()) {
+      case 'cash': return 'Cash';
+      case 'card': return 'Card';
+      case 'mobile': return 'Mobile Payment';
+      default: return paymentMethod.charAt(0).toUpperCase() + paymentMethod.slice(1);
+    }
+  }
+
+  /**
+   * Receipt date — mirrors the sidebar's formatDate() (toLocaleString()).
+   */
+  private formatReceiptDate(dateString: string | Date | undefined): string {
+    if (!dateString) return new Date().toLocaleString();
+    try {
+      const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+      if (!date || isNaN(date.getTime())) {
+        return new Date().toLocaleString();
+      }
+      return date.toLocaleString();
+    } catch {
+      return new Date().toLocaleString();
+    }
   }
 
   /**
@@ -1391,28 +1361,6 @@ export class ThermalPrinterService {
     // Most ESC/POS printers don't support the peso symbol (₱) in their character set
     // This ensures reliable printing across all thermal printer models
     return `Php ${price.toFixed(2)}`;
-  }
-
-  /**
-   * Format date for receipt
-   */
-  private formatDate(dateString: string): string {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-PH', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  }
-
-  /**
-   * Capitalize first letter
-   */
-  private capitalize(text: string): string {
-    if (!text) return '';
-    return text.charAt(0).toUpperCase() + text.slice(1);
   }
 
   /**
