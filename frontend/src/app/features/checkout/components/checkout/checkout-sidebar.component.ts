@@ -220,9 +220,9 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
               </label>
               
               <label class="payment-option" [class.selected]="paymentMethod === 'mobile'">
-                <input 
-                  type="radio" 
-                  name="paymentMethod" 
+                <input
+                  type="radio"
+                  name="paymentMethod"
                   value="mobile"
                   [(ngModel)]="paymentMethod"
                   (ngModelChange)="onPaymentMethodChange()"
@@ -236,6 +236,24 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
                 </span>
               </label>
             </div>
+
+            <!-- Mobile provider sub-selector (visible only when Mobile is chosen) -->
+            <div class="mobile-providers" *ngIf="paymentMethod === 'mobile'">
+              <span class="mobile-providers__label">Provider</span>
+              <div class="mobile-providers__grid">
+                <button
+                  type="button"
+                  *ngFor="let opt of mobileProviderOptions"
+                  class="mobile-provider"
+                  [class.selected]="mobileProvider === opt.value"
+                  (click)="selectMobileProvider(opt.value)"
+                >
+                  {{ opt.label }}
+                </button>
+              </div>
+              <div *ngIf="showMobileProviderError" class="error-message">Please choose a mobile provider</div>
+            </div>
+
             <div *ngIf="showPaymentError" class="error-message">Please select a payment method</div>
           </section>
 
@@ -441,6 +459,13 @@ export class CheckoutSidebarComponent implements OnInit {
   manualDiscountPercentage = 0;
   manualDiscountAmount = 0;
   paymentMethod = 'cash';
+  mobileProvider = '';
+  readonly mobileProviderOptions: { value: string; label: string }[] = [
+    { value: 'gcash', label: 'GCash' },
+    { value: 'gotyme', label: 'GoTyme' },
+    { value: 'maribank', label: 'Maribank' },
+    { value: 'metrobank', label: 'Metrobank' }
+  ];
   serviceType: 'dineIn' | 'takeOut' = 'dineIn';
   serviceFee = 0;
   notes = '';
@@ -460,6 +485,7 @@ export class CheckoutSidebarComponent implements OnInit {
   // Validation states
   showNameError = false; // Kept for backward compatibility but no longer used
   showPaymentError = false;
+  showMobileProviderError = false;
   showAmountError = false;
   showDiscountAmountError = false;
 
@@ -633,6 +659,7 @@ export class CheckoutSidebarComponent implements OnInit {
       discountId: ''
     };
     this.paymentMethod = 'cash';
+    this.mobileProvider = '';
     this.serviceType = 'dineIn';
     this.serviceFee = 0;
     this.notes = '';
@@ -640,6 +667,7 @@ export class CheckoutSidebarComponent implements OnInit {
     this.change = 0;
     this.showNameError = false;
     this.showPaymentError = false;
+    this.showMobileProviderError = false;
     this.showAmountError = false;
     this.showDiscountAmountError = false;
     this.isProcessing = false;
@@ -671,6 +699,12 @@ export class CheckoutSidebarComponent implements OnInit {
     if (!this.paymentMethod) {
       this.showPaymentError = true;
       issues.push('Choose a payment method.');
+    }
+
+    // Mobile requires a specific provider
+    if (this.paymentMethod === 'mobile' && !this.mobileProvider) {
+      this.showMobileProviderError = true;
+      issues.push('Choose a mobile provider (GCash, GoTyme, Maribank, or Metrobank).');
     }
 
     // Validate cash amount
@@ -804,9 +838,15 @@ export class CheckoutSidebarComponent implements OnInit {
     // Save cart items BEFORE creating transaction (to preserve add-ons after cart is cleared)
     const savedCartItems = JSON.parse(JSON.stringify(this.cartItems)); // Deep copy
 
+    // For mobile payments, store the specific provider (gcash/gotyme/maribank/metrobank)
+    // as the payment method so reports + receipts can show which channel was used.
+    const effectivePaymentMethod = this.paymentMethod === 'mobile' && this.mobileProvider
+      ? this.mobileProvider
+      : this.paymentMethod;
+
     this.transactionService.createTransaction(
       this.cartItems,
-      this.paymentMethod,
+      effectivePaymentMethod,
       this.customerInfo,
       this.serviceType,
       this.serviceFee,
@@ -820,7 +860,8 @@ export class CheckoutSidebarComponent implements OnInit {
         this.cartService.clearCart();
 
         // Capture form values BEFORE clearing the form
-        const currentPaymentMethod = this.paymentMethod;
+        // Use the effective payment method so the receipt shows the picked mobile provider.
+        const currentPaymentMethod = effectivePaymentMethod;
         const currentServiceType = this.serviceType;
         const currentServiceFee = this.serviceFee;
         const currentCustomerInfo = { ...this.customerInfo };
@@ -1119,6 +1160,7 @@ export class CheckoutSidebarComponent implements OnInit {
         this.manualDiscountPercentage = formData.manualDiscountPercentage || 0;
         this.manualDiscountAmount = formData.manualDiscountAmount || 0;
         this.paymentMethod = formData.paymentMethod || 'cash';
+        this.mobileProvider = formData.mobileProvider || '';
         this.serviceType = formData.serviceType || 'dineIn';
         this.notes = formData.notes || '';
         this.amountReceived = formData.amountReceived || 0;
@@ -1140,6 +1182,7 @@ export class CheckoutSidebarComponent implements OnInit {
         manualDiscountPercentage: this.manualDiscountPercentage,
         manualDiscountAmount: this.manualDiscountAmount,
         paymentMethod: this.paymentMethod,
+        mobileProvider: this.mobileProvider,
         serviceType: this.serviceType,
         notes: this.notes,
         amountReceived: this.amountReceived,
@@ -1183,6 +1226,17 @@ export class CheckoutSidebarComponent implements OnInit {
   }
 
   onPaymentMethodChange(): void {
+    this.showPaymentError = false;
+    if (this.paymentMethod !== 'mobile') {
+      this.mobileProvider = '';
+      this.showMobileProviderError = false;
+    }
+    this.markFormDirty();
+  }
+
+  selectMobileProvider(provider: string): void {
+    this.mobileProvider = provider;
+    this.showMobileProviderError = false;
     this.markFormDirty();
   }
 

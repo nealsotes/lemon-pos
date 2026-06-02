@@ -590,7 +590,7 @@
               <div class="acct-row"><span>Total Transactions</span><span>{{ accountantSummary.transactionCount }}</span></div>
               <div class="acct-row"><span>Average Ticket <span class="tooltip-icon" [title]="METRIC_TOOLTIPS['averageTicket']">&#9432;</span></span><span>{{ formatCurrency(accountantSummary.averageTicket) }}</span></div>
               <div class="acct-row" *ngFor="let pm of accountantSummary.paymentMethodBreakdown">
-                <span>{{ pm.method === 'cash' ? 'Cash' : pm.method === 'gcash' ? 'GCash' : pm.method }} Payments</span>
+                <span>{{ getPaymentMethodDisplay(pm.method) }} Payments</span>
                 <span>{{ pm.count }} ({{ formatCurrency(pm.total) }})</span>
               </div>
             </div>

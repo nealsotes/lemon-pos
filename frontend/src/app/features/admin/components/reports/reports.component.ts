@@ -102,7 +102,7 @@ export class ReportsComponent implements OnInit, OnDestroy {
       rows.push({ id: 'top-category', metric: 'Top Category', value: this.categoryBreakdown[0].category });
     }
     for (const p of this.paymentBreakdown) {
-      const label = p.method === 'cash' ? 'Cash' : p.method === 'gcash' ? 'GCash' : p.method;
+      const label = this.getPaymentMethodDisplay(p.method);
       const pct = Math.round(this.getPaymentPercent(p.total));
       rows.push({ id: `pay-${p.method}`, metric: label, value: `${pct}%` });
     }
@@ -1379,8 +1379,14 @@ export class ReportsComponent implements OnInit, OnDestroy {
 
   getPaymentMethodDisplay(method: string | undefined): string {
     if (!method) return 'N/A';
-    if (method === 'cash') return 'Cash';
-    if (method === 'gcash') return 'GCash';
+    const m = method.toLowerCase();
+    if (m === 'cash') return 'Cash';
+    if (m === 'card') return 'Card';
+    if (m === 'mobile') return 'Mobile Payment';
+    if (m === 'gcash') return 'GCash';
+    if (m === 'gotyme') return 'GoTyme';
+    if (m === 'maribank') return 'Maribank';
+    if (m === 'metrobank') return 'Metrobank';
     return method.charAt(0).toUpperCase() + method.slice(1);
   }
 

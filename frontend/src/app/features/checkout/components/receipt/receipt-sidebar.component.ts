@@ -568,6 +568,14 @@ export class ReceiptSidebarComponent implements OnInit, OnChanges {
         return 'Card';
       case 'mobile':
         return 'Mobile Payment';
+      case 'gcash':
+        return 'GCash';
+      case 'gotyme':
+        return 'GoTyme';
+      case 'maribank':
+        return 'Maribank';
+      case 'metrobank':
+        return 'Metrobank';
       default:
         return paymentMethod.charAt(0).toUpperCase() + paymentMethod.slice(1);
     }
