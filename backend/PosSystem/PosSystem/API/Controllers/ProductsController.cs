@@ -23,9 +23,9 @@ public class ProductsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Product>>> GetProducts([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    public async Task<ActionResult<IEnumerable<Product>>> GetProducts([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] bool? isActive = true)
     {
-        var products = await _productService.GetProductsPaginatedAsync(page, pageSize);
+        var products = await _productService.GetProductsPaginatedAsync(page, pageSize, isActive);
         // Fix image URLs for Railway deployment
         foreach (var product in products)
         {
@@ -151,7 +151,8 @@ public class ProductsController : ControllerBase
     {
         try
         {
-            var existingProduct = await _productService.GetProductByIdAsync(id);
+            // includeInactive so a deactivated product can be reactivated via update.
+            var existingProduct = await _productService.GetProductByIdAsync(id, includeInactive: true);
             if (existingProduct == null)
             {
                 return NotFound($"Product with ID {id} not found");

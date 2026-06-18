@@ -19,14 +19,19 @@ public class ProductService : IProductService
         return await _productRepository.GetAllAsync();
     }
 
-    public async Task<IEnumerable<Product>> GetProductsPaginatedAsync(int page, int pageSize)
+    public async Task<IEnumerable<Product>> GetProductsPaginatedAsync(int page, int pageSize, bool? isActive)
     {
-        return await _productRepository.GetPaginatedAsync(page, pageSize);
+        return await _productRepository.GetPaginatedAsync(page, pageSize, isActive);
     }
 
     public async Task<Product?> GetProductByIdAsync(string id)
     {
         return await _productRepository.GetByIdAsync(id);
+    }
+
+    public async Task<Product?> GetProductByIdAsync(string id, bool includeInactive)
+    {
+        return await _productRepository.GetByIdAsync(id, includeInactive);
     }
 
     public async Task<Product> CreateProductAsync(Product product)
@@ -41,7 +46,8 @@ public class ProductService : IProductService
 
     public async Task<Product> UpdateProductAsync(string id, Product product)
     {
-        var existingProduct = await _productRepository.GetByIdAsync(id);
+        // includeInactive so a deactivated product can be reactivated via update.
+        var existingProduct = await _productRepository.GetByIdAsync(id, includeInactive: true);
         if (existingProduct == null)
         {
             throw new ArgumentException($"Product with ID {id} not found");

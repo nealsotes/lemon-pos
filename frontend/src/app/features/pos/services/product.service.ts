@@ -88,6 +88,17 @@ export class ProductService {
     }
   }
 
+  // Admin-only: one-shot fetch that bypasses the shared productsSubject, so the
+  // POS grid and public menu (which read getProducts()) never receive inactive
+  // products. activeOnly=true → active products; activeOnly=false → inactive only.
+  getProductsForAdmin(activeOnly: boolean): Observable<Product[]> {
+    return this.http
+      .get<Product[]>(`${this.apiUrl}/products?page=1&pageSize=100&isActive=${activeOnly}`)
+      // Active view keeps the offline/error cache fallback (the cache only holds
+      // active products); the inactive view has no cache, so it returns empty.
+      .pipe(catchError(() => activeOnly ? this.loadFromLocalStorage('products') : of([])));
+  }
+
   private loadCategories(): void {
     if (this.offlineService.isOnline$.value) {
       this.http.get<string[]>(`${this.apiUrl}/products/categories`).pipe(

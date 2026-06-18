@@ -45,6 +45,40 @@
   overflow: hidden;
 }
 
+/* ---------- Status Filter ---------- */
+.status-filter-row {
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-subtle);
+}
+
+.show-inactive-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.show-inactive-toggle input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+@media (pointer: coarse) {
+  .show-inactive-toggle input {
+    width: 20px;
+    height: 20px;
+  }
+}
+
 /* ---------- Bulk Action Bar ---------- */
 .bulk-action-bar {
   display: flex;

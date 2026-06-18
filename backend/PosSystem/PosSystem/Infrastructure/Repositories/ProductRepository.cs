@@ -23,10 +23,17 @@ public class ProductRepository : IProductRepository
             .ToListAsync();
     }
 
-    public async Task<IEnumerable<Product>> GetPaginatedAsync(int page, int pageSize)
+    // isActive: true = active only, false = inactive only, null = all.
+    // The admin "Show inactive" toggle passes false; every other caller passes
+    // true (active only), so sales surfaces never list inactive products.
+    public async Task<IEnumerable<Product>> GetPaginatedAsync(int page, int pageSize, bool? isActive)
     {
-        return await _context.Products
-            .Where(p => p.IsActive)
+        var query = _context.Products.AsQueryable();
+        if (isActive.HasValue)
+        {
+            query = query.Where(p => p.IsActive == isActive.Value);
+        }
+        return await query
             .OrderBy(p => p.Category)
             .ThenBy(p => p.Name)
             .Skip((page - 1) * pageSize)
@@ -36,8 +43,20 @@ public class ProductRepository : IProductRepository
 
     public async Task<Product?> GetByIdAsync(string id)
     {
-        return await _context.Products
-            .FirstOrDefaultAsync(p => p.Id == id && p.IsActive);
+        return await GetByIdAsync(id, includeInactive: false);
+    }
+
+    // includeInactive lets the update/reactivation path find soft-deleted products.
+    // Sales paths (transactions, POS grid) keep the default active-only filter so
+    // inactive products can't be sold.
+    public async Task<Product?> GetByIdAsync(string id, bool includeInactive)
+    {
+        var query = _context.Products.AsQueryable();
+        if (!includeInactive)
+        {
+            query = query.Where(p => p.IsActive);
+        }
+        return await query.FirstOrDefaultAsync(p => p.Id == id);
     }
 
     public async Task<Product> AddAsync(Product product)

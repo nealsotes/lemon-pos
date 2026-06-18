@@ -50,6 +50,7 @@ export class ProductManagementComponent implements OnInit, OnDestroy {
   isLoading = true;
   isExporting = false;
   selectedProducts: Product[] = [];
+  showInactive = false;
 
   // Filter and search properties
   searchTerm: string = '';
@@ -95,11 +96,15 @@ export class ProductManagementComponent implements OnInit, OnDestroy {
   }
 
   private loadProducts(): void {
-    this.productService.getProducts().pipe(takeUntil(this.destroy$)).subscribe(products => {
-      this.products = products;
-      this.filteredProducts = products;
-      this.isLoading = false;
-    });
+    // showInactive ON → inactive only; OFF → active only. Uses the admin-only
+    // fetch so inactive products never leak into the shared POS/menu stream.
+    this.productService.getProductsForAdmin(!this.showInactive)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(products => {
+        this.products = products;
+        this.filterProducts();
+        this.isLoading = false;
+      });
   }
 
   private loadCategories(): void {
@@ -185,6 +190,12 @@ export class ProductManagementComponent implements OnInit, OnDestroy {
   onCategoryChange(category: string): void {
     this.selectedCategory = category;
     this.filterProducts();
+  }
+
+  onToggleInactive(checked: boolean): void {
+    this.showInactive = checked;
+    this.selectedProducts = [];
+    this.loadProducts();
   }
 
   filterProducts(): void {

@@ -5,8 +5,9 @@ namespace PosSystem.Core.Interfaces;
 public interface IProductService
 {
     Task<IEnumerable<Product>> GetAllProductsAsync();
-    Task<IEnumerable<Product>> GetProductsPaginatedAsync(int page, int pageSize);
+    Task<IEnumerable<Product>> GetProductsPaginatedAsync(int page, int pageSize, bool? isActive);
     Task<Product?> GetProductByIdAsync(string id);
+    Task<Product?> GetProductByIdAsync(string id, bool includeInactive);
     Task<Product> CreateProductAsync(Product product);
     Task<Product> UpdateProductAsync(string id, Product product);
     Task DeleteProductAsync(string id);

@@ -46,6 +46,15 @@
         (categoryChange)="onCategoryChange($event)">
       </app-filter-bar>
 
+      <!-- Status Filter -->
+      <div class="status-filter-row">
+        <label class="show-inactive-toggle">
+          <input type="checkbox" [checked]="showInactive"
+            (change)="onToggleInactive($any($event.target).checked)">
+          <span>Show inactive products</span>
+        </label>
+      </div>
+
       <!-- Bulk Action Bar -->
       <div class="bulk-action-bar" *ngIf="selectedProducts.length > 0">
         <span class="selection-count">{{ selectedProducts.length }} selected</span>
