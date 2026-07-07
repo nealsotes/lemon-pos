@@ -57,7 +57,8 @@ export class TransactionService {
         basePrice: item.basePrice ?? item.price, // Ensure basePrice is always set
         quantity: item.quantity,
         temperature: item.temperature || 'none', // Convert null to 'none' for enum
-        // Note: addOns and discount are sent but will be ignored by backend (UnmappedMemberHandling.Skip)
+        // addOns and discount ARE mapped and persisted by the backend (owned entities on
+        // TransactionItem); UnmappedMemberHandling.Skip only drops unmapped JSON keys.
         addOns: item.addOns,
         discount: item.discount
       })),
