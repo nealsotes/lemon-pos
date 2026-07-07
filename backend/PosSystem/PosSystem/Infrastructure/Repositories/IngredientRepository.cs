@@ -58,7 +58,8 @@ public class IngredientRepository : IIngredientRepository
         }
     }
 
-    public async Task<IEnumerable<Ingredient>> GetLowStockAsync(decimal threshold)
+    // Each ingredient carries its own LowStockThreshold, so low-stock is a per-item comparison.
+    public async Task<IEnumerable<Ingredient>> GetLowStockAsync()
     {
         return await _context.Ingredients
             .Where(i => i.IsActive && i.Quantity <= i.LowStockThreshold)

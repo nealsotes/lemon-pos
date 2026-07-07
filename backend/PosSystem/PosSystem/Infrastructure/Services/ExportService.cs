@@ -56,6 +56,12 @@ public class ExportService : IExportService
         return RenderResult(wb, "ingredients", format);
     }
 
+    public async Task<ExportResult> ExportLowStockIngredientsAsync(ExportFormat format)
+    {
+        var wb = await BuildLowStockAsync();
+        return RenderResult(wb, "low-stock-ingredients", format);
+    }
+
     public async Task<ExportResult> ExportExpenseListAsync(ExportFormat format, DateTime startDate, DateTime endDate, string? categoryId)
     {
         var wb = await BuildExpenseListAsync(startDate, endDate, categoryId);
@@ -152,6 +158,33 @@ public class ExportService : IExportService
         }
 
         sheet.AddTotalRow("Total", null, null, null, ingredients.Sum(i => i.TotalCost), null, null, null, null, null, null);
+
+        return wb;
+    }
+
+    // Reorder report: reuses IngredientService.GetReorderSuggestionsAsync (Quantity <= per-item
+    // LowStockThreshold, sorted by severity) so the low-stock rule lives in exactly one place.
+    private async Task<SectionWorkbook> BuildLowStockAsync()
+    {
+        var lowStock = (await _ingredientService.GetReorderSuggestionsAsync()).ToList();
+        var wb = new SectionWorkbook("Low Stock Ingredients");
+
+        var sheet = wb.AddSheet("Low Stock");
+        sheet.AddHeader("Name", "Unit", "On Hand", "Low Stock Threshold", "Shortfall", "Supplier", "Unit Cost", "Last Purchase");
+        foreach (var i in lowStock)
+        {
+            sheet.AddRow(
+                i.Name,
+                i.Unit,
+                i.Quantity,
+                i.LowStockThreshold,
+                Math.Max(0m, i.LowStockThreshold - i.Quantity),
+                i.Supplier ?? string.Empty,
+                i.UnitCost ?? 0m,
+                i.LastPurchaseDate.HasValue ? i.LastPurchaseDate.Value.ToString("yyyy-MM-dd") : string.Empty);
+        }
+
+        sheet.AddTotalRow($"{lowStock.Count} item(s) low on stock", null, null, null, null, null, null, null);
 
         return wb;
     }

@@ -43,11 +43,14 @@ export class IngredientService {
     );
   }
 
-  getLowStockIngredients(threshold?: number): Observable<Ingredient[]> {
-    const url = threshold !== undefined
-      ? `${this.apiUrl}/low-stock?threshold=${threshold}`
-      : `${this.apiUrl}/low-stock`;
-    return this.http.get<Ingredient[]>(url).pipe(
+  getLowStockIngredients(): Observable<Ingredient[]> {
+    return this.http.get<Ingredient[]>(`${this.apiUrl}/low-stock`).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  exportLowStock(format: 'csv' | 'xlsx' = 'xlsx'): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/low-stock/export?format=${format}`, { responseType: 'blob' }).pipe(
       catchError(this.handleError)
     );
   }

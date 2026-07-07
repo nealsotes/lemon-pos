@@ -48,6 +48,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
   filteredIngredients: Ingredient[] = [];
   isLoading = true;
   isExporting = false;
+  isDownloadingLowStock = false;
 
   activeTab: 'ingredients' | 'recipes' = 'ingredients';
   searchTerm: string = '';
@@ -376,6 +377,32 @@ export class InventoryComponent implements OnInit, OnDestroy {
           this.isExporting = false;
         }
       });
+  }
+
+  downloadLowStockReport(): void {
+    if (this.isDownloadingLowStock) return;
+    this.isDownloadingLowStock = true;
+
+    this.ingredientService.exportLowStock('xlsx').pipe(takeUntil(this.destroy$)).subscribe({
+      next: (blob) => {
+        if (!blob || blob.size === 0) {
+          this.toast.error('Low-stock report returned no content.');
+          this.isDownloadingLowStock = false;
+          return;
+        }
+        const filename = `low-stock-ingredients_${new Date().toISOString().split('T')[0]}.xlsx`;
+        this.triggerDownload(blob, filename);
+        const count = this.getLowStockCount();
+        this.toast.success(count > 0
+          ? `Low-stock report ready (${count} item${count === 1 ? '' : 's'}).`
+          : 'Low-stock report ready.');
+        this.isDownloadingLowStock = false;
+      },
+      error: () => {
+        this.toast.error('Low-stock report failed. Please try again.');
+        this.isDownloadingLowStock = false;
+      }
+    });
   }
 
   private extractFilename(contentDisposition: string | null): string | null {

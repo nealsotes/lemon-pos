@@ -134,18 +134,29 @@ public class IngredientsController : ControllerBase
     }
 
     [HttpGet("low-stock")]
-    public async Task<ActionResult<IEnumerable<Ingredient>>> GetLowStockIngredients([FromQuery] decimal? threshold = null)
+    public async Task<ActionResult<IEnumerable<Ingredient>>> GetLowStockIngredients()
     {
         try
         {
-            var thresholdValue = threshold ?? 0;
-            var ingredients = await _ingredientService.GetLowStockIngredientsAsync(thresholdValue);
+            var ingredients = await _ingredientService.GetLowStockIngredientsAsync();
             return Ok(ingredients);
         }
         catch (Exception ex)
         {
             return StatusCode(500, $"Error retrieving low stock ingredients: {ex.Message}");
         }
+    }
+
+    [HttpGet("low-stock/export")]
+    public async Task<IActionResult> ExportLowStockIngredientsAsync([FromQuery] string format = "xlsx")
+    {
+        if (!Enum.TryParse<ExportFormat>(format, ignoreCase: true, out var parsedFormat))
+        {
+            return BadRequest($"Invalid format '{format}'. Allowed: csv, xlsx.");
+        }
+
+        var result = await _exportService.ExportLowStockIngredientsAsync(parsedFormat);
+        return File(result.Content, result.ContentType, result.FileName);
     }
 
     [HttpPost("{id}/adjust-quantity")]

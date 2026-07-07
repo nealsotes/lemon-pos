@@ -27,5 +27,6 @@ public interface IExportService
     Task<ExportResult> ExportAsync(ExportSection section, ExportFormat format, DateTime startDate, DateTime endDate);
     Task<ExportResult> ExportProductsAsync(ExportFormat format);
     Task<ExportResult> ExportIngredientsAsync(ExportFormat format);
+    Task<ExportResult> ExportLowStockIngredientsAsync(ExportFormat format);
     Task<ExportResult> ExportExpenseListAsync(ExportFormat format, DateTime startDate, DateTime endDate, string? categoryId);
 }

@@ -9,7 +9,7 @@ public interface IIngredientRepository
     Task<Ingredient> AddAsync(Ingredient ingredient);
     Task<Ingredient> UpdateAsync(Ingredient ingredient);
     Task DeleteAsync(string id);
-    Task<IEnumerable<Ingredient>> GetLowStockAsync(decimal threshold);
+    Task<IEnumerable<Ingredient>> GetLowStockAsync();
     Task<IEnumerable<Ingredient>> GetAllIncludingInactiveAsync();
 }
 

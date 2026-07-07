@@ -164,9 +164,9 @@ public class IngredientService : IIngredientService
         await _ingredientRepository.DeleteAsync(id);
     }
 
-    public async Task<IEnumerable<Ingredient>> GetLowStockIngredientsAsync(decimal threshold)
+    public async Task<IEnumerable<Ingredient>> GetLowStockIngredientsAsync()
     {
-        return await _ingredientRepository.GetLowStockAsync(threshold);
+        return await _ingredientRepository.GetLowStockAsync();
     }
 
     public async Task<Ingredient> AdjustQuantityAsync(string id, decimal adjustment, string? movementType = null, string? reason = null, string? notes = null, string? supplier = null, decimal? unitCost = null, DateTime? expirationDate = null, string? lotNumber = null)
