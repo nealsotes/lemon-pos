@@ -3,8 +3,6 @@ import { ProductGridComponent } from './features/pos/components/product-grid/pro
 import { ReportsComponent } from './features/admin/components/reports/reports.component';
 import { ProductManagementComponent } from './features/admin/components/product-management/product-management.component';
 import { CartComponent } from './features/checkout/components/cart/cart.component';
-import { CheckoutComponent } from './features/checkout/components/checkout/checkout.component';
-import { ReceiptComponent } from './features/checkout/components/receipt/receipt.component';
 import { PrinterSettingsComponent } from './features/checkout/components/printer-settings/printer-settings.component';
 import { InventoryComponent } from './features/inventory/components/inventory/inventory.component';
 import { LoginComponent } from './features/auth/components/login/login.component';
@@ -23,8 +21,6 @@ export const routes: Routes = [
   // Protected routes (authentication required)
   { path: 'pos', component: ProductGridComponent, canActivate: [AuthGuard] },
   { path: 'cart', component: CartComponent, canActivate: [AuthGuard] },
-  { path: 'checkout', component: CheckoutComponent, canActivate: [AuthGuard] },
-  { path: 'receipt', component: ReceiptComponent, canActivate: [AuthGuard] },
   { path: 'reports', component: ReportsComponent, canActivate: [AuthGuard, RoleGuard] },
   { path: 'products', component: ProductManagementComponent, canActivate: [AuthGuard, RoleGuard] },
   { path: 'inventory', component: InventoryComponent, canActivate: [AuthGuard, RoleGuard] },

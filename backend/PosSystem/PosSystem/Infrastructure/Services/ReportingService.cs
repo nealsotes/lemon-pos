@@ -248,13 +248,14 @@ public class ReportingService : IReportingService
 
         var allItems = transactions.SelectMany(t => t.Items).ToList();
 
-        var grossRevenue = transactions.Sum(t => t.Total);
+        // Transaction.Total is stored already net of line-level discounts (see
+        // TransactionService.CreateTransactionAsync), so it IS net revenue. DiscountInfo.Amount is
+        // the whole-line discount total (not per-unit), so it must NOT be multiplied by Quantity.
+        var netRevenue = transactions.Sum(t => t.Total);
         var totalDiscounts = allItems
             .Where(i => i.Discount != null)
-            .Sum(i => i.Discount!.Amount * i.Quantity);
-
-        // Fix 1: Properly subtract discounts from net revenue
-        var netRevenue = grossRevenue - totalDiscounts;
+            .Sum(i => i.Discount!.Amount);
+        var grossRevenue = netRevenue + totalDiscounts;
 
         // Use movement-based COGS for totals
         var totalCogs = await CalculateTotalCogsFromMovementsAsync(startDate, endDate);
@@ -476,16 +477,17 @@ public class ReportingService : IReportingService
         var allItems = transactions.SelectMany(t => t.Items).ToList();
         var cogsByProduct = await GetCogsByProductIdAsync();
 
-        var grossRevenue = transactions.Sum(t => t.Total);
+        // See GetProfitLossReportAsync: Total is already net of discounts, and DiscountInfo.Amount
+        // is a whole-line total, so do not subtract twice or scale by Quantity.
+        var netRevenue = transactions.Sum(t => t.Total);
         var totalDiscounts = allItems
             .Where(i => i.Discount != null)
-            .Sum(i => i.Discount!.Amount * i.Quantity);
-        // Fix 1: Properly subtract discounts
-        var netRevenue = grossRevenue - totalDiscounts;
+            .Sum(i => i.Discount!.Amount);
+        var grossRevenue = netRevenue + totalDiscounts;
         var totalCogs = await CalculateTotalCogsFromMovementsAsync(startDate, endDate);
         var grossProfit = netRevenue - totalCogs;
         var transactionCount = transactions.Count;
-        var averageTicket = transactionCount > 0 ? grossRevenue / transactionCount : 0;
+        var averageTicket = transactionCount > 0 ? netRevenue / transactionCount : 0;
 
         // Expenses integration
         var totalExpenses = await _expenseService.GetTotalExpensesForPeriodAsync(startDate, endDate);

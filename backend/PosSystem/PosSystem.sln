@@ -1,9 +1,11 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34525.116
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PosSystem", "PosSystem\PosSystem.csproj", "{638045D5-D8A2-4D19-B815-E3A27468B4CB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PosSystem.Tests", "PosSystem.Tests\PosSystem.Tests.csproj", "{26C1684A-EBEA-493D-BC48-7B65681499B0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{638045D5-D8A2-4D19-B815-E3A27468B4CB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{638045D5-D8A2-4D19-B815-E3A27468B4CB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{638045D5-D8A2-4D19-B815-E3A27468B4CB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{26C1684A-EBEA-493D-BC48-7B65681499B0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{26C1684A-EBEA-493D-BC48-7B65681499B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{26C1684A-EBEA-493D-BC48-7B65681499B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{26C1684A-EBEA-493D-BC48-7B65681499B0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
