@@ -63,11 +63,11 @@
     <div class="products-grid">
       <div *ngFor="let product of filteredProducts" class="product-card">
         <div class="product-image-container">
-          <img 
-            [src]="getImageUrl(product.image)" 
+          <img
+            [src]="getImageUrl(product.image)"
             [alt]="product.name"
             class="product-image"
-            (error)="$event.target.src='/assets/default-product.png'"
+            (error)="onImageError($event)"
           />
           <div *ngIf="product.stock <= (product.lowQuantityThreshold || 5)" class="stock-badge low-stock">
             Limited

@@ -101,12 +101,32 @@ export class PublicMenuComponent implements OnInit, OnDestroy {
     return product.coldPrice !== undefined && product.coldPrice !== null;
   }
 
+  // Inline placeholder — avoids depending on an asset file that may not exist.
+  readonly placeholderImage =
+    'data:image/svg+xml;utf8,' +
+    encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>'
+    );
+
   getImageUrl(image: string): string {
-    if (!image) return '/assets/default-product.png';
-    if (image.startsWith('http://') || image.startsWith('https://')) {
+    // The backend already normalizes real photos to a ready-to-use URL
+    // (a data: URL, an /api/products/image/... path, or a full http URL).
+    // Use it as-is; emoji or empty values fall back to the placeholder.
+    if (!image) return this.placeholderImage;
+    if (image.startsWith('data:') ||
+        image.startsWith('http://') ||
+        image.startsWith('https://') ||
+        image.startsWith('/')) {
       return image;
     }
-    return `/api/${image}`;
+    return this.placeholderImage;
+  }
+
+  onImageError(event: Event): void {
+    const img = event.target as HTMLImageElement;
+    if (img.src !== this.placeholderImage) {
+      img.src = this.placeholderImage;
+    }
   }
 }
 
