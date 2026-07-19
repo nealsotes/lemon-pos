@@ -306,7 +306,8 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
                   <span class="summary-item__qty">{{ item.quantity }}×</span>
                   <span class="summary-item__name">{{ item.name }}</span>
                   <span *ngIf="item.temperature" class="summary-item__temp">
-                    {{ item.temperature === 'hot' ? '🔥' : '❄️' }}
+                    <svg *ngIf="item.temperature === 'hot'" style="color:var(--danger)" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c3 3.5 5 5.8 5 8.5a5 5 0 0 1-10 0C7 9 8.5 7 10 5c.3 1.5 1 2.5 2 3 .3-1.8.3-3.4 0-5z"/></svg>
+                    <svg *ngIf="item.temperature === 'cold'" style="color:var(--info)" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M4 7l16 10M20 7L4 17"/></svg>
                   </span>
                 </div>
                 <span class="summary-item__price">₱{{ item.total | number:'1.2-2' }}</span>
@@ -870,7 +871,7 @@ export class CheckoutSidebarComponent implements OnInit {
         const currentNotes = this.notes;
 
         // Show success message
-        this.showMessage('Transaction completed successfully! 🎉', 'success');
+        this.showMessage('Transaction completed successfully!', 'success');
 
         // Clear form data only on successful transaction
         this.clearFormDataOnSuccess();

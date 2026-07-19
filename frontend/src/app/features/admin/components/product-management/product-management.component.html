@@ -1,24 +1,24 @@
 <div class="product-management-container">
   <!-- Page Header -->
   <app-top-bar title="Product Management">
-    <app-button variant="primary" size="sm" (click)="openAddProductDialog()">
+    <button type="button" class="btn btn-primary btn-sm" (click)="openAddProductDialog()">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
         <path d="M12 5v14M5 12h14"/>
       </svg>
       Add Product
-    </app-button>
-    <app-button variant="secondary" size="sm" (click)="exportProducts()" [disabled]="isLoading || isExporting">
+    </button>
+    <button type="button" class="btn btn-secondary btn-sm" (click)="exportProducts()" [disabled]="isLoading || isExporting">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
       </svg>
       {{ isExporting ? 'Exporting...' : 'Export' }}
-    </app-button>
-    <app-button variant="ghost" size="sm" (click)="refreshData()" [disabled]="isLoading">
+    </button>
+    <button type="button" class="btn btn-ghost btn-sm" (click)="refreshData()" [disabled]="isLoading">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M1 4v6h6M23 20v-6h-6"/>
         <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/>
       </svg>
-    </app-button>
+    </button>
   </app-top-bar>
 
   <div class="page-body">
@@ -58,18 +58,18 @@
       <!-- Bulk Action Bar -->
       <div class="bulk-action-bar" *ngIf="selectedProducts.length > 0">
         <span class="selection-count">{{ selectedProducts.length }} selected</span>
-        <app-button variant="secondary" size="sm" (click)="openBulkEditDialog()">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="openBulkEditDialog()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
           </svg>
           Bulk Edit
-        </app-button>
-        <app-button variant="danger" size="sm" (click)="deleteSelectedProducts()">
+        </button>
+        <button type="button" class="btn btn-danger btn-sm" (click)="deleteSelectedProducts()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
           </svg>
           Delete Selected
-        </app-button>
+        </button>
       </div>
 
       <app-data-table

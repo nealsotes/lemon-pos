@@ -251,8 +251,8 @@
 }
 
 .quantity-btn {
-  width: 30px;
-  height: 30px;
+  width: 40px;
+  height: 40px;
   border: none;
   background: transparent;
   color: var(--text-secondary);
@@ -275,8 +275,8 @@
 }
 
 .quantity-btn svg {
-  width: 13px;
-  height: 13px;
+  width: 16px;
+  height: 16px;
 }
 
 .quantity-display {
@@ -305,11 +305,11 @@
 
 /* Remove button */
 .remove-btn {
-  width: 30px;
-  height: 30px;
+  width: 40px;
+  height: 40px;
   border: 1px solid var(--border);
   background: var(--bg-surface);
-  border-radius: 50%;
+  border-radius: var(--radius-md);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -326,8 +326,8 @@
 }
 
 .remove-btn svg {
-  width: 13px;
-  height: 13px;
+  width: 16px;
+  height: 16px;
   transition: transform var(--transition-fast);
 }
 

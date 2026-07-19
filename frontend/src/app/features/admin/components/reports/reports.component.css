@@ -347,9 +347,9 @@
 .list-row:hover { background: var(--bg-subtle, var(--background-secondary)); }
 
 .row-rank { display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; font-size: 0.625rem; font-weight: 700; color: var(--text-muted); background: var(--bg-subtle, var(--background-secondary)); border-radius: 50%; flex-shrink: 0; }
-.row-rank.rank-gold { color: #fff; background: linear-gradient(135deg, #F59E0B, #D97706); }
-.row-rank.rank-silver { color: #fff; background: linear-gradient(135deg, #9CA3AF, #6B7280); }
-.row-rank.rank-bronze { color: #fff; background: linear-gradient(135deg, #D97706, #B45309); }
+.row-rank.rank-gold { color: #fff; background: var(--accent); }
+.row-rank.rank-silver { color: var(--accent); background: var(--accent-subtle); }
+.row-rank.rank-bronze { color: var(--text-secondary); background: var(--bg-subtle); }
 
 .row-main { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .row-name { font-size: 0.8125rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -362,104 +362,6 @@
 .dot-completed { background: var(--success, var(--success-color)); }
 .dot-pending { background: var(--warning, var(--warning-color)); }
 .txn-row { cursor: pointer; }
-
-/* ==========================================================================
-   PODIUM — Top 3 highlight
-   ========================================================================== */
-.podium {
-  display: grid;
-  grid-template-columns: 1fr 1.15fr 1fr;
-  gap: var(--spacing-md);
-  align-items: end;
-}
-
-.podium-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 20px 16px 18px;
-  background: var(--bg-surface, var(--surface-color));
-  border: 1px solid var(--border, var(--border-color));
-  border-radius: var(--radius-md);
-  text-align: center;
-  position: relative;
-  transition: box-shadow 0.15s ease;
-}
-
-.podium-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
-
-.podium-card.gold {
-  padding-top: 28px;
-  border-color: #F59E0B;
-  background: linear-gradient(to bottom, rgba(245,158,11,0.04), var(--bg-surface));
-}
-
-.podium-card.silver {
-  border-color: #9CA3AF;
-  background: linear-gradient(to bottom, rgba(156,163,175,0.04), var(--bg-surface));
-}
-
-.podium-card.bronze {
-  border-color: #D97706;
-  background: linear-gradient(to bottom, rgba(217,119,6,0.04), var(--bg-surface));
-}
-
-.podium-crown {
-  position: absolute;
-  top: -10px;
-  left: 50%;
-  transform: translateX(-50%);
-  color: #F59E0B;
-  filter: drop-shadow(0 1px 2px rgba(245,158,11,0.3));
-}
-
-.podium-rank {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.75rem;
-  font-weight: 800;
-  font-family: var(--font-display);
-  border-radius: 50%;
-  color: #fff;
-}
-
-.gold .podium-rank { background: linear-gradient(135deg, #F59E0B, #D97706); }
-.silver .podium-rank { background: linear-gradient(135deg, #9CA3AF, #6B7280); }
-.bronze .podium-rank { background: linear-gradient(135deg, #D97706, #B45309); }
-
-.podium-name {
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-top: 4px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 100%;
-}
-
-.podium-cat {
-  font-size: 0.6875rem;
-  color: var(--text-muted);
-}
-
-.podium-revenue {
-  font-size: 1rem;
-  font-weight: 800;
-  font-family: var(--font-display);
-  color: var(--text-primary);
-  margin-top: 6px;
-  letter-spacing: -0.02em;
-}
-
-.podium-qty {
-  font-size: 0.6875rem;
-  color: var(--text-muted);
-}
 
 /* ==========================================================================
    LEADERBOARD
@@ -483,9 +385,9 @@
   border-radius: 50%;
   flex-shrink: 0;
 }
-.lb-rank.rank-gold { color: #fff; background: linear-gradient(135deg, #F59E0B, #D97706); }
-.lb-rank.rank-silver { color: #fff; background: linear-gradient(135deg, #9CA3AF, #6B7280); }
-.lb-rank.rank-bronze { color: #fff; background: linear-gradient(135deg, #D97706, #B45309); }
+.lb-rank.rank-gold { color: #fff; background: var(--accent); }
+.lb-rank.rank-silver { color: var(--accent); background: var(--accent-subtle); }
+.lb-rank.rank-bronze { color: var(--text-secondary); background: var(--bg-subtle); }
 .lb-info { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .lb-name-row { display: flex; align-items: baseline; gap: 6px; }
 .lb-name { font-size: 0.8125rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -597,8 +499,8 @@
 .item-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .item-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .temperature-badge { display: inline-block; font-size: 0.5rem; font-weight: 700; padding: 1px 4px; border-radius: 3px; margin-left: 3px; vertical-align: middle; }
-.temperature-badge.hot { color: #DC2626; background: rgba(220,38,38,0.08); }
-.temperature-badge.cold { color: #2563EB; background: rgba(37,99,235,0.08); }
+.temperature-badge.hot { color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, transparent); }
+.temperature-badge.cold { color: var(--info); background: color-mix(in srgb, var(--info) 10%, transparent); }
 .item-addons { display: flex; flex-direction: column; gap: 1px; }
 .addon-item { font-size: 0.6875rem; color: var(--text-muted); }
 .item-qty { text-align: center; color: var(--text-secondary); }
@@ -646,10 +548,6 @@
   .ngx-chart-wrap { height: 200px; }
   .chart-summary { gap: 16px; flex-wrap: wrap; }
 
-  .podium { grid-template-columns: 1fr; gap: var(--spacing-sm); }
-  .podium-card { padding: 14px 16px; }
-  .podium-card.gold { padding-top: 14px; }
-  .podium-crown { position: static; transform: none; margin-bottom: 4px; }
   .two-col-row { grid-template-columns: 1fr; }
 
   .card-header { padding: 12px 14px; flex-wrap: wrap; gap: 6px; }

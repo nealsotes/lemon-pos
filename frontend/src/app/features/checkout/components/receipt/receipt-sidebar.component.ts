@@ -79,7 +79,7 @@ import { ThermalPrinterService } from '../../services/thermal-printer.service';
                         <span *ngIf="getTemperature(item)" class="ed-pill"
                           [class.ed-pill--danger]="isHot(item)"
                           [class.ed-pill--info]="isCold(item)">
-                          {{ isHot(item) ? '🔥 hot' : '❄️ Iced' }}
+                          <ng-container *ngIf="isHot(item)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c3 3.5 5 5.8 5 8.5a5 5 0 0 1-10 0C7 9 8.5 7 10 5c.3 1.5 1 2.5 2 3 .3-1.8.3-3.4 0-5z"/></svg>hot</ng-container><ng-container *ngIf="!isHot(item)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M4 7l16 10M20 7L4 17"/></svg>Iced</ng-container>
                         </span>
                       </div>
                       <div class="item-addons" *ngIf="hasAddOns(item)">

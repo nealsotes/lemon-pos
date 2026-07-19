@@ -6,7 +6,6 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { Product } from '../../../pos/models/product.model';
 import { AddOn } from '../../../checkout/models/cart-item.model';
-import { ButtonComponent } from '../../../../shared/ui/button/button.component';
 
 export interface ProductEditorDialogData {
   product: Product | null;
@@ -20,8 +19,7 @@ export interface ProductEditorDialogData {
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    MatDialogModule,
-    ButtonComponent
+    MatDialogModule
   ],
   template: `
     <div class="product-dialog">
@@ -196,7 +194,7 @@ export interface ProductEditorDialogData {
               </div>
               <input #fileInput type="file" accept="image/*" (change)="onFileSelected($event)" style="display: none;">
               <div class="upload-actions" *ngIf="selectedFile">
-                <app-button variant="secondary" size="sm" (click)="removeFile()">Remove</app-button>
+                <button type="button" class="btn btn-secondary btn-sm" (click)="removeFile()">Remove</button>
               </div>
             </div>
           </div>
@@ -213,10 +211,10 @@ export interface ProductEditorDialogData {
 
       <!-- Footer -->
       <div class="dialog-footer">
-        <app-button variant="secondary" (click)="onClose()">Cancel</app-button>
-        <app-button variant="primary" (click)="save()" [disabled]="productForm.invalid">
+        <button type="button" class="btn btn-secondary" (click)="onClose()">Cancel</button>
+        <button type="button" class="btn btn-primary" (click)="save()" [disabled]="productForm.invalid">
           {{ data.product ? 'Update' : 'Add' }} Product
-        </app-button>
+        </button>
       </div>
     </div>
   `,

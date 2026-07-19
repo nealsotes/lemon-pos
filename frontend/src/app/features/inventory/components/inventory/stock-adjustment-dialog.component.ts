@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { Ingredient } from '../../../pos/models/ingredient.model';
 import { MovementType } from '../../models/stock-movement.model';
-import { ButtonComponent } from '../../../../shared/ui/button/button.component';
 
 export interface StockAdjustmentDialogData {
   ingredient: Ingredient;
@@ -37,8 +36,7 @@ interface MovementTypeOption {
   imports: [
     CommonModule,
     FormsModule,
-    MatDialogModule,
-    ButtonComponent
+    MatDialogModule
   ],
   template: `
     <div class="adjustment-dialog">
@@ -131,10 +129,10 @@ interface MovementTypeOption {
 
       <!-- Footer -->
       <div class="dialog-footer">
-        <app-button variant="secondary" (click)="dialogRef.close()">Cancel</app-button>
-        <app-button variant="primary" (click)="submit()" [disabled]="!isValid">
+        <button type="button" class="btn btn-secondary" (click)="dialogRef.close()">Cancel</button>
+        <button type="button" class="btn btn-primary" (click)="submit()" [disabled]="!isValid">
           {{ isOutgoing ? 'Remove' : 'Add' }} {{ quantity | number:(isPiece ? '1.0-0' : '1.2-2') }} {{ ingredient.unit }}
-        </app-button>
+        </button>
       </div>
     </div>
   `,

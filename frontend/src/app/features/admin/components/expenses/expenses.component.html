@@ -1,19 +1,19 @@
 <div class="expenses-container">
   <!-- Header -->
   <app-top-bar title="Expenses">
-    <app-button variant="primary" size="sm" (click)="openAddModal()">
+    <button type="button" class="btn btn-primary btn-sm" (click)="openAddModal()">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
         stroke-linecap="round">
         <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
       </svg>
       Add Expense
-    </app-button>
-    <app-button variant="secondary" size="sm" (click)="exportExpenses()" [disabled]="isLoading || isExporting">
+    </button>
+    <button type="button" class="btn btn-secondary btn-sm" (click)="exportExpenses()" [disabled]="isLoading || isExporting">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
       </svg>
       {{ isExporting ? 'Exporting...' : 'Export' }}
-    </app-button>
+    </button>
   </app-top-bar>
 
   <!-- Filters -->
@@ -41,7 +41,7 @@
   <!-- Error -->
   <div *ngIf="errorMessage && !isLoading" class="error-banner">
     <p>{{ errorMessage }}</p>
-    <app-button variant="secondary" size="sm" (click)="loadExpenses()">Retry</app-button>
+    <button type="button" class="btn btn-secondary btn-sm" (click)="loadExpenses()">Retry</button>
   </div>
 
   <div class="expenses-body" *ngIf="!isLoading && !errorMessage">

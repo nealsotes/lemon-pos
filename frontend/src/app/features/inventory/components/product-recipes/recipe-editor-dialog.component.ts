@@ -8,7 +8,6 @@ import { RecipeLine, RecipeLineRequest } from '../../../pos/models/recipe.model'
 import { RecipeService } from '../../../pos/services/recipe.service';
 import { IngredientService } from '../../../pos/services/ingredient.service';
 import { ToastService } from '../../../../shared/ui/toast/toast.service';
-import { ButtonComponent } from '../../../../shared/ui/button/button.component';
 import { BadgeComponent } from '../../../../shared/ui/badge/badge.component';
 import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/loading-spinner.component';
 import { SearchInputComponent } from '../../../../shared/ui/search-input/search-input.component';
@@ -70,7 +69,6 @@ function smartDisplayUnit(baseUnit: string, baseQuantity: number): string {
     CommonModule,
     FormsModule,
     MatDialogModule,
-    ButtonComponent,
     BadgeComponent,
     LoadingSpinnerComponent,
     SearchInputComponent
@@ -247,7 +245,7 @@ function smartDisplayUnit(baseUnit: string, baseQuantity: number): string {
                 <span class="add-conversion-hint" *ngIf="addQuantityPerUnit && addSelectedUnit && addSelectedUnit !== getSelectedIngredient()?.unit">
                   = {{ getAddBaseQuantity() | number:'1.0-4' }} {{ getSelectedIngredient()?.unit }}
                 </span>
-                <app-button variant="primary" size="sm" (click)="addLine()">Add</app-button>
+                <button type="button" class="btn btn-primary btn-sm" (click)="addLine()">Add</button>
               </div>
             </div>
           </div>
@@ -260,10 +258,10 @@ function smartDisplayUnit(baseUnit: string, baseQuantity: number): string {
 
       <!-- Footer -->
       <div class="dialog-footer">
-        <app-button variant="secondary" (click)="onClose()">Close</app-button>
-        <app-button variant="primary" (click)="saveRecipe()" [disabled]="!hasChanges || isSaving" [loading]="isSaving">
+        <button type="button" class="btn btn-secondary" (click)="onClose()">Close</button>
+        <button type="button" class="btn btn-primary" (click)="saveRecipe()" [disabled]="!hasChanges || isSaving"><span class="btn-spinner" *ngIf="isSaving"></span>
           Save Recipe
-        </app-button>
+        </button>
       </div>
     </div>
   `,

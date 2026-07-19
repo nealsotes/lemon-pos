@@ -5,7 +5,6 @@ import { IngredientLotService } from '../../services/ingredient-lot.service';
 import { IngredientLot } from '../../models/ingredient-lot.model';
 import { Ingredient } from '../../../pos/models/ingredient.model';
 import { ToastService } from '../../../../shared/ui/toast/toast.service';
-import { ButtonComponent } from '../../../../shared/ui/button/button.component';
 import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/loading-spinner.component';
 
 @Component({
@@ -14,7 +13,6 @@ import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/l
   imports: [
     CommonModule,
     MatDialogModule,
-    ButtonComponent,
     LoadingSpinnerComponent
   ],
   template: `
@@ -92,7 +90,7 @@ import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/l
           <span class="summary-item">Avg cost: <strong>&#8369;{{ weightedAvgCost | number:'1.2-2' }}/{{ ingredient?.unit }}</strong></span>
           <span class="summary-item">Total value: <strong>&#8369;{{ totalValue | number:'1.2-2' }}</strong></span>
         </div>
-        <app-button variant="secondary" (click)="close()">Close</app-button>
+        <button type="button" class="btn btn-secondary" (click)="close()">Close</button>
       </div>
     </div>
   `,

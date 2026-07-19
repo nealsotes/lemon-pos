@@ -265,24 +265,7 @@
   gap: 8px;
 }
 
-.btn {
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  border: none;
-}
-
-.btn-secondary {
-  background: var(--surface-alt, #f3f4f6);
-  color: var(--text-primary, #111827);
-}
-
-.btn-danger {
-  background: #dc2626;
-  color: #fff;
-}
+/* Buttons use the global .btn family (styles.css). */
 
 @media (max-width: 640px) {
   .summary-cards {

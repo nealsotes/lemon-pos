@@ -704,10 +704,7 @@
   font-feature-settings: 'tnum';
   letter-spacing: -0.03em;
   line-height: 1;
-  background: linear-gradient(135deg, var(--text-primary) 30%, var(--accent) 130%);
-  -webkit-background-clip: text;
-          background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--text-primary);
 }
 
 .discount-value {

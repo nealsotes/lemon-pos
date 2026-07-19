@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { Ingredient } from '../../../pos/models/ingredient.model';
-import { ButtonComponent } from '../../../../shared/ui/button/button.component';
 
 export interface IngredientEditorDialogData {
   ingredient: Ingredient | null;
@@ -15,8 +14,7 @@ export interface IngredientEditorDialogData {
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    MatDialogModule,
-    ButtonComponent
+    MatDialogModule
   ],
   template: `
     <div class="ingredient-dialog">
@@ -101,10 +99,10 @@ export interface IngredientEditorDialogData {
 
       <!-- Footer -->
       <div class="dialog-footer">
-        <app-button variant="secondary" (click)="onClose()">Cancel</app-button>
-        <app-button variant="primary" (click)="save()" [disabled]="ingredientForm.invalid">
+        <button type="button" class="btn btn-secondary" (click)="onClose()">Cancel</button>
+        <button type="button" class="btn btn-primary" (click)="save()" [disabled]="ingredientForm.invalid">
           {{ data.ingredient ? 'Update' : 'Add' }} Ingredient
-        </app-button>
+        </button>
       </div>
     </div>
   `,

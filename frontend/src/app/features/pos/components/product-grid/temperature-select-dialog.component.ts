@@ -31,7 +31,7 @@ export interface TemperatureDialogResult {
           (click)="selectTemperature('hot')"
           *ngIf="hasHotPrice"
         >
-          <div class="temperature-icon">🔥</div>
+          <div class="temperature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c3 3.5 5 5.8 5 8.5a5 5 0 0 1-10 0C7 9 8.5 7 10 5c.3 1.5 1 2.5 2 3 .3-1.8.3-3.4 0-5z"/></svg></div>
           <div class="temperature-label">Hot</div>
           <div class="temperature-price">
             ₱{{ (data.product.hotPrice || data.product.price) | number:'1.2-2' }}
@@ -44,7 +44,7 @@ export interface TemperatureDialogResult {
           (click)="selectTemperature('cold')"
           *ngIf="hasColdPrice"
         >
-          <div class="temperature-icon">❄️</div>
+          <div class="temperature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M4 7l16 10M20 7L4 17"/></svg></div>
           <div class="temperature-label">Iced</div>
           <div class="temperature-price">
             ₱{{ (data.product.coldPrice || data.product.price) | number:'1.2-2' }}
@@ -58,7 +58,7 @@ export interface TemperatureDialogResult {
           (click)="selectTemperature(null)"
           *ngIf="!hasHotPrice && !hasColdPrice"
         >
-          <div class="temperature-icon">📦</div>
+          <div class="temperature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5M12 13v10"/></svg></div>
           <div class="temperature-label">Standard</div>
           <div class="temperature-price">
             ₱{{ data.product.price | number:'1.2-2' }}
@@ -168,19 +168,30 @@ export interface TemperatureDialogResult {
     }
     
     .hot-btn.selected {
-      border-color: var(--error-color);
-      background: #fef2f2;
+      border-color: var(--danger);
+      background: color-mix(in srgb, var(--danger) 10%, transparent);
     }
-    
+
     .cold-btn.selected {
-      border-color: #3b82f6;
-      background: #eff6ff;
+      border-color: var(--info);
+      background: color-mix(in srgb, var(--info) 10%, transparent);
     }
     
     .temperature-icon {
-      font-size: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       flex-shrink: 0;
     }
+
+    .temperature-icon svg {
+      width: 28px;
+      height: 28px;
+    }
+
+    .hot-btn .temperature-icon { color: var(--danger); }
+    .cold-btn .temperature-icon { color: var(--info); }
+    .default-btn .temperature-icon { color: var(--text-secondary); }
     
     .temperature-label {
       flex: 1;

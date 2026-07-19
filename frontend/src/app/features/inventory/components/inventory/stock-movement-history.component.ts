@@ -9,7 +9,6 @@ import { StockMovementService } from '../../services/stock-movement.service';
 import { IngredientLotService } from '../../services/ingredient-lot.service';
 import { ToastService } from '../../../../shared/ui/toast/toast.service';
 import { BadgeComponent } from '../../../../shared/ui/badge/badge.component';
-import { ButtonComponent } from '../../../../shared/ui/button/button.component';
 import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/loading-spinner.component';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -28,7 +27,6 @@ interface MovementTypeFilter {
     MatDialogModule,
     FormsModule,
     BadgeComponent,
-    ButtonComponent,
     LoadingSpinnerComponent
   ],
   template: `
@@ -146,7 +144,7 @@ interface MovementTypeFilter {
             {{ netChange >= 0 ? '+' : '' }}{{ netChange | number:(isPiece ? '1.0-0' : '1.2-2') }} net
           </span>
         </div>
-        <app-button variant="secondary" (click)="close()">Close</app-button>
+        <button type="button" class="btn btn-secondary" (click)="close()">Close</button>
       </div>
     </div>
   `,

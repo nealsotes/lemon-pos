@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { BulkUpdateFields } from '../../../pos/services/product.service';
-import { ButtonComponent } from '../../../../shared/ui/button/button.component';
 
 export interface BulkEditDialogData {
   productCount: number;
@@ -13,7 +12,7 @@ export interface BulkEditDialogData {
 @Component({
   selector: 'app-bulk-edit-dialog',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, MatDialogModule, ButtonComponent],
+  imports: [CommonModule, ReactiveFormsModule, MatDialogModule],
   template: `
     <div class="bulk-dialog">
       <div class="dialog-header">
@@ -141,10 +140,10 @@ export interface BulkEditDialogData {
           <div class="dialog-footer">
             <p class="footer-warn" *ngIf="!hasAnyFieldSelected()">Pick at least one field to update.</p>
             <div class="footer-actions">
-              <app-button type="button" variant="ghost" size="sm" (click)="onClose()">Cancel</app-button>
-              <app-button type="submit" variant="primary" size="sm" [disabled]="!canApply()">
+              <button type="button" class="btn btn-ghost btn-sm" (click)="onClose()">Cancel</button>
+              <button type="submit" class="btn btn-primary btn-sm" [disabled]="!canApply()">
                 Apply to {{ data.productCount }}
-              </app-button>
+              </button>
             </div>
           </div>
         </form>

@@ -462,9 +462,9 @@
 }
 
 .ed-btn--primary {
-  background: var(--text-primary);
+  background: var(--accent);
   color: var(--text-inverse);
-  border-color: var(--text-primary);
+  border-color: var(--accent);
   letter-spacing: 0.02em;
 }
 

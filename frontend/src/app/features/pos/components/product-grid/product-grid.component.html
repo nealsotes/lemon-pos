@@ -1,6 +1,6 @@
 <div class="pos-container ed-backdrop" [class.desktop]="isDesktop">
   <!-- Left: Main POS area -->
-  <div class="pos-main">
+  <div class="pos-main" data-tour="product-grid">
     <!-- Top Bar -->
     <app-top-bar title="Point of Sale">
       <span *ngIf="!isLoading && filteredProducts.length > 0" class="ed-pill ed-pill--accent">
@@ -59,7 +59,7 @@
               <path d="M21 15l-5-5L5 21"/>
             </svg>
           </div>
-          <span class="ed-pill ed-pill--warning stock-badge" *ngIf="isLowStock(product) && product.stock > 0">Low</span>
+          <span class="ed-pill ed-pill--warning stock-badge" *ngIf="isLowStock(product) && product.stock > 0">Low &middot; {{ product.stock }}</span>
           <span class="ed-pill ed-pill--danger stock-badge" *ngIf="product.stock <= 0">Sold out</span>
         </div>
         <div class="card-body">

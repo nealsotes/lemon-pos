@@ -552,8 +552,8 @@
 }
 
 .quantity-btn {
-  width: 22px;
-  height: 22px;
+  width: 40px;
+  height: 40px;
   border: none;
   background: transparent;
   color: var(--text-secondary);
@@ -576,8 +576,8 @@
 }
 
 .quantity-btn svg {
-  width: 11px;
-  height: 11px;
+  width: 16px;
+  height: 16px;
 }
 
 .quantity-display {
@@ -603,11 +603,12 @@
 
 /* Remove button — top-right of item */
 .remove-btn {
-  width: 22px;
-  height: 22px;
-  border: none;
-  background: transparent;
-  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+  color: var(--danger);
+  border-radius: var(--radius-md);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -625,8 +626,8 @@
 }
 
 .remove-btn svg {
-  width: 13px;
-  height: 13px;
+  width: 16px;
+  height: 16px;
 }
 
 /* ---------- Compact summary footer ---------- */
@@ -676,10 +677,7 @@
   font-feature-settings: 'tnum';
   letter-spacing: -0.03em;
   line-height: 1;
-  background: linear-gradient(135deg, var(--text-primary) 30%, var(--accent) 130%);
-  -webkit-background-clip: text;
-          background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--text-primary);
 }
 
 .cart-actions {

@@ -238,36 +238,7 @@
   border-top: 1px solid var(--border);
 }
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border-radius: var(--radius-sm);
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  border: 1px solid var(--border);
-  text-decoration: none;
-}
-
-.btn svg {
-  width: 16px;
-  height: 16px;
-}
-
-.btn-secondary {
-  background: var(--bg-surface);
-  color: var(--text-secondary);
-  border-color: var(--border);
-}
-
-.btn-secondary:hover {
-  color: var(--text-primary);
-  border-color: var(--border-strong);
-}
+/* Buttons use the global .btn family (styles.css). */
 
 /* ---------- Responsive ---------- */
 @media (max-width: 768px) {

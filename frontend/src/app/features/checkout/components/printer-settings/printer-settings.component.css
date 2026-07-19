@@ -271,72 +271,8 @@
   gap: 8px;
 }
 
-/* Buttons */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 6px 16px;
-  height: 32px;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color var(--transition-fast), border-color var(--transition-fast);
-  white-space: nowrap;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn svg {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-}
-
-.btn-small {
-  padding: 4px 12px;
-  height: 28px;
-  font-size: 12px;
-}
-
-.btn-small svg {
-  width: 14px;
-  height: 14px;
-}
-
-.btn-full {
-  width: 100%;
-}
-
-.btn-primary {
-  background: var(--accent);
-  color: white;
-  border-color: var(--accent);
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
-}
-
-.btn-secondary {
-  background: var(--bg-surface);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: var(--bg-subtle);
-  border-color: var(--border-strong);
-}
-
+/* Buttons use the global .btn family (styles.css).
+   Only the bespoke thermal-test button keeps a local accent below. */
 .btn-thermal {
   background: var(--success);
   color: white;

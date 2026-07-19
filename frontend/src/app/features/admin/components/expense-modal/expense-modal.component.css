@@ -237,27 +237,4 @@
   border-radius: 8px;
 }
 
-.btn {
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  border: none;
-  transition: opacity 0.15s;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: var(--primary, #f59e0b);
-  color: #fff;
-}
-
-.btn-secondary {
-  background: var(--surface-alt, #f3f4f6);
-  color: var(--text-primary, #111827);
-}
+/* Buttons use the global .btn family (styles.css). */

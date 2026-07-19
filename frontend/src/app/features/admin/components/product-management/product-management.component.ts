@@ -16,7 +16,6 @@ import { BadgeComponent } from '../../../../shared/ui/badge/badge.component';
 import { ImageDisplayComponent } from '../../../../shared/ui/image-display/image-display.component';
 import { StockIndicatorComponent } from '../../../../shared/ui/stock-indicator/stock-indicator.component';
 import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/loading-spinner.component';
-import { ButtonComponent } from '../../../../shared/ui/button/button.component';
 import { ToastService } from '../../../../shared/ui/toast/toast.service';
 import { ConfirmDialogService } from '../../../../shared/ui/confirm-dialog/confirm-dialog.service';
 import { Subject } from 'rxjs';
@@ -36,7 +35,6 @@ import { takeUntil } from 'rxjs/operators';
     ImageDisplayComponent,
     StockIndicatorComponent,
     LoadingSpinnerComponent,
-    ButtonComponent,
     MatDialogModule
   ],
   templateUrl: './product-management.component.html',

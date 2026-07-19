@@ -7,13 +7,19 @@ import { CommonModule } from '@angular/common';
   imports: [CommonModule],
   template: `
     <div class="empty-state">
-      <span class="empty-icon">{{ icon }}</span>
+      <div class="empty-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 12h-6l-2 3h-4l-2-3H2"/>
+          <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
+        </svg>
+      </div>
+      <span *ngIf="eyebrow" class="empty-eyebrow">{{ eyebrow }}</span>
       <span *ngIf="title" class="empty-title">{{ title }}</span>
       <span *ngIf="message" class="empty-message">{{ message }}</span>
       <button
         *ngIf="actionLabel"
         type="button"
-        class="empty-action"
+        class="btn btn-primary"
         (click)="action.emit()">
         {{ actionLabel }}
       </button>
@@ -24,19 +30,44 @@ import { CommonModule } from '@angular/common';
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       padding: var(--spacing-2xl);
       text-align: center;
     }
 
     .empty-icon {
-      font-size: 48px;
-      line-height: 1;
+      width: 56px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+      background: var(--bg-surface);
+      border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+      border-radius: 50%;
+      box-shadow: 0 8px 24px -8px color-mix(in srgb, var(--accent) 40%, transparent);
+      margin-bottom: 2px;
+    }
+
+    .empty-icon svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .empty-eyebrow {
+      font-family: var(--font-display);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--accent);
     }
 
     .empty-title {
-      font-size: 16px;
-      font-weight: 600;
+      font-family: var(--font-display);
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
       color: var(--text-primary);
     }
 
@@ -44,32 +75,18 @@ import { CommonModule } from '@angular/common';
       font-size: 13px;
       color: var(--text-secondary);
       max-width: 320px;
+      line-height: 1.5;
     }
 
-    .empty-action {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      height: 32px;
-      padding: 6px 16px;
-      border: none;
-      border-radius: var(--radius-sm);
-      font-family: inherit;
-      font-size: 13px;
-      font-weight: 500;
-      background: transparent;
-      color: var(--accent);
-      cursor: pointer;
-      transition: background-color var(--transition-fast);
-    }
-
-    .empty-action:hover {
-      background-color: var(--accent-subtle);
+    .empty-state .btn {
+      margin-top: 4px;
     }
   `]
 })
 export class EmptyStateComponent {
-  @Input() icon = '\uD83D\uDCE6';
+  /** Retained for backward-compatibility; the icon is now a consistent stroked SVG, never an emoji. */
+  @Input() icon = '';
+  @Input() eyebrow = '';
   @Input() title = '';
   @Input() message = '';
   @Input() actionLabel = '';
