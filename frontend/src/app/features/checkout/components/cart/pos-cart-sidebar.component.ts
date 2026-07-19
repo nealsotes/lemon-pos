@@ -75,7 +75,7 @@ export class POSCartSidebarComponent implements OnInit, OnDestroy {
     }
 
     increaseQuantity(item: CartItem): void {
-        if (item.quantity < item.stock) {
+        if (this.cartService.getProductQuantityInCart(item.productId) < item.stock) {
             this.cartService.updateQuantity(item.productId, item.quantity + 1);
         }
     }

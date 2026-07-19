@@ -107,8 +107,23 @@ export class CartService {
     this.saveOpenOrdersToStorage();
   }
 
-  addToCart(product: Product, quantity: number = 1, temperature: 'hot' | 'cold' | null = null, addOns?: AddOn[]): void {
+  /**
+   * Adds a product to the cart, capped at available stock.
+   * Variants (hot/cold/add-ons) of the same product share one stock pool, so the
+   * cap is against the TOTAL already in the cart — mirroring the backend's
+   * per-product stock check at checkout. Returns the quantity actually added
+   * (0 if the product is already at its stock limit).
+   */
+  addToCart(product: Product, quantity: number = 1, temperature: 'hot' | 'cold' | null = null, addOns?: AddOn[]): number {
     const currentItems = this.cartItemsSubject.value;
+
+    const alreadyInCart = currentItems
+      .filter(item => item.productId === product.id)
+      .reduce((sum, item) => sum + item.quantity, 0);
+    const addQuantity = Math.min(quantity, Math.max(0, product.stock - alreadyInCart));
+    if (addQuantity <= 0) {
+      return 0;
+    }
 
     // Calculate price based on temperature
     let itemPrice = product.price;
@@ -120,8 +135,8 @@ export class CartService {
 
     // Add add-on prices to item price (accounting for quantities)
     const addOnsTotal = addOns ? addOns.reduce((sum, addOn) => {
-      const quantity = addOn.quantity || 1;
-      return sum + (addOn.price * quantity);
+      const addOnQty = addOn.quantity || 1;
+      return sum + (addOn.price * addOnQty);
     }, 0) : 0;
     const finalItemPrice = itemPrice + addOnsTotal;
 
@@ -137,7 +152,7 @@ export class CartService {
 
     if (existingItemIndex !== -1) {
       // Update existing item
-      currentItems[existingItemIndex].quantity += quantity;
+      currentItems[existingItemIndex].quantity += addQuantity;
       currentItems[existingItemIndex].total =
         currentItems[existingItemIndex].quantity * finalItemPrice;
     } else {
@@ -147,8 +162,8 @@ export class CartService {
         name: product.name,
         price: finalItemPrice,
         basePrice: product.price,
-        quantity: quantity,
-        total: finalItemPrice * quantity,
+        quantity: addQuantity,
+        total: finalItemPrice * addQuantity,
         image: product.image,
         category: product.category,
         stock: product.stock,
@@ -159,13 +174,15 @@ export class CartService {
     }
 
     // Update totals incrementally
-    this.updateTotalsIncrementally(finalItemPrice * quantity);
+    this.updateTotalsIncrementally(finalItemPrice * addQuantity);
 
     // Use next() with the same array reference for better performance
     this.cartItemsSubject.next(currentItems);
 
     // Debounced save to localStorage
     this.debouncedSaveCart();
+
+    return addQuantity;
   }
 
   updateQuantity(productId: string, quantity: number): void {
@@ -179,8 +196,10 @@ export class CartService {
         currentItems.splice(itemIndex, 1);
         this.updateTotalsIncrementally(-oldTotal);
       } else {
-        const newTotal = currentItems[itemIndex].price * quantity;
-        currentItems[itemIndex].quantity = quantity;
+        // Never let a line exceed the product's available stock.
+        const cappedQuantity = Math.min(quantity, currentItems[itemIndex].stock);
+        const newTotal = currentItems[itemIndex].price * cappedQuantity;
+        currentItems[itemIndex].quantity = cappedQuantity;
         currentItems[itemIndex].total = newTotal;
         this.updateTotalsIncrementally(newTotal - oldTotal);
       }
@@ -188,6 +207,13 @@ export class CartService {
       this.cartItemsSubject.next(currentItems);
       this.debouncedSaveCart();
     }
+  }
+
+  /** Total quantity of a product currently in the cart, summed across all its variant lines. */
+  getProductQuantityInCart(productId: string): number {
+    return this.cartItemsSubject.value
+      .filter(item => item.productId === productId)
+      .reduce((sum, item) => sum + item.quantity, 0);
   }
 
   removeFromCart(productId: string): void {

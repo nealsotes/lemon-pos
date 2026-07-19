@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { Product } from '../../models/product.model';
 import { CartItem } from '../../../checkout/models/cart-item.model';
@@ -68,6 +69,7 @@ export class ProductGridComponent implements OnInit, OnDestroy {
     private cartService: CartService,
     private cdr: ChangeDetectorRef,
     private dialog: MatDialog,
+    private snackBar: MatSnackBar,
     private breakpointObserver: BreakpointObserver
   ) { }
 
@@ -200,7 +202,12 @@ export class ProductGridComponent implements OnInit, OnDestroy {
   }
 
   addToCart(product: Product): void {
-    if (product.stock <= 0) {
+    // Block early if the product is already at its available-stock limit in the
+    // cart (variants share one stock pool). Avoids opening the variant dialog for
+    // an item that can't be added.
+    const remaining = product.stock - this.cartService.getProductQuantityInCart(product.id);
+    if (remaining <= 0) {
+      this.showStockLimit(product);
       return;
     }
 
@@ -215,7 +222,11 @@ export class ProductGridComponent implements OnInit, OnDestroy {
 
       dialogRef.afterClosed().subscribe((result: TemperatureDialogResult | undefined) => {
         if (result !== undefined && result !== null) {
-          this.cartService.addToCart(product, 1, result.temperature, result.addOns);
+          const added = this.cartService.addToCart(product, 1, result.temperature, result.addOns);
+          if (added <= 0) {
+            this.showStockLimit(product);
+            return;
+          }
           if (!this.isDesktop) {
             this.openCartSidebar();
           }
@@ -223,7 +234,11 @@ export class ProductGridComponent implements OnInit, OnDestroy {
         }
       });
     } else {
-      this.cartService.addToCart(product, 1, null);
+      const added = this.cartService.addToCart(product, 1, null);
+      if (added <= 0) {
+        this.showStockLimit(product);
+        return;
+      }
       if (!this.isDesktop) {
         this.openCartSidebar();
       }
@@ -232,7 +247,17 @@ export class ProductGridComponent implements OnInit, OnDestroy {
   }
 
   private showAddToCartFeedback(product: Product): void {
-    // You can implement a toast notification here
+    // Placeholder for a future success toast.
+  }
+
+  private showStockLimit(product: Product): void {
+    const message = product.stock <= 0
+      ? `${product.name} is out of stock.`
+      : `Only ${product.stock} in stock — ${product.name} is already at its limit in the cart.`;
+    this.snackBar.open(message, 'Dismiss', {
+      duration: 2500,
+      panelClass: ['error-snackbar']
+    });
   }
 
   // Cart sidebar methods
