@@ -170,8 +170,8 @@ frontend/src/app/
 - **Docker**: multi-stage build (SDK:8.0 → aspnet:8.0 runtime, Node 20 for Angular build)
 - **Railway**: deployment via `railway.toml` with RAILPACK builder
 - Frontend build output goes to `backend/.../wwwroot/` for serving from .NET
-- Environment variables: `MYSQL_URL` (or individual `MYSQL_HOST`, etc.), `JWT__KEY`, `JWT__ISSUER`, `JWT__AUDIENCE`, `PORT`
-- PWA enabled with Angular service worker (`ngsw-config.json`)
+- Environment variables: `MYSQL_URL` (or individual `MYSQL_HOST`, etc.), `JWT_SECRET_KEY`, `JWT_ISSUER`, `JWT_AUDIENCE`, `PORT`
+- PWA: service worker configured (`ngsw-config.json`) but currently disabled in `main.ts` (`enabled: false`)
 
 ## Additional Agent Documentation
 

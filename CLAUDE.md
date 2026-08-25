@@ -13,7 +13,7 @@ QuickServe POS — a full-stack point-of-sale system with an Angular 20 frontend
 npm ci                 # Install dependencies (use ci, not install)
 npm start              # Dev server on :4200, proxies /api → localhost:5001
 npm run build          # Production build
-npm test               # Jasmine/Karma tests
+npm test               # Jasmine/Karma — NOT wired up: no *.spec.ts files, deps not in package.json (fails until added)
 npx ng test --include='**/file.spec.ts'           # Single test file
 npx ng test --browsers=ChromeHeadless --watch=false  # Headless (CI)
 npm test -- --code-coverage                        # Coverage report
@@ -42,7 +42,7 @@ docker run -p 8080:8080 quickserve-pos   # Serves frontend + API on :8080
 
 ### Backend — Clean Architecture (.NET 8)
 ```
-API/Controllers/     → REST endpoints (Auth, Products, Transactions, Ingredients, StockMovements, Reports, Settings, Recipes, Print, Health)
+API/Controllers/     → REST endpoints (Auth, Products, Transactions, Ingredients, IngredientLots, StockMovements, Expenses, ExpenseCategories, Reports, Settings, Recipes, Print, Health)
 API/Middleware/       → Exception handling, request logging
 Core/Models/         → Domain models and DTOs
 Core/Interfaces/     → Service and repository contracts (IXxxService, IXxxRepository)
@@ -67,21 +67,23 @@ features/
   auth/              → Login
   pos/               → Product grid, public menu, ingredient selection
   checkout/          → Cart, payment (cash/QR), receipt, printer settings
-  admin/             → Product management, reports, settings
-  inventory/         → Ingredients, stock movements, product recipes
+  admin/             → Product management, reports, settings, expenses
+  inventory/         → Ingredients, ingredient lots, stock movements, product recipes
 shared/
-  components/        → PageHeaderComponent, PwaInstallComponent
+  ui/                → Design-system component library (data-table, kpi-card, nav-rail, toast, top-bar, product-card, etc.)
+  components/        → PwaInstallComponent
   models/            → Shared types (UserRole, etc.)
 ```
 
 All components are **standalone** (no NgModules). State management uses BehaviorSubject-based services, not NgRx. Cart state persists to localStorage.
 
 ### Routing
+Defined in `app-routing.module.ts` as `export const routes` (a plain `Routes` array, not an NgModule).
 - Public: `/login`, `/menu`
-- Auth-protected: `/pos`, `/cart`, `/checkout`, `/receipt`
-- Role-protected (Owner/Admin): `/reports`, `/products`, `/inventory`, `/printer-settings`
+- Auth-protected: `/pos`, `/cart` (checkout & receipt are in-page sidebars, not routes)
+- Role-protected (Owner/Admin): `/reports`, `/products`, `/inventory`, `/expenses`, `/printer-settings`
 - Admin-only: `/settings`
-- Default redirect: `/pos`
+- Default redirect: `/pos` (catch-all `**` also → `/pos`)
 
 ## Code Style
 
@@ -92,7 +94,7 @@ All components are **standalone** (no NgModules). State management uses Behavior
 - Services: `@Injectable({ providedIn: 'root' })`, constructor DI (not `inject()`)
 - State: `BehaviorSubject` exposed via `.asObservable()`
 - Subscription cleanup: `destroy$ = new Subject<void>()` + `takeUntil` + complete in `ngOnDestroy`
-- Error display: `MatSnackBar` with `panelClass: ['error-snackbar']` or `['success-snackbar']`
+- Notifications: inject `ToastService` (`shared/ui/toast`) and call `.success()` / `.error()` — this is the current convention (MatSnackBar survives only in legacy `product-grid`)
 - No `I` prefix on TypeScript interfaces. Use `interface` not `class` for data shapes. Use `enum` for finite sets.
 - Import order: `@angular/core` → `@angular/common,forms,router` → `@angular/material/*` → local models → services → components → shared → RxJS
 
@@ -145,7 +147,14 @@ Local dev uses `appsettings.json` with MySQL on `localhost:3307` (non-standard p
 - **Railway**: `railway.toml` with RAILPACK builder. Frontend build output goes to `backend/.../wwwroot/`
 - Scripts in `scripts/`: PowerShell (`.ps1`) utilities for build, deploy, test, and performance checks
 
+## Automation (Claude Code hooks in `.claude/`)
+
+- **`git commit` runs a full backend `dotnet build` + frontend production `ng build` and blocks the commit (exit 2) if either fails** — expect commits to be slow; make sure both build first.
+- File edits are auto-formatted (`prettier` for ts/html/scss/css, `dotnet format` for cs) — no need to hand-format.
+- New files get a naming-convention warning (kebab-case `.ts`, PascalCase `.cs`).
+
 ## Additional Documentation
 
+- Start non-trivial work with the `lead-developer` skill — it plans and routes to the focused skills in `.claude/skills/` (all auto-surfaced by description)
 - Detailed agent guides in `docs/` (backend, frontend, database, testing, devops, team-lead)
 - Workflow definitions in `.agent/workflows/` (feature, backend, frontend, database, debug, review, testing, etc.)
