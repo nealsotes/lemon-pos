@@ -24,6 +24,11 @@
     <PackageReference Include="CsvHelper" Version="33.0.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Expose internal members (e.g. PrintService.BuildEscPosCommandsAsBytes) to the test project -->
+    <InternalsVisibleTo Include="PosSystem.Tests" />
+  </ItemGroup>
+
   <!-- Note: wwwroot is automatically included by Microsoft.NET.Sdk.Web -->
   <!-- No explicit Content items needed - SDK handles it by default -->
 

@@ -171,7 +171,7 @@ public class PrintService : IPrintService
     /// <summary>
     /// Build ESC/POS commands as byte array (preserves binary sequences like null bytes)
     /// </summary>
-    private byte[] BuildEscPosCommandsAsBytes(ReceiptData receiptData, bool openDrawer)
+    internal byte[] BuildEscPosCommandsAsBytes(ReceiptData receiptData, bool openDrawer)
     {
         var bytes = new List<byte>();
         
