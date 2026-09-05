@@ -84,10 +84,10 @@ import { ThermalPrinterService } from '../../services/thermal-printer.service';
                       </div>
                       <div class="item-addons" *ngIf="hasAddOns(item)">
                         <span *ngFor="let addOn of getAddOns(item)" class="addon-item">
-                          <span *ngIf="addOn.quantity && addOn.quantity > 1">{{ addOn.quantity }}× </span>+ {{ addOn.name }} <span class="addon-price">{{ formatPrice(addOn.price * (addOn.quantity || 1)) }}</span>
+                          <span *ngIf="addOn.quantity && addOn.quantity > 1">{{ addOn.quantity | number:'1.0-0' }}× </span>+ {{ addOn.name }} <span class="addon-price">{{ formatPrice(addOn.price * (addOn.quantity || 1)) }}</span>
                         </span>
                       </div>
-                      <span class="item-meta">{{ formatPrice(getItemBasePrice(item)) }} × {{ item.quantity || item.Quantity || 0 }}</span>
+                      <span class="item-meta">{{ formatPrice(getItemBasePrice(item)) }} × {{ (item.quantity || item.Quantity || 0) | number:'1.0-0' }}</span>
                     </div>
                     <span class="item-total">{{ formatPrice(getItemTotal(item)) }}</span>
                   </div>
@@ -453,7 +453,7 @@ export class ReceiptSidebarComponent implements OnInit, OnChanges {
       return this._cachedFormattedPrices.get(price)!;
     }
 
-    const formatted = `₱${price.toFixed(2)}`;
+    const formatted = `₱${price.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
     // Cache the result (limit cache size to prevent memory leaks)
     if (this._cachedFormattedPrices.size < 100) {

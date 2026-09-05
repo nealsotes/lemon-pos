@@ -250,7 +250,7 @@
                     <div class="ngx-tooltip-label">{{ model.name }}</div>
                     <div class="ngx-tooltip-value">{{ formatCurrency(model.value) }}</div>
                     <div class="ngx-tooltip-meta" *ngIf="model.extra">
-                      {{ model.extra.transactions }} txn{{ model.extra.transactions !== 1 ? 's' : '' }}
+                      {{ model.extra.transactions | number:'1.0-0' }} txn{{ model.extra.transactions !== 1 ? 's' : '' }}
                     </div>
                   </div>
                 </ng-template>
@@ -259,7 +259,7 @@
                     <div class="ngx-tooltip-label">{{ model[0].name }}</div>
                     <div class="ngx-tooltip-value">{{ formatCurrency(model[0].value) }}</div>
                     <div class="ngx-tooltip-meta" *ngIf="model[0].extra">
-                      {{ model[0].extra.transactions }} txn{{ model[0].extra.transactions !== 1 ? 's' : '' }}
+                      {{ model[0].extra.transactions | number:'1.0-0' }} txn{{ model[0].extra.transactions !== 1 ? 's' : '' }}
                     </div>
                   </div>
                 </ng-template>
@@ -283,7 +283,7 @@
           <div class="card" *ngIf="categoryBreakdown.length > 0">
             <div class="card-header">
               <h3 class="card-title">Revenue by Category</h3>
-              <span class="card-badge">{{ categoryBreakdown.length }}</span>
+              <span class="card-badge">{{ categoryBreakdown.length | number:'1.0-0' }}</span>
             </div>
             <div class="card-list">
               <div *ngFor="let cat of categoryBreakdown" class="list-row cat-row">
@@ -310,7 +310,7 @@
               <div *ngFor="let p of paymentBreakdown" class="payment-card">
                 <span class="payment-method">{{ p.method }}</span>
                 <span class="payment-amount">{{ formatCurrency(p.total) }}</span>
-                <span class="payment-pct">{{ getPaymentPercent(p.total) | number:'1.0-0' }}% · {{ p.count }} txn{{ p.count !== 1 ? 's' : '' }}</span>
+                <span class="payment-pct">{{ getPaymentPercent(p.total) | number:'1.0-0' }}% · {{ p.count | number:'1.0-0' }} txn{{ p.count !== 1 ? 's' : '' }}</span>
               </div>
             </div>
           </div>
@@ -321,7 +321,7 @@
           <div class="card">
             <div class="card-header">
               <h3 class="card-title">Top Products</h3>
-              <span class="card-badge">{{ topProducts.length }}</span>
+              <span class="card-badge">{{ topProducts.length | number:'1.0-0' }}</span>
             </div>
             <div class="card-list">
               <div *ngIf="topProducts.length === 0" class="card-empty">No product data</div>
@@ -333,7 +333,7 @@
                 </div>
                 <div class="row-stats">
                   <span class="row-value">{{ formatCurrency(product.sales) }}</span>
-                  <span class="row-meta">{{ product.quantity }} sold</span>
+                  <span class="row-meta">{{ product.quantity | number:'1.0-0' }} sold</span>
                 </div>
               </div>
             </div>
@@ -342,7 +342,7 @@
           <div class="card">
             <div class="card-header">
               <h3 class="card-title">Recent Transactions</h3>
-              <span class="card-badge">{{ recentTransactions.length }}</span>
+              <span class="card-badge">{{ recentTransactions.length | number:'1.0-0' }}</span>
             </div>
             <div class="card-list">
               <div *ngIf="recentTransactions.length === 0" class="card-empty">No transactions</div>
@@ -354,7 +354,7 @@
                 </div>
                 <div class="row-stats">
                   <span class="row-value">{{ formatCurrency(transaction.total) }}</span>
-                  <span class="row-meta">{{ transaction.items.length }} items</span>
+                  <span class="row-meta">{{ transaction.items.length | number:'1.0-0' }} items</span>
                 </div>
                 <span class="status-dot" [class]="'dot-' + transaction.status"></span>
               </div>
@@ -401,7 +401,7 @@
               </div>
               <div class="lb-data">
                 <span class="lb-revenue">{{ formatCurrency(product.sales) }}</span>
-                <span class="lb-qty">{{ product.quantity }} sold</span>
+                <span class="lb-qty">{{ product.quantity | number:'1.0-0' }} sold</span>
               </div>
             </div>
           </div>
@@ -561,11 +561,11 @@
 
             <div class="acct-section">
               <div class="acct-section-label">Transaction Breakdown</div>
-              <div class="acct-row"><span>Total Transactions</span><span>{{ accountantSummary.transactionCount }}</span></div>
+              <div class="acct-row"><span>Total Transactions</span><span>{{ accountantSummary.transactionCount | number:'1.0-0' }}</span></div>
               <div class="acct-row"><span>Average Ticket <span class="tooltip-icon" [title]="METRIC_TOOLTIPS['averageTicket']">&#9432;</span></span><span>{{ formatCurrency(accountantSummary.averageTicket) }}</span></div>
               <div class="acct-row" *ngFor="let pm of accountantSummary.paymentMethodBreakdown">
                 <span>{{ getPaymentMethodDisplay(pm.method) }} Payments</span>
-                <span>{{ pm.count }} ({{ formatCurrency(pm.total) }})</span>
+                <span>{{ pm.count | number:'1.0-0' }} ({{ formatCurrency(pm.total) }})</span>
               </div>
             </div>
 
@@ -604,7 +604,7 @@
             <div class="collapsible-summary" *ngIf="inventoryData">
               <span class="summary-stat">{{ formatCurrency(inventoryData.totalValue) }} value</span>
               <span class="summary-stat-sep">&middot;</span>
-              <span class="summary-stat" [class.cogs]="inventoryData.lowStockCount > 0">{{ inventoryData.lowStockCount }} low stock</span>
+              <span class="summary-stat" [class.cogs]="inventoryData.lowStockCount > 0">{{ inventoryData.lowStockCount | number:'1.0-0' }} low stock</span>
             </div>
           </div>
           <div class="collapsible-body" *ngIf="inventoryExpanded['valuation']">
@@ -626,7 +626,7 @@
                 </div>
                 <div class="pnl-kpi">
                   <span class="pnl-kpi-label">Low Stock <span class="tooltip-icon" [title]="METRIC_TOOLTIPS['lowStock']">&#9432;</span></span>
-                  <span class="pnl-kpi-value" [class.cogs]="inventoryData.lowStockCount > 0">{{ inventoryData.lowStockCount }}</span>
+                  <span class="pnl-kpi-value" [class.cogs]="inventoryData.lowStockCount > 0">{{ inventoryData.lowStockCount | number:'1.0-0' }}</span>
                 </div>
               </div>
               <div class="inv-two-col">
@@ -647,7 +647,7 @@
                   <div class="inv-sub-title">Stock Movements</div>
                   <div class="inv-table-head"><span>Type</span><span>Count</span><span>Cost</span></div>
                   <div class="inv-table-row" *ngFor="let mov of inventoryData.movementSummary">
-                    <span>{{ mov.type }}</span><span>{{ mov.count }}</span><span>{{ formatCurrency(mov.totalCost) }}</span>
+                    <span>{{ mov.type }}</span><span>{{ mov.count | number:'1.0-0' }}</span><span>{{ formatCurrency(mov.totalCost) }}</span>
                   </div>
                 </div>
               </div>
@@ -720,7 +720,7 @@
               <span class="collapsible-desc">Spend by supplier and cost comparison</span>
             </div>
             <div class="collapsible-summary" *ngIf="supplierData?.supplierSummary?.length">
-              <span class="summary-stat">{{ supplierData.supplierSummary.length }} supplier{{ supplierData.supplierSummary.length !== 1 ? 's' : '' }}</span>
+              <span class="summary-stat">{{ supplierData.supplierSummary.length | number:'1.0-0' }} supplier{{ supplierData.supplierSummary.length !== 1 ? 's' : '' }}</span>
             </div>
           </div>
           <div class="collapsible-body" *ngIf="inventoryExpanded['suppliers']">
@@ -730,7 +730,7 @@
                 <div class="inv-table-head"><span>Supplier</span><span>Purchases</span><span>Total Spent</span><span>Ingredients</span><span>Avg/Purchase</span></div>
                 <div class="inv-table-row" *ngFor="let s of supplierData.supplierSummary">
                   <span class="inv-name">{{ s.supplier }}</span>
-                  <span>{{ s.purchaseCount }}</span>
+                  <span>{{ s.purchaseCount | number:'1.0-0' }}</span>
                   <span class="inv-name">{{ formatCurrency(s.totalSpent) }}</span>
                   <span class="inv-ingredients-list">{{ s.ingredients?.join(', ') }}</span>
                   <span>{{ formatCurrency(s.avgCostPerPurchase) }}</span>
@@ -784,7 +784,7 @@
                 </div>
                 <div class="pnl-kpi">
                   <span class="pnl-kpi-label">Ingredients Used</span>
-                  <span class="pnl-kpi-value">{{ consumptionData.ingredientsUsedCount }}</span>
+                  <span class="pnl-kpi-value">{{ consumptionData.ingredientsUsedCount | number:'1.0-0' }}</span>
                 </div>
               </div>
               <div class="inv-sub-panel" *ngIf="consumptionData.items?.length > 0">
@@ -844,11 +844,11 @@
               </span>
               <div class="item-addons" *ngIf="hasAddOns(item)">
                 <span *ngFor="let addOn of getAddOns(item)" class="addon-item">
-                  <span *ngIf="addOn.quantity && addOn.quantity > 1">{{ addOn.quantity }}x </span>+ {{ addOn.name }} ({{ formatPrice(addOn.price * (addOn.quantity || 1)) }})
+                  <span *ngIf="addOn.quantity && addOn.quantity > 1">{{ addOn.quantity | number:'1.0-0' }}x </span>+ {{ addOn.name }} ({{ formatPrice(addOn.price * (addOn.quantity || 1)) }})
                 </span>
               </div>
             </div>
-            <span class="item-qty">{{ item.quantity }}</span>
+            <span class="item-qty">{{ item.quantity | number:'1.0-0' }}</span>
             <span class="item-price">{{ formatPrice(item.price) }}</span>
             <span class="item-total">{{ formatPrice(item.price * item.quantity) }}</span>
           </div>

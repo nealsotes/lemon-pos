@@ -418,7 +418,7 @@ export class ProductManagementComponent implements OnInit, OnDestroy {
 
   formatPrice(price: number): string {
     if (price === undefined || price === null || isNaN(price)) return '₱0.00';
-    return `₱${price.toFixed(2)}`;
+    return `₱${price.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
 
   private isBeverageCategory(category: string | null | undefined): boolean {

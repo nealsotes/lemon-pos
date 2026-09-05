@@ -17,7 +17,7 @@ import { CommonModule } from '@angular/common';
           <path d="M5 12h14"/>
         </svg>
       </button>
-      <span class="stepper-value">{{ value }}</span>
+      <span class="stepper-value">{{ value | number:'1.0-0' }}</span>
       <button
         type="button"
         class="stepper-btn"

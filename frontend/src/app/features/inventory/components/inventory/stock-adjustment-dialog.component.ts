@@ -93,7 +93,7 @@ interface MovementTypeOption {
             <span *ngIf="!isOutgoing">{{ ingredient.quantity | number:(isPiece ? '1.0-0' : '1.2-2') }} + {{ quantity | number:(isPiece ? '1.0-0' : '1.2-2') }} = <strong>{{ (ingredient.quantity + quantity) | number:(isPiece ? '1.0-0' : '1.2-2') }}</strong> {{ ingredient.unit }}</span>
           </div>
           <div class="error-msg" *ngIf="isOutgoing && quantity > ingredient.quantity">
-            Cannot exceed current stock ({{ ingredient.quantity }} {{ ingredient.unit }})
+            Cannot exceed current stock ({{ ingredient.quantity | number:(isPiece ? '1.0-0' : '1.2-2') }} {{ ingredient.unit }})
           </div>
         </div>
 

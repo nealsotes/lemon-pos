@@ -303,7 +303,7 @@ import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
             <div class="summary-items">
               <div *ngFor="let item of cartItems; trackBy: trackByItem" class="summary-item">
                 <div class="summary-item__info">
-                  <span class="summary-item__qty">{{ item.quantity }}×</span>
+                  <span class="summary-item__qty">{{ item.quantity | number:'1.0-0' }}×</span>
                   <span class="summary-item__name">{{ item.name }}</span>
                   <span *ngIf="item.temperature" class="summary-item__temp">
                     <svg *ngIf="item.temperature === 'hot'" style="color:var(--danger)" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c3 3.5 5 5.8 5 8.5a5 5 0 0 1-10 0C7 9 8.5 7 10 5c.3 1.5 1 2.5 2 3 .3-1.8.3-3.4 0-5z"/></svg>
@@ -693,7 +693,7 @@ export class CheckoutSidebarComponent implements OnInit {
     // Validate discount amount
     if (this.isDiscountEnabled && this.manualDiscountAmount > this.subtotalBeforeDiscount) {
       this.showDiscountAmountError = true;
-      issues.push(`Discount can't exceed the subtotal of ₱${this.subtotalBeforeDiscount.toFixed(2)}.`);
+      issues.push(`Discount can't exceed the subtotal of ₱${this.subtotalBeforeDiscount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.`);
     }
 
     // Validate payment method
@@ -711,7 +711,7 @@ export class CheckoutSidebarComponent implements OnInit {
     // Validate cash amount
     if (this.paymentMethod === 'cash' && this.amountReceived < this.total) {
       this.showAmountError = true;
-      const short = (this.total - this.amountReceived).toFixed(2);
+      const short = (this.total - this.amountReceived).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       issues.push(`Cash received is short by ₱${short}.`);
     }
 

@@ -7,7 +7,7 @@ import { CommonModule } from '@angular/common';
   imports: [CommonModule],
   template: `
     <div class="stock-indicator">
-      <span class="stock-num" [class]="'stock-' + status">{{ stock }}</span>
+      <span class="stock-num" [class]="'stock-' + status">{{ stock | number:'1.0-0' }}</span>
       <div class="stock-bar">
         <div class="stock-bar-fill" [class]="status" [style.width.%]="percentage"></div>
       </div>

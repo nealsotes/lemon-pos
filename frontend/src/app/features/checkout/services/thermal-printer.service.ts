@@ -1369,7 +1369,7 @@ export class ThermalPrinterService {
     // Use "Php" instead of ₱ symbol for thermal printers
     // Most ESC/POS printers don't support the peso symbol (₱) in their character set
     // This ensures reliable printing across all thermal printer models
-    return `Php ${price.toFixed(2)}`;
+    return `Php ${price.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
 
   /**

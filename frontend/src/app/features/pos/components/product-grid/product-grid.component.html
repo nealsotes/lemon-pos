@@ -4,7 +4,7 @@
     <!-- Top Bar -->
     <app-top-bar title="Point of Sale">
       <span *ngIf="!isLoading && filteredProducts.length > 0" class="ed-pill ed-pill--accent">
-        {{ filteredProducts.length }} {{ filteredProducts.length === 1 ? 'product' : 'products' }}
+        {{ filteredProducts.length | number:'1.0-0' }} {{ filteredProducts.length === 1 ? 'product' : 'products' }}
       </span>
       <button class="header-icon-btn" (click)="refreshData()" title="Refresh">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -16,7 +16,7 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4H6zm0 0h12M9 10a3 3 0 006 0"/>
         </svg>
-        <span class="cart-badge" *ngIf="cartItemCount > 0">{{ cartItemCount }}</span>
+        <span class="cart-badge" *ngIf="cartItemCount > 0">{{ cartItemCount | number:'1.0-0' }}</span>
       </button>
     </app-top-bar>
 
@@ -59,7 +59,7 @@
               <path d="M21 15l-5-5L5 21"/>
             </svg>
           </div>
-          <span class="ed-pill ed-pill--warning stock-badge" *ngIf="isLowStock(product) && product.stock > 0">Low &middot; {{ product.stock }}</span>
+          <span class="ed-pill ed-pill--warning stock-badge" *ngIf="isLowStock(product) && product.stock > 0">Low &middot; {{ product.stock | number:'1.0-0' }}</span>
           <span class="ed-pill ed-pill--danger stock-badge" *ngIf="product.stock <= 0">Sold out</span>
         </div>
         <div class="card-body">
@@ -67,7 +67,7 @@
           <span class="card-category">{{ product.category }}</span>
           <div class="card-foot">
             <span class="card-price">&#x20B1;{{ product.price | number:'1.2-2' }}</span>
-            <span class="card-stock">{{ product.stock }} left</span>
+            <span class="card-stock">{{ product.stock | number:'1.0-0' }} left</span>
           </div>
         </div>
       </article>

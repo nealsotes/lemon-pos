@@ -18,7 +18,7 @@ export interface BulkEditDialogData {
       <div class="dialog-header">
         <div>
           <h2>Bulk edit</h2>
-          <p class="dialog-subtitle">Applying to {{ data.productCount }} product{{ data.productCount === 1 ? '' : 's' }}</p>
+          <p class="dialog-subtitle">Applying to {{ data.productCount | number:'1.0-0' }} product{{ data.productCount === 1 ? '' : 's' }}</p>
         </div>
         <button class="dialog-close-btn" (click)="onClose()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
@@ -142,7 +142,7 @@ export interface BulkEditDialogData {
             <div class="footer-actions">
               <button type="button" class="btn btn-ghost btn-sm" (click)="onClose()">Cancel</button>
               <button type="submit" class="btn btn-primary btn-sm" [disabled]="!canApply()">
-                Apply to {{ data.productCount }}
+                Apply to {{ data.productCount | number:'1.0-0' }}
               </button>
             </div>
           </div>

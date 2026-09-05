@@ -17,7 +17,7 @@
         <div *ngIf="openOrders.length > 0" class="open-orders">
             <div class="open-orders-header">
                 <span class="open-orders-label">On hold</span>
-                <span class="open-orders-count">{{ openOrders.length }}</span>
+                <span class="open-orders-count">{{ openOrders.length | number:'1.0-0' }}</span>
             </div>
             <div class="open-orders-list">
                 <button *ngFor="let order of openOrders"
@@ -26,7 +26,7 @@
                         [class.is-active]="order.id === activeOpenOrderId"
                         (click)="loadOpenOrder(order)">
                     <span class="open-order-chip__name">{{ order.name || 'Untitled' }}</span>
-                    <span class="open-order-chip__count">{{ order.items.length }}</span>
+                    <span class="open-order-chip__count">{{ order.items.length | number:'1.0-0' }}</span>
                     <span class="open-order-chip__action edit" (click)="openRenameModal(order, $event)" aria-label="Rename held order" title="Rename">
                         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -81,7 +81,7 @@
                     </div>
                     <div class="item-addons" *ngIf="item.addOns && item.addOns.length > 0">
                         <span *ngFor="let addOn of item.addOns" class="addon-badge">
-                            + <span *ngIf="addOn.quantity && addOn.quantity > 1">{{ addOn.quantity }}× </span>{{ addOn.name }}
+                            + <span *ngIf="addOn.quantity && addOn.quantity > 1">{{ addOn.quantity | number:'1.0-0' }}× </span>{{ addOn.name }}
                         </span>
                     </div>
 
@@ -94,7 +94,7 @@
                                         stroke-linejoin="round" />
                                 </svg>
                             </button>
-                            <span class="quantity-display">{{ item.quantity }}</span>
+                            <span class="quantity-display">{{ item.quantity | number:'1.0-0' }}</span>
                             <button class="quantity-btn" (click)="increaseQuantity(item)"
                                 [disabled]="item.quantity >= item.stock" aria-label="Increase">
                                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -172,12 +172,12 @@
                 Give this order a label so you can pick it back up later — a table number, customer name, or anything you'll recognize.
             </p>
             <p class="rename-modal__context" *ngIf="ticketModalMode === 'rename' && ticketModalOrder">
-                {{ ticketModalOrder.items.length }} {{ ticketModalOrder.items.length === 1 ? 'item' : 'items' }}
+                {{ ticketModalOrder.items.length | number:'1.0-0' }} {{ ticketModalOrder.items.length === 1 ? 'item' : 'items' }}
                 <span class="rename-modal__context-dot">·</span>
                 {{ ticketModalOrder.createdAt | date:'shortTime' }}
             </p>
             <p class="rename-modal__context" *ngIf="ticketModalMode === 'park'">
-                {{ totalQuantity }} {{ totalQuantity === 1 ? 'item' : 'items' }}
+                {{ totalQuantity | number:'1.0-0' }} {{ totalQuantity === 1 ? 'item' : 'items' }}
                 <span class="rename-modal__context-dot">·</span>
                 ₱{{ total | number:'1.2-2' }}
             </p>

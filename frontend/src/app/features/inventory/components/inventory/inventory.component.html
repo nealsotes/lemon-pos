@@ -20,7 +20,7 @@
           <path d="M12 9v4M12 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         {{ isDownloadingLowStock ? 'Preparing...' : 'Low-Stock Report' }}
-        <span class="tab-count" *ngIf="!isDownloadingLowStock && getLowStockCount() > 0">{{ getLowStockCount() }}</span>
+        <span class="tab-count" *ngIf="!isDownloadingLowStock && getLowStockCount() > 0">{{ getLowStockCount() | number:'1.0-0' }}</span>
       </button>
       <button type="button" class="btn btn-ghost btn-sm" (click)="loadIngredients()" [disabled]="isLoading">
         <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -41,7 +41,7 @@
         <path d="M16 10a4 4 0 01-8 0"/>
       </svg>
       Ingredients
-      <span class="tab-count" *ngIf="activeTab === 'ingredients'">{{ ingredients.length }}</span>
+      <span class="tab-count" *ngIf="activeTab === 'ingredients'">{{ ingredients.length | number:'1.0-0' }}</span>
     </button>
     <button class="tab" [class.active]="activeTab === 'recipes'" (click)="activeTab = 'recipes'">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

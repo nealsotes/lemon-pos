@@ -88,7 +88,7 @@ export interface TemperatureDialogResult {
                   <path d="M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
               </button>
-              <span class="quantity-display">{{ getAddOnQuantity(addOn.name) }}</span>
+              <span class="quantity-display">{{ getAddOnQuantity(addOn.name) | number:'1.0-0' }}</span>
               <button 
                 class="quantity-btn increment-btn"
                 [disabled]="!canSelectAddOns()"

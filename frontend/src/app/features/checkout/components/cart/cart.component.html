@@ -1,7 +1,7 @@
 <div class="cart-container ed-backdrop" data-tour="cart">
   <!-- Top Bar -->
   <app-top-bar title="Cart">
-    <span *ngIf="cartItems.length > 0" class="ed-pill ed-pill--accent">{{ cartItems.length }} {{ cartItems.length === 1 ? 'item' : 'items' }}</span>
+    <span *ngIf="cartItems.length > 0" class="ed-pill ed-pill--accent">{{ cartItems.length | number:'1.0-0' }} {{ cartItems.length === 1 ? 'item' : 'items' }}</span>
     <span *ngIf="isOpenOrderActive" class="ed-pill ed-pill--warning">
       Resumed<span *ngIf="activeOpenOrderName">: {{ activeOpenOrderName }}</span>
     </span>
@@ -93,7 +93,7 @@
                     <path d="M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 </button>
-                <span class="quantity-display">{{ item.quantity }}</span>
+                <span class="quantity-display">{{ item.quantity | number:'1.0-0' }}</span>
                 <button
                   class="quantity-btn"
                   (click)="increaseQuantity(item)"
@@ -131,7 +131,7 @@
             <div class="open-order-info">
               <div class="open-order-name">{{ order.name }}</div>
               <div class="open-order-meta">
-                {{ order.items.length }} {{ order.items.length === 1 ? 'item' : 'items' }} · {{ order.createdAt | date:'short' }}
+                {{ order.items.length | number:'1.0-0' }} {{ order.items.length === 1 ? 'item' : 'items' }} · {{ order.createdAt | date:'short' }}
               </div>
             </div>
             <div class="open-order-actions">
@@ -149,7 +149,7 @@
 
       <div class="ed-receipt__body">
         <div class="ed-total-block">
-          <span class="ed-total-block__label">Total · {{ totalQuantity }} {{ totalQuantity === 1 ? 'item' : 'items' }}</span>
+          <span class="ed-total-block__label">Total · {{ totalQuantity | number:'1.0-0' }} {{ totalQuantity === 1 ? 'item' : 'items' }}</span>
           <div class="ed-total-block__display">
             <span class="ed-total-block__currency">₱</span>
             <span class="ed-total-block__amount">{{ total | number:'1.2-2' }}</span>

@@ -904,7 +904,12 @@ export class ReportsComponent implements OnInit, OnDestroy {
 
   formatCurrency(amount: number): string {
     if (!amount || isNaN(amount)) return '₱0.00';
-    return `₱${amount.toFixed(2)}`;
+    return `₱${amount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+
+  formatCount(count: number): string {
+    if (count == null || isNaN(count)) return '0';
+    return count.toLocaleString('en-PH');
   }
 
   formatDate(dateString: string): string {
@@ -1087,7 +1092,7 @@ export class ReportsComponent implements OnInit, OnDestroy {
 
       // Transaction count
       if (pc.transactionsChangePercent > 5) {
-        insights.push({ level: 'positive', icon: '\ud83d\udcc8', headline: `Transaction volume up ${pc.transactionsChangePercent.toFixed(1)}%`, detail: `${pc.currentTransactions} orders vs ${pc.previousTransactions} previously` });
+        insights.push({ level: 'positive', icon: '\ud83d\udcc8', headline: `Transaction volume up ${pc.transactionsChangePercent.toFixed(1)}%`, detail: `${this.formatCount(pc.currentTransactions)} orders vs ${this.formatCount(pc.previousTransactions)} previously` });
       }
     }
 
@@ -1107,9 +1112,9 @@ export class ReportsComponent implements OnInit, OnDestroy {
       }
       // Low stock
       if (inv.lowStockCount > 3) {
-        insights.push({ level: 'alert', icon: '\ud83d\udce6', headline: `${inv.lowStockCount} ingredients are low on stock`, detail: 'Check inventory levels and reorder soon' });
+        insights.push({ level: 'alert', icon: '\ud83d\udce6', headline: `${this.formatCount(inv.lowStockCount)} ingredients are low on stock`, detail: 'Check inventory levels and reorder soon' });
       } else if (inv.lowStockCount > 0) {
-        insights.push({ level: 'info', icon: '\u2139\ufe0f', headline: `${inv.lowStockCount} ingredient${inv.lowStockCount > 1 ? 's' : ''} running low`, detail: 'Monitor stock levels' });
+        insights.push({ level: 'info', icon: '\u2139\ufe0f', headline: `${this.formatCount(inv.lowStockCount)} ingredient${inv.lowStockCount > 1 ? 's' : ''} running low`, detail: 'Monitor stock levels' });
       }
     }
 

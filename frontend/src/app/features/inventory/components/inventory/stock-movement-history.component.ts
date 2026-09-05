@@ -42,7 +42,7 @@ interface MovementTypeFilter {
             <span class="header-sub">
               {{ ingredient?.quantity | number:(isPiece ? '1.0-0' : '1.2-2') }} {{ ingredient?.unit }} on hand
               <span class="header-dot">·</span>
-              {{ movements.length }} movement{{ movements.length !== 1 ? 's' : '' }}
+              {{ movements.length | number:'1.0-0' }} movement{{ movements.length !== 1 ? 's' : '' }}
             </span>
           </div>
         </div>

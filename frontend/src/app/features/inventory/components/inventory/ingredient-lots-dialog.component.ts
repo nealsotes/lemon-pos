@@ -28,7 +28,7 @@ import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/l
             <span class="header-sub">
               {{ ingredient?.quantity | number:(isPiece ? '1.0-0' : '1.2-2') }} {{ ingredient?.unit }} on hand
               <span class="header-dot">&middot;</span>
-              {{ lots.length }} active lot{{ lots.length !== 1 ? 's' : '' }}
+              {{ lots.length | number:'1.0-0' }} active lot{{ lots.length !== 1 ? 's' : '' }}
             </span>
           </div>
         </div>

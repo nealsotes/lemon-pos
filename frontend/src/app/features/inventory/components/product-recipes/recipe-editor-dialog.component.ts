@@ -139,7 +139,7 @@ function smartDisplayUnit(baseUnit: string, baseQuantity: number): string {
             <div class="recipe-section-header">
               <span class="recipe-section-label">
                 Recipe Ingredients
-                <app-badge *ngIf="workingLines.length > 0" variant="neutral">{{ workingLines.length }}</app-badge>
+                <app-badge *ngIf="workingLines.length > 0" variant="neutral">{{ workingLines.length | number:'1.0-0' }}</app-badge>
               </span>
               <div class="save-indicator">
                 <span class="unsaved-dot" *ngIf="hasChanges" title="Unsaved changes"></span>

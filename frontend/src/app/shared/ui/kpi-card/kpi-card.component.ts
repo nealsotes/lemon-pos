@@ -8,7 +8,7 @@ import { CommonModule } from '@angular/common';
   template: `
     <div class="kpi-card">
       <span class="kpi-label">{{ label }}</span>
-      <span class="kpi-value">{{ value }}</span>
+      <span class="kpi-value">{{ displayValue }}</span>
       <span
         *ngIf="trend"
         class="kpi-trend"
@@ -71,4 +71,13 @@ export class KpiCardComponent {
   @Input() value: string | number = '';
   @Input() trend = '';
   @Input() trendDirection: 'up' | 'down' | 'neutral' = 'neutral';
+
+  /**
+   * Numeric values are grouped with thousands separators (1500 -> "1,500").
+   * Strings pass through untouched — callers that pre-format (e.g. currency
+   * helpers returning "₱1,234.50") already include their own grouping.
+   */
+  get displayValue(): string {
+    return typeof this.value === 'number' ? this.value.toLocaleString('en-PH') : this.value;
+  }
 }

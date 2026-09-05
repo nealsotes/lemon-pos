@@ -82,15 +82,15 @@
             <div *ngIf="hasHotPrice(product) || hasColdPrice(product)" class="price-options">
               <span *ngIf="hasHotPrice(product)" class="price-tag">
                 <span class="price-label">Hot:</span>
-                <span class="price-value">₱{{ product.hotPrice?.toFixed(2) }}</span>
+                <span class="price-value">₱{{ product.hotPrice | number:'1.2-2' }}</span>
               </span>
               <span *ngIf="hasColdPrice(product)" class="price-tag">
                 <span class="price-label">Cold:</span>
-                <span class="price-value">₱{{ product.coldPrice?.toFixed(2) }}</span>
+                <span class="price-value">₱{{ product.coldPrice | number:'1.2-2' }}</span>
               </span>
             </div>
             <div *ngIf="!hasHotPrice(product) && !hasColdPrice(product)" class="price-tag">
-              <span class="price-value">₱{{ getPrice(product).toFixed(2) }}</span>
+              <span class="price-value">₱{{ getPrice(product) | number:'1.2-2' }}</span>
             </div>
           </div>
         </div>

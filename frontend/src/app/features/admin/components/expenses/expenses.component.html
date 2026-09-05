@@ -65,7 +65,7 @@
     <div class="section-card">
       <div class="section-header">
         <h3 class="section-title">All Expenses</h3>
-        <span class="section-badge">{{ allExpenses.length }}</span>
+        <span class="section-badge">{{ allExpenses.length | number:'1.0-0' }}</span>
       </div>
       <app-data-table
         [columns]="tableColumns"
