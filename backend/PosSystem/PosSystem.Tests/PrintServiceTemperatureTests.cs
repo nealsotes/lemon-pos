@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -18,6 +19,9 @@ namespace PosSystem.Tests;
 /// </summary>
 public class PrintServiceTemperatureTests
 {
+    /// <summary>Thermal paper width these receipts are formatted for.</summary>
+    private const int ColumnWidth = 32;
+
     private static string RenderReceipt(params ReceiptItem[] items)
     {
         var service = new PrintService(Mock.Of<IConfiguration>(), Mock.Of<ILogger<PrintService>>());
@@ -67,6 +71,60 @@ public class PrintServiceTemperatureTests
 
         Assert.Equal(0, Count(text, "(Iced)"));
         Assert.Equal(0, Count(text, "(hot)"));
+    }
+
+    [Fact]
+    public void EachItemStartsOnItsOwnLine()
+    {
+        // Regression guard for the reported bug: FormatItemLineDetailed used to return a line
+        // with no trailing newline, so consecutive items concatenated into one long string and
+        // the printer hard-wrapped mid-item. On paper that puts the first item's "(Iced)" on the
+        // second item's physical line.
+        var text = RenderReceipt(
+            new ReceiptItem { Name = "Caramel Macchiato", Quantity = 1, Price = 150m, Temperature = "cold" },
+            new ReceiptItem { Name = "Caramel Macchiato", Quantity = 1, Price = 150m, Temperature = null });
+
+        var itemLines = PrintableLines(text).Where(l => l.Contains("Caramel")).ToList();
+
+        Assert.Equal(2, itemLines.Count);
+        Assert.Single(itemLines.Where(l => l.Contains("(Iced)")));
+    }
+
+    [Fact]
+    public void RealisticProductNames_DoNotOverflowThePaperWidth()
+    {
+        // The other tests use "Latte" (5 chars). Real menu items are much longer, and the
+        // assembled line is name + temperature label + " xN" + price — which must still fit
+        // the paper, or the overflow wraps onto the following line.
+        var text = RenderReceipt(
+            new ReceiptItem { Name = "Caramel Macchiato", Quantity = 1, Price = 150m, Temperature = "cold" },
+            new ReceiptItem { Name = "Caramel Macchiato", Quantity = 1, Price = 150m, Temperature = null });
+
+        var overflowing = PrintableLines(text).Where(l => l.Length > ColumnWidth).ToList();
+
+        Assert.True(
+            overflowing.Count == 0,
+            $"Lines exceeding {ColumnWidth} columns will wrap on paper:{Environment.NewLine}" +
+            string.Join(Environment.NewLine, overflowing.Select(l => $"  [{l.Length}] {l}")));
+    }
+
+    /// <summary>
+    /// Split the ESC/POS byte stream into printable text lines. ESC/GS command sequences are
+    /// removed first: their parameter bytes ('!', 'a', 'V', …) are printable ASCII, so filtering
+    /// on char.IsControl alone would leave them behind and overstate each line's width.
+    /// </summary>
+    private static IEnumerable<string> PrintableLines(string escPos)
+    {
+        const string Esc = "";
+        const string Gs = "";
+
+        var stripped = Regex.Replace(escPos, Esc + "(?:[!adR].|@|p.{3})", string.Empty, RegexOptions.Singleline);
+        stripped = Regex.Replace(stripped, Gs + "(?:V.{1,2}|[!B].)", string.Empty, RegexOptions.Singleline);
+
+        return stripped
+            .Split('\n')
+            .Select(line => new string(line.Where(c => !char.IsControl(c)).ToArray()))
+            .Where(line => line.Length > 0);
     }
 
     private static int Count(string haystack, string needle)

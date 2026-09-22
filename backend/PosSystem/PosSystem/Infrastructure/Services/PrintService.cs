@@ -6,6 +6,9 @@ namespace PosSystem.Infrastructure.Services;
 
 public class PrintService : IPrintService
 {
+    /// <summary>Character width of the thermal paper these receipts are formatted for.</summary>
+    private const int LineWidth = 32;
+
     private readonly IConfiguration _configuration;
     private readonly ILogger<PrintService> _logger;
 
@@ -230,7 +233,8 @@ public class PrintService : IPrintService
         
         // Items header
         bytes.Add(0x1B); bytes.Add((byte)'!'); bytes.Add(0x08); // Bold
-        AddString(bytes, "Item                    Qty    Amount\n");
+        // Must fit the 32-column paper width or it wraps onto a second line
+        AddString(bytes, "Item             Qty      Amount\n");
         bytes.Add(0x1B); bytes.Add((byte)'!'); bytes.Add(0x00); // Reset to normal size (ensure normal font for items and add-ons)
         
         // Items list
@@ -460,11 +464,6 @@ public class PrintService : IPrintService
         string? temperature = null,
         List<ReceiptAddOn>? addOns = null)
     {
-        const int maxNameLength = 18;
-        var truncatedName = name.Length > maxNameLength 
-            ? name.Substring(0, maxNameLength - 2) + ".." 
-            : name;
-        
         // Add temperature indicator
         var tempIndicator = string.Empty;
         if (temperature == "hot")
@@ -475,16 +474,27 @@ public class PrintService : IPrintService
         {
             tempIndicator = " (Iced)";
         }
-        
+
+        // The name budget is whatever the paper has left after the temperature label, the
+        // quantity and the price — a fixed cap would let " (Iced)" push the line past the
+        // column width, and the overflow wraps onto the next item's line.
+        var qtyPart = $" x{quantity}";
+        var totalPriceStr = FormatPrice(total);
+        var maxNameLength = Math.Max(1, LineWidth - totalPriceStr.Length - tempIndicator.Length - qtyPart.Length - 1);
+        var truncatedName = name.Length > maxNameLength
+            ? name.Substring(0, Math.Max(1, maxNameLength - 2)) + ".."
+            : name;
+
         // Format: "Item Name (hot/Iced) x2     Php 100.00"
-        var nameQtyPart = $"{truncatedName}{tempIndicator} x{quantity}";
-        
+        var nameQtyPart = $"{truncatedName}{tempIndicator}{qtyPart}";
+
         // Format add-ons - display each on its own line for better readability
         var addOnsText = string.Empty;
         if (addOns != null && addOns.Count > 0)
         {
-            // Format each add-on on a separate indented line
-            addOnsText = "\n";
+            // Format each add-on on a separate indented line. Each line supplies its own
+            // trailing newline, and the item line below now terminates itself.
+            addOnsText = string.Empty;
             foreach (var addOn in addOns)
             {
                 var addOnLine = $"  + {addOn.Name}";
@@ -494,10 +504,13 @@ public class PrintService : IPrintService
             }
         }
         
-        var priceStr = FormatPrice(total);
-        var spacing = Math.Max(1, 32 - nameQtyPart.Length - priceStr.Length);
+        var priceStr = totalPriceStr;
+        var spacing = Math.Max(1, LineWidth - nameQtyPart.Length - priceStr.Length);
         
-        return $"{nameQtyPart}{new string(' ', spacing)}{priceStr}{addOnsText}";
+        // The trailing newline is required: without it every item concatenates onto the
+        // previous one and the printer hard-wraps mid-item at its column width, which makes
+        // one item's temperature label appear on the next item's physical line.
+        return $"{nameQtyPart}{new string(' ', spacing)}{priceStr}\n{addOnsText}";
     }
 
     private string FormatTotalLine(string label, decimal amount)
