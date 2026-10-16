@@ -1,0 +1,5 @@
+# Generated / local-only artefacts. Regenerate with `node seed-gen.js seed.sql`.
+seed.sql
+*.log
+chrome-prof*/
+chrome-profile/

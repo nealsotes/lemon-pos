@@ -1,0 +1,162 @@
+﻿{
+    "sequentialTotalMs":  32903.2,
+    "range":  {
+                  "days":  30,
+                  "end":  "2026-10-17",
+                  "start":  "2026-09-18"
+              },
+    "totalPayloadKb":  9333.8,
+    "runs":  3,
+    "results":  [
+                    {
+                        "endpoint":  "sales (daily report)",
+                        "path":  "/api/reports/sales?startDate=2026-09-18\u0026endDate=2026-10-17",
+                        "status":  200,
+                        "runs":  3,
+                        "min_ms":  1004.2,
+                        "median_ms":  1387.7,
+                        "max_ms":  2569.9,
+                        "kb":  2.4
+                    },
+                    {
+                        "endpoint":  "top-products",
+                        "path":  "/api/reports/top-products?startDate=2026-09-18\u0026endDate=2026-10-17\u0026count=10",
+                        "status":  200,
+                        "runs":  3,
+                        "min_ms":  568.6,
+                        "median_ms":  678.4,
+                        "max_ms":  1120.6,
+                        "kb":  0.9
+                    },
+                    {
+                        "endpoint":  "sales (trend 7d)",
+                        "path":  "/api/reports/sales?startDate=2026-10-11\u0026endDate=2026-10-17",
+                        "status":  200,
+                        "runs":  3,
+                        "min_ms":  213.9,
+                        "median_ms":  221.1,
+                        "max_ms":  277.6,
+                        "kb":  0.6
+                    },
+                    {
+                        "endpoint":  "all-time-sales",
+                        "path":  "/api/reports/all-time-sales",
+                        "status":  200,
+                        "runs":  3,
+                        "min_ms":  7180,
+                        "median_ms":  7786.1,
+                        "max_ms":  10103.4,
+                        "kb":  7.2
+                    },
+                    {
+                        "endpoint":  "profit-loss",
+                        "path":  "/api/reports/profit-loss?startDate=2026-09-18\u0026endDate=2026-10-17",
+                        "status":  200,
+                        "runs":  3,
+                        "min_ms":  2754.6,
+                        "median_ms":  3019.3,
+                        "max_ms":  7265.5,
+                        "kb":  8.1
+                    },
+                    {
+                        "endpoint":  "inventory-valuation",
+                        "path":  "/api/reports/inventory-valuation?startDate=2026-09-18\u0026endDate=2026-10-17",
+                        "status":  200,
+                        "runs":  3,
+                        "min_ms":  432,
+                        "median_ms":  637.1,
+                        "max_ms":  3855.8,
+                        "kb":  1.7
+                    },
+                    {
+                        "endpoint":  "accountant-summary",
+                        "path":  "/api/reports/accountant-summary?startDate=2026-09-18\u0026endDate=2026-10-17",
+                        "status":  200,
+                        "runs":  3,
+                        "min_ms":  1608.7,
+                        "median_ms":  1646.4,
+                        "max_ms":  1832.5,
+                        "kb":  1.3
+                    },
+                    {
+                        "endpoint":  "period-comparison",
+                        "path":  "/api/reports/period-comparison?startDate=2026-09-18\u0026endDate=2026-10-17",
+                        "status":  200,
+                        "runs":  3,
+                        "min_ms":  829.8,
+                        "median_ms":  914,
+                        "max_ms":  1166.7,
+                        "kb":  0.2
+                    },
+                    {
+                        "endpoint":  "category",
+                        "path":  "/api/reports/category?startDate=2026-09-18\u0026endDate=2026-10-17",
+                        "status":  200,
+                        "runs":  3,
+                        "min_ms":  431,
+                        "median_ms":  485.6,
+                        "max_ms":  795.9,
+                        "kb":  0.2
+                    },
+                    {
+                        "endpoint":  "supplier-breakdown",
+                        "path":  "/api/reports/supplier-breakdown?startDate=2026-09-18\u0026endDate=2026-10-17",
+                        "status":  200,
+                        "runs":  3,
+                        "min_ms":  50.9,
+                        "median_ms":  67.4,
+                        "max_ms":  132.8,
+                        "kb":  25.7
+                    },
+                    {
+                        "endpoint":  "consumption",
+                        "path":  "/api/reports/consumption?startDate=2026-09-18\u0026endDate=2026-10-17",
+                        "status":  200,
+                        "runs":  3,
+                        "min_ms":  275.6,
+                        "median_ms":  387.6,
+                        "max_ms":  442.8,
+                        "kb":  7.4
+                    },
+                    {
+                        "endpoint":  "products (list)",
+                        "path":  "/api/products",
+                        "status":  200,
+                        "runs":  3,
+                        "min_ms":  34.1,
+                        "median_ms":  103.4,
+                        "max_ms":  147.6,
+                        "kb":  6
+                    },
+                    {
+                        "endpoint":  "transactions/recent?count=50",
+                        "path":  "/api/transactions/recent?count=50",
+                        "status":  -1,
+                        "runs":  3,
+                        "min_ms":  2.6,
+                        "median_ms":  2.6,
+                        "max_ms":  28.5,
+                        "kb":  0
+                    },
+                    {
+                        "endpoint":  "ingredients",
+                        "path":  "/api/ingredients",
+                        "status":  200,
+                        "runs":  3,
+                        "min_ms":  22.8,
+                        "median_ms":  24.3,
+                        "max_ms":  122.3,
+                        "kb":  19.6
+                    },
+                    {
+                        "endpoint":  "stock-movements (range)",
+                        "path":  "/api/stockmovements?startDate=2026-09-18\u0026endDate=2026-10-17",
+                        "status":  200,
+                        "runs":  3,
+                        "min_ms":  11482,
+                        "median_ms":  15542.2,
+                        "max_ms":  22693.5,
+                        "kb":  9252.5
+                    }
+                ]
+}

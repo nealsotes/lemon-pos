@@ -1,0 +1,10 @@
+﻿$env:ProgramFiles="C:\Program Files"
+${env:ProgramFiles(x86)}="C:\Program Files (x86)"
+$env:ProgramData="C:\ProgramData"
+$env:APPDATA="C:\Users\Full Scale\AppData\Roaming"
+$env:LOCALAPPDATA="C:\Users\Full Scale\AppData\Local"
+$env:ConnectionStrings__DefaultConnection="Server=127.0.0.1;Port=3399;Database=quickserve_perf;Uid=root;Pwd=perftest123;"
+$env:ASPNETCORE_ENVIRONMENT="Production"
+$env:Kestrel__Endpoints__Http__Url="http://127.0.0.1:5099"
+Set-Location "C:\Users\Full Scale\Desktop\lemon-pos\backend\PosSystem\PosSystem"
+dotnet run --no-build --no-launch-profile
