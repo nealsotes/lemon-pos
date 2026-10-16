@@ -29,6 +29,9 @@
     "esModuleInterop": true,
     "skipLibCheck": true
   },
+  "exclude": [
+    "src/**/*.spec.ts"
+  ],
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,
     "strictInjectionParameters": true,
