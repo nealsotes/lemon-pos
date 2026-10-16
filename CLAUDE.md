@@ -13,10 +13,10 @@ QuickServe POS — a full-stack point-of-sale system with an Angular 20 frontend
 npm ci                 # Install dependencies (use ci, not install)
 npm start              # Dev server on :4200, proxies /api → localhost:5001
 npm run build          # Production build
-npm test               # Jasmine/Karma — NOT wired up: no *.spec.ts files, deps not in package.json (fails until added)
-npx ng test --include='**/file.spec.ts'           # Single test file
-npx ng test --browsers=ChromeHeadless --watch=false  # Headless (CI)
-npm test -- --code-coverage                        # Coverage report
+npm test               # Jasmine/Karma — headless Chrome, single run, exits non-zero on failure (CI-ready)
+npm run test:watch     # Same suite in interactive watch mode
+npx ng test --include='**/file.spec.ts' --watch=false   # Single test file
+npm test -- --code-coverage                             # Coverage report
 ```
 
 ### Backend (`backend/PosSystem/PosSystem/`)
@@ -66,7 +66,7 @@ core/
 features/
   auth/              → Login
   pos/               → Product grid, public menu, ingredient selection
-  checkout/          → Cart, payment (cash/QR), receipt, printer settings
+  checkout/          → Cart, payment (cash/card/mobile), receipt, printer settings, public-menu QR generator (encodes the `/menu` URL — not a payment feature)
   admin/             → Product management, reports, settings, expenses
   inventory/         → Ingredients, ingredient lots, stock movements, product recipes
 shared/
