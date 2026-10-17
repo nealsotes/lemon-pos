@@ -3,8 +3,9 @@ import { HttpClient } from '@angular/common/http';
 import { Transaction, CustomerInfo } from '../models/transaction.model';
 import { CartItem } from '../models/cart-item.model';
 import { OfflineService } from '../../../core/services/offline.service';
+import { ToastService } from '../../../shared/ui/toast/toast.service';
 import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
-import { catchError, map, switchMap, tap, timeout } from 'rxjs/operators';
+import { catchError, finalize, map, switchMap, tap, timeout } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment.prod';
 
 @Injectable({
@@ -14,10 +15,12 @@ export class TransactionService {
   private apiUrl = environment.apiUrl;
   private transactionsSubject = new BehaviorSubject<Transaction[]>([]);
   private pendingTransactions: Transaction[] = [];
+  private isSyncing = false;
 
   constructor(
     private http: HttpClient,
-    private offlineService: OfflineService
+    private offlineService: OfflineService,
+    private toast: ToastService
   ) {
     this.loadTransactions().subscribe();
     this.loadPendingTransactions();
@@ -155,23 +158,26 @@ export class TransactionService {
     return of(transaction);
   }
 
+  /**
+   * Drains the offline queue. A sale leaves the persisted queue only once its POST
+   * has come back successfully, so an interrupted sync — tab closed, device asleep,
+   * page navigated away mid-flight — leaves the sale on disk for the next attempt.
+   */
   private syncPendingTransactions(): void {
-    if (this.pendingTransactions.length === 0) return;
+    // isOnline$ re-emits on every 30s health check. Without this guard a second tick
+    // would re-post sales that are still queued because their first POST is in flight.
+    if (this.isSyncing || this.pendingTransactions.length === 0) return;
 
+    this.isSyncing = true;
     const transactionsToSync = [...this.pendingTransactions];
-    this.pendingTransactions = [];
-    this.savePendingTransactions();
+    let inFlight = transactionsToSync.length;
 
     transactionsToSync.forEach(transaction => {
-      const transactionData = {
-        items: transaction.items,
-        total: transaction.total,
-        paymentMethod: transaction.paymentMethod,
-        customerInfo: transaction.customerInfo
-      };
-
-      this.http.post<Transaction>(`${this.apiUrl}/transactions`, transactionData).pipe(
+      this.http.post<Transaction>(`${this.apiUrl}/transactions`, this.buildSyncPayload(transaction)).pipe(
         tap(syncedTransaction => {
+          // Confirmed by the server: only now is it safe to drop from the queue.
+          this.removePendingTransaction(transaction);
+
           // Update the transaction status in the local list
           const currentTransactions = this.transactionsSubject.value;
           const index = currentTransactions.findIndex(t => t.id === transaction.id);
@@ -181,14 +187,51 @@ export class TransactionService {
             this.saveToLocalStorage('transactions', currentTransactions);
           }
         }),
-        catchError(error => {
-          // Add back to pending if sync fails
-          this.pendingTransactions.push(transaction);
-          this.savePendingTransactions();
-          return of(null);
+        // Leave the sale queued on failure; the next online tick retries it.
+        catchError(() => of(null)),
+        finalize(() => {
+          if (--inFlight === 0) {
+            this.isSyncing = false;
+          }
         })
       ).subscribe();
     });
+  }
+
+  /**
+   * Rebuilds the full create-transaction body for a queued sale.
+   *
+   * This must carry every field the online path sends. In particular the backend
+   * recomputes the total as (net line subtotal + serviceFee) and silently overwrites
+   * the posted total when the two disagree, so omitting serviceFee books a dine-in
+   * sale for less than the customer actually paid.
+   */
+  private buildSyncPayload(transaction: Transaction): any {
+    return {
+      items: transaction.items,
+      total: transaction.total,
+      paymentMethod: transaction.paymentMethod,
+      serviceType: transaction.serviceType || 'dineIn',
+      serviceFee: transaction.serviceFee || 0,
+      customerInfo: transaction.customerInfo,
+      // 'pending' is a local marker meaning "not yet synced", not a state of the sale —
+      // the customer has already paid. Reports count only status 'completed', so posting
+      // the queued 'pending' verbatim would hide the sale from every report.
+      status: 'completed',
+      notes: transaction.notes || '',
+      amountReceived: transaction.amountReceived || 0,
+      change: transaction.change || 0
+    };
+  }
+
+  private removePendingTransaction(transaction: Transaction): void {
+    // Matched by identity, not id: offline ids come from Date.now() and two sales rung
+    // up in the same millisecond would share one.
+    const index = this.pendingTransactions.indexOf(transaction);
+    if (index !== -1) {
+      this.pendingTransactions.splice(index, 1);
+      this.savePendingTransactions();
+    }
   }
 
   getDailyReport(): Observable<any> {
@@ -493,15 +536,40 @@ export class TransactionService {
         this.pendingTransactions = JSON.parse(saved);
       }
     } catch (error) {
-      // Error loading pending transactions
+      // An unreadable queue is unsynced sales that will never reach the server.
+      console.error('Failed to read the pending-sale queue from this device', error);
+      this.toast.error('Could not read unsynced sales saved on this device. Check the day\'s takings against the server before closing.');
     }
   }
 
   private savePendingTransactions(): void {
+    if (this.tryWritePendingTransactions()) return;
+
+    // Almost always the ~5 MB origin quota. The 'transactions' display cache shares that
+    // budget and is rebuilt from the server on the next load, so drop it and retry rather
+    // than lose a sale to a cache.
+    try {
+      localStorage.removeItem('transactions');
+    } catch (error) {
+      console.error('Failed to evict the transactions cache', error);
+    }
+
+    if (this.tryWritePendingTransactions()) {
+      console.warn('Device storage was full; dropped the transactions cache to save the pending-sale queue.');
+      return;
+    }
+
+    // Out of options: the queue now exists only in memory and dies with the tab.
+    this.toast.error(`Could not save ${this.pendingTransactions.length} unsynced sale(s) to this device — do not close this tab, and record the sale manually.`);
+  }
+
+  private tryWritePendingTransactions(): boolean {
     try {
       localStorage.setItem('pendingTransactions', JSON.stringify(this.pendingTransactions));
+      return true;
     } catch (error) {
-      // Error saving pending transactions
+      console.error('Failed to persist the pending-sale queue', error);
+      return false;
     }
   }
 
@@ -509,7 +577,9 @@ export class TransactionService {
     try {
       localStorage.setItem(key, JSON.stringify(data));
     } catch (error) {
-      // Error saving to localStorage
+      // Display cache only — the sale itself is either on the server or in the pending
+      // queue — so log it rather than interrupt the cashier mid-sale.
+      console.error(`Failed to cache '${key}' in localStorage`, error);
     }
   }
 
