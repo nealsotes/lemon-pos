@@ -1,11 +1,15 @@
+/* min-height rather than height so a bar whose actions cannot fit on one line
+   grows instead of pushing them off-screen. Content that already fits on one
+   line still measures 48px, so no page that fits today changes. */
 .top-bar {
-  height: 48px;
+  min-height: 48px;
   border-bottom: 1px solid var(--border);
   background: var(--bg-app);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
+  gap: 12px;
+  padding: 4px 24px;
   flex-shrink: 0;
 }
 
@@ -21,12 +25,15 @@
 .top-bar-actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 8px;
+  min-width: 0;
 }
 
 @media (max-width: 768px) {
   .top-bar {
-    padding: 0 16px;
+    padding: 4px 16px;
   }
 
   .top-bar-title {
