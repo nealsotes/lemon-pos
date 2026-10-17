@@ -980,16 +980,14 @@ export class ReportsComponent implements OnInit, OnDestroy {
     return product?.name || `Product ${productId}`;
   }
 
+  // The headline KPIs below read the backend sales report for the selected period,
+  // for every preset including the default "Today". They must never be derived from
+  // `recentTransactions`: that array is capped at 50 rows because it feeds the Recent
+  // Transactions card, so summing it understated takings on the default landing view.
   getTotalSales(): number {
-    // For custom date ranges, use the sales report data
-    if (this.isCustomDateRange && this.salesReportData) {
+    // loadDailyReport() refreshes this for whatever range is selected
+    if (this.salesReportData) {
       return this.salesReportData.totalSales || 0;
-    }
-
-    // For today's view, use recent transactions
-    if (this.recentTransactions && this.recentTransactions.length > 0) {
-      const total = this.recentTransactions.reduce((sum, transaction) => sum + transaction.total, 0);
-      return total;
     }
 
     if (!this.dailyReport) return 0;
@@ -998,14 +996,9 @@ export class ReportsComponent implements OnInit, OnDestroy {
   }
 
   getTransactionCount(): number {
-    // For custom date range, use the sales report data
-    if (this.isCustomDateRange && this.salesReportData) {
+    // loadDailyReport() refreshes this for whatever range is selected
+    if (this.salesReportData) {
       return this.salesReportData.totalTransactions || 0;
-    }
-
-    // For today's view, use recent transactions
-    if (this.recentTransactions && this.recentTransactions.length > 0) {
-      return this.recentTransactions.length;
     }
 
     if (!this.dailyReport) return 0;
