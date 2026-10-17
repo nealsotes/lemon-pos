@@ -1,0 +1,7 @@
+﻿$env:ProgramFiles="C:\Program Files"
+${env:ProgramFiles(x86)}="C:\Program Files (x86)"
+$env:ProgramData="C:\ProgramData"
+$env:APPDATA="C:\Users\Full Scale\AppData\Roaming"
+$env:LOCALAPPDATA="C:\Users\Full Scale\AppData\Local"
+Set-Location "C:\Users\Full Scale\Desktop\lemon-pos\frontend"
+npx ng serve --host 127.0.0.1 --port 4299 --proxy-config "C:\Users\Full Scale\Desktop\lemon-pos\.perf-harness\proxy.perf.json"
