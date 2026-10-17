@@ -1,0 +1,74 @@
+﻿[
+    {
+        "key":  "products",
+        "url":  "/api/products?page=1\u0026pageSize=100",
+        "need":  "required",
+        "status":  200,
+        "bytes":  12197,
+        "kb":  11.9,
+        "mb":  0.01,
+        "ms":  94,
+        "rows":  40,
+        "error":  null
+    },
+    {
+        "key":  "categories",
+        "url":  "/api/products/categories",
+        "need":  "required",
+        "status":  200,
+        "bytes":  34,
+        "kb":  0,
+        "mb":  0,
+        "ms":  126,
+        "rows":  3,
+        "error":  null
+    },
+    {
+        "key":  "settings-pages",
+        "url":  "/api/settings/pages",
+        "need":  "required",
+        "status":  200,
+        "bytes":  601,
+        "kb":  0.6,
+        "mb":  0,
+        "ms":  94,
+        "rows":  8,
+        "error":  null
+    },
+    {
+        "key":  "ingredients",
+        "url":  "/api/ingredients",
+        "need":  "indirect",
+        "status":  200,
+        "bytes":  20085,
+        "kb":  19.6,
+        "mb":  0.02,
+        "ms":  46,
+        "rows":  60,
+        "error":  null
+    },
+    {
+        "key":  "expense-categories",
+        "url":  "/api/expense-categories",
+        "need":  "no",
+        "status":  200,
+        "bytes":  503,
+        "kb":  0.5,
+        "mb":  0,
+        "ms":  139,
+        "rows":  8,
+        "error":  null
+    },
+    {
+        "key":  "recipes-all-products",
+        "url":  "/api/recipes/product/{id} x N",
+        "need":  "indirect",
+        "status":  200,
+        "bytes":  16488,
+        "kb":  16.1,
+        "mb":  0.02,
+        "ms":  28081,
+        "rows":  152,
+        "error":  "40 round trips - no bulk endpoint exists"
+    }
+]
