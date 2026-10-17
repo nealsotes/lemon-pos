@@ -2,6 +2,14 @@
 
 **Task:** SWI-6 · **Author:** EngLead · **Date:** 2026-10-17
 **Status:** For board review. No production code was changed by this task.
+**Revision 2 (2026-10-17)** — revised after putting the page on screen in a real
+browser at the board's request. Changes from revision 1: **C1 corrected** (the
+KPI cap is a load-dependent race, not the unconditional ~70 % understatement
+previously claimed, and it did not reproduce here); **C2 added** (the P&L tab
+reports two different Net Profit figures for the same period); **L3 escalated**
+(at 768 px the Export button is off-screen entirely, not clipped 12 px); **L5
+reclassified** (the empty states resolve once loaded — symptom, not defect). See
+§11 for what was and was not reproduced visually.
 
 ---
 
@@ -26,6 +34,17 @@ The cause is not rendering. Client-side scripting is 1.2 s and layout+style is
 requests covering all four tabs, two of them unbounded full-table reads, against
 report endpoints that load whole entity graphs into memory to aggregate them,
 over a `Transactions` table with **no index on `Timestamp`**.
+
+On screen this is unambiguous: five seconds after navigating to `/reports` the
+viewport is still empty but for a "Loading reports…" spinner, and the page is
+not finished for another half-minute.
+
+Separately, and arguably more serious than either complaint the board raised:
+the Profit & Loss tab displays **two different Net Profit figures for the same
+day** — −₱43,294.73 in the statement and −₱53,850.47 in the Period Breakdown
+immediately below it. That is **C2**, it reproduces against the API with no
+browser involved, and it is gated on a board decision (**Q8**) rather than an
+engineering one.
 
 ---
 
@@ -215,22 +234,90 @@ user expands the section.
 
 ## 3. Correctness defect found while profiling
 
-**C1 — the default view's revenue KPI sums at most 50 transactions.**
+**C1 — the default view's revenue KPI can silently sum at most 50
+transactions. It is a race, not a certainty — corrected 2026-10-17 after
+browser verification.**
 
 `getTotalSales()` (`reports.component.ts:983-998`) returns
 `sum(this.recentTransactions)` whenever `isCustomDateRange` is false.
 `setDatePreset()` sets `isCustomDateRange = false` for exactly one preset —
 **"Today"**, which is the default landing state. `recentTransactions` comes from
 `getRecentTransactions(50)`, which `.slice(0, 50)`s
-(`transaction.service.ts:342-370`). At ~170 transactions/day the Owner's headline
-revenue number on the page they land on is understated by roughly 70 %.
-`getTransactionCount()` (line 1000) has the same shape.
+(`transaction.service.ts:342-370`). `getTransactionCount()` (line 1000) has the
+same shape.
 
-This is a reporting-accuracy bug, not a performance bug, and it is arguably more
-serious than the slowness. It does **not** change discount, service-fee or VAT
-arithmetic — the fix is to read the already-correct `salesReportData` the backend
-returns, instead of a client-side array capped at 50. It is nevertheless money on
-screen, so it is called out separately and given its own criterion.
+**What an earlier revision of this document got wrong.** It stated that the
+Owner's headline revenue is understated by roughly 70 % on the default view. That
+overstates the defect. Whether it manifests depends on a race:
+
+`loadRecentTransactions()` (`reports.component.ts:677`) calls
+`firstValueFrom(getRecentTransactions(50))` against a `BehaviorSubject` that is
+seeded `[]` (`transaction.service.ts:15`) and filled by the app-wide full-table
+download started in the service constructor (line 22). `BehaviorSubject` replays
+its *current* value synchronously, so `firstValueFrom` resolves immediately with
+whatever happens to be in the subject at that instant:
+
+- Subject still empty → `recentTransactions = []` → both getters fall through to
+  the backend `dailyReport` → **correct figures**.
+- Subject already filled → up to 50 of today's transactions → **understated
+  revenue and transaction count, with no error and no visual cue.**
+
+In the measured configuration the race resolves the *safe* way, and this was
+confirmed on screen: the dashboard renders Revenue ₱23,330.82 / Transactions 188,
+which match the backend exactly and are not a 50-row sum. The reason is that the
+48.8 MB download (S3) is slower than the report requests, so the subject is still
+empty when the reports page reads it. The defect is therefore **latent and
+load-dependent**: a smaller dataset, a warm cache, or any future change that
+makes the transaction load land earlier flips it to the wrong branch.
+
+That makes it harder to catch, not less serious — the failure mode is a
+plausible-looking wrong number on the Owner's landing page. It does **not** change
+discount, service-fee or VAT arithmetic; the fix is to read the already-correct
+backend figure instead of a client-side array capped at 50, which also removes
+the race. The acceptance criterion below is written to be deterministic rather
+than to depend on which branch wins.
+
+**C2 — the Profit & Loss tab shows two different Net Profit figures for the same
+period, on the same screen. Found during browser verification, 2026-10-17.**
+
+For a single day ("Today", the default), the P&L statement and the Period
+Breakdown table immediately below it disagree:
+
+| Figure | P&L statement | Period Breakdown row | Difference |
+| --- | ---: | ---: | ---: |
+| Expenses | ₱4,897.63 | **₱15,453.37** | ₱10,555.74 |
+| Net Profit | −₱43,294.73 | **−₱53,850.47** | ₱10,555.74 |
+| Net Margin | −185.6 % | **−230.8 %** | 45.2 pp |
+
+Revenue, COGS and Gross Profit agree exactly; expenses are the only input that
+differs, and each side is internally consistent with its own expense number.
+
+This is **not** a rendering artefact of L1 and not an artefact of the synthetic
+data volume. It reproduces directly against the API with no browser involved:
+`GET /api/reports/profit-loss?startDate=<today>&endDate=<today>` returns
+`totalExpenses: 4897.63` alongside `breakdown[0].expenses: 15453.371333…`.
+
+**Cause.** `ReportingService.cs:284` computes the statement total with
+`GetTotalExpensesForPeriodAsync(startDate, endDate)`, while
+`ReportingService.cs:367` computes each breakdown row with
+`GetProratedExpensesForPeriodAsync(dayStart, dayEnd, startDate, endDate)`. When
+the requested range is a single day the two windows are identical, so the two
+calls must return the same number by definition. They do not: the prorated call
+is pulling in expense amounts from outside the requested window. The long
+fractional tail on the breakdown figure is the signature of an amortisation
+divide.
+
+**Severity.** Both numbers are labelled "Net Profit" for the same day, so at
+least one of them is wrong and the page gives the Owner no way to tell which.
+This is money on screen and it is the figure an owner is most likely to act on.
+Classified **broken**, equal in priority to the layout fix.
+
+**This one is flagged under the arithmetic guard.** It is profit arithmetic, and
+deciding *which* number is correct is a business question about how a recurring
+expense should be attributed to a single day — not a question an engineer should
+answer unilaterally. The fix is therefore gated on the board answering **Q8**
+below. Writing a test that asserts the two figures agree for a one-day range is
+not a change to the arithmetic and should be done first.
 
 ---
 
@@ -287,18 +374,29 @@ occupiedRows: 2` — identical to the static reproduction.
   flaw — and it is the direct answer to "what is wrong with the layout".
 - Fixing L1 without also fixing L2 leaves the tab broken on tablets and phones.
 
-### L3 — the Export button is clipped off the right edge at 1024 px. **Broken.** Medium priority.
+### L3 — the top bar overflows and the Export button is unreachable between roughly 700 px and 1200 px. **Broken.** Raised to high priority 2026-10-17.
 
-- **Where:** top bar, primary **Export** action.
-- **Viewport:** 1024×900 (measured). Not present at 1440 or 1920.
-- **Evidence:** `.top-bar-actions` and the `button.btn.btn-primary.btn-sm` both
-  have a right edge at **1036 px** against a `clientWidth` of **1024 px** —
+- **Where:** top bar, primary **Export** action and the date-range picker.
+- **Viewports:** measured broken at **1024×900** and **768×1024**. Not present at
+  1440 or 1920.
+- **Evidence at 1024:** `.top-bar-actions` and the `button.btn.btn-primary.btn-sm`
+  both have a right edge at **1036 px** against a `clientWidth` of **1024 px** —
   12 px overhanging. `document.scrollWidth` is still 1024, so **no horizontal
   scrollbar appears**: the button is silently cut, not scrolled to.
+- **Evidence at 768 (added after browser verification):** far worse than the
+  12 px clip above. `.top-bar-actions` overflows by **188 px**, the date picker
+  and all three of its descendants by **30 px**, and the refresh
+  `button.btn.btn-ghost.btn-sm` by **82 px**. On screen the "Reports" title, the
+  five date presets and the FROM/TO inputs are crammed onto a single line, the TO
+  input is cut at the edge, and **the Export button is not visible at all.**
+  Again `document.scrollWidth == clientWidth`, so there is nothing to scroll to.
+- **Consequence:** an Owner on a tablet or a small laptop cannot export a report.
+  That is a function the board cannot reach, not a cosmetic clip — which is why
+  this is no longer medium priority.
 - The top bar packs five date presets, two date inputs, a refresh button and the
   Export button onto one line; `@media (max-width: 640px)` stacks the date picker
   but nothing handles the 700–1200 px band. 1024 px is a common laptop and
-  tablet-landscape width.
+  tablet-landscape width; 768 px is portrait tablet.
 
 ### L4 — margin health marker escapes its track on a loss-making period. **Ugly.** Low priority.
 
@@ -322,6 +420,23 @@ occupiedRows: 2` — identical to the static reproduction.
   be reading a different figure at 20 s.
 - Listed under layout because the remedy is a layout decision (per-card skeleton
   and per-section loading state) as much as a data-loading one.
+- **Confirmed visually, and it is worse than "numbers change".** Captured at
+  1440 px on the Dashboard tab: at 5 s the page is entirely empty but for a
+  "Loading reports…" spinner; at an intermediate point the KPI strip has rendered
+  but Gross Margin reads **"N/A"** and the Profit Snapshot card reads **"No
+  profit data — No profit data available for this period."** Both are the
+  component's genuine *empty states*, rendered because `profitLossData` is still
+  null while the 14 sequential requests work through the queue.
+- Left to settle (~36 s), the same view fills in correctly: Gross Margin
+  −164.6 %, Profit Snapshot populated, insight banners present. **So these panels
+  are not broken — they lie temporarily.** For tens of seconds the page
+  confidently tells the Owner there is no profit data for a period that in fact
+  has data, with nothing on screen distinguishing "still loading" from "nothing
+  to show". An Owner who glances and leaves takes away a false answer.
+- This reclassifies the empty states from "defect" to "symptom of S1/S6": fixing
+  the sequential loading removes it, and a per-card skeleton makes the
+  distinction visible in the meantime. Recorded here so a reviewer who sees "No
+  profit data" mid-load does not file it as a separate bug.
 
 ### Not defects
 
@@ -372,10 +487,12 @@ the component. Every one is checkable with `.perf-harness`.
 | **R9** | Push the per-period expense proration out of the P&L day loop — fetch expenses and recurring templates once for the whole range and allocate in memory. **Touches money aggregation — see §7.** | `GET /api/reports/profit-loss` issues a constant number of DB round trips regardless of range length (verify by query log), responds in ≤ 500 ms at 30 days, and the existing `ReportingServiceDiscountTests` still pass. |
 | **R10** | Compute the FIFO cost map in one query instead of 1–2 per ingredient. **Touches money aggregation — see §7.** | `GetCogsByProductIdAsync` issues ≤ 2 queries total, and returns the same map as the current implementation for the seeded dataset. |
 | **R11** | Push `sales`, `top-products`, `category`, `period-comparison`, `accountant-summary`, `profit-loss` aggregation into SQL; add `AsNoTracking()` wherever rows are still read. **Touches money aggregation — see §7.** | **T6** met for every `/api/reports` endpoint, and every endpoint returns byte-identical JSON to the current implementation for the seeded dataset. |
-| **R12** | Fix the "Today" revenue and transaction-count KPIs to read the backend sales report rather than the 50-item `recentTransactions` array (**C1**). | With 170 seeded transactions on the current day, the Dashboard revenue KPI equals `GET /api/reports/sales` `totalSales` for that day, and the transaction count equals `totalTransactions`. |
+| **R12** | Fix the "Today" revenue and transaction-count KPIs to read the backend sales report rather than the 50-item `recentTransactions` array (**C1**). | With 170 seeded transactions on the current day, the Dashboard revenue KPI equals `GET /api/reports/sales` `totalSales` for that day, and the transaction count equals `totalTransactions` — **and this holds whether or not `TransactionService` has finished populating its subject**, which the test must force both ways (pre-populate the subject with 50+ of today's transactions, and leave it empty). |
+| **R19** | Add a regression test asserting the P&L statement total and the Period Breakdown agree (**C2**). **Test only — not a change to the arithmetic, and not blocked.** | For a one-day range over seeded data, `profit-loss` satisfies `totalExpenses == Σ breakdown[].expenses` and `netProfit == Σ breakdown[].netProfit`. The test is expected to **fail** on current `main`; that failing test is the deliverable. |
+| **R20** | Make both expense call sites use the basis the board selects in **Q8** (**C2**). **Touches profit arithmetic — blocked pending Q8.** | R19 passes, and the P&L tab shows one Net Profit figure per period. |
 | **R13** | Fix the P&L table grid to 7 columns at ≥ 641 px (**L1**). | `node layout-probe.js` reports `ok` — `gridRowsUsed: 1` — at 1920, 1440, 1280, 1024, 900 and 768, and each value sits under its own heading. |
 | **R14** | Give the P&L table a correct ≤ 640 px rule — hide columns to match the declared count, as the Activity table does (**L2**). | `node layout-probe.js` reports `ok` at 640, 540, 414, 390 and 360, with `visibleSpans == declaredCols` at each. |
-| **R15** | Stop the top bar clipping its primary action between ~700 and ~1200 px (**L3**). | At 1024×900 the probe's `offenders` array is empty — no element in `.reports-container` has a right edge beyond `clientWidth` — and the Export button is fully clickable. |
+| **R15** | Stop the top bar clipping its primary action between ~700 and ~1200 px (**L3**). | At **both 1024×900 and 768×1024** the probe's `offenders` array is empty — no element in `.reports-container` has a right edge beyond `clientWidth` — and the Export button is visible and fully clickable at each. |
 | **R16** | Clamp the margin-health fill and marker to 0–100 % (**L4**). | With `marginPercent = -40`, the marker's bounding box is inside `.health-bar-track` and the fill width is 0; with `marginPercent = 140`, both are at 100 %. |
 | **R17** | Replace the all-or-nothing spinner with per-section loading states, and delete the 10-second `setTimeout` (**L5**, **S9**). | No `setTimeout` remains in `loadAllData()`; the page never displays a populated metric that later changes value without a user action; **T1** met. |
 | **R18** | Add `trackBy` to the `*ngFor` loops that render API data, and virtualise or paginate the Activity table (**S10**). | With the Activity section expanded over a 30-day range, DOM node count stays under 5,000 and the section becomes interactive in ≤ 1,000 ms. |
@@ -437,6 +554,12 @@ references its criterion in §6.
   These are *tests*, not a change, so no approval is needed.
   *Done when:* each case asserts exact decimal values and the suite passes on
   `main` unmodified.
+- **W1b. Add the P&L internal-consistency test.** R19. Asserts the statement
+  total and the Period Breakdown agree for a one-day range (**C2**). A test, so
+  not blocked — but unlike W1 it is **expected to fail on `main`**, and that
+  failing test is the point: it pins the contradiction so the board can see it
+  and so W14 has a target. Do not "fix" it by changing either expense call site;
+  that is W14 and it is gated on Q8.
 
 ### Wave 2 — unblocked performance work (the bulk of the win)
 
@@ -453,9 +576,12 @@ references its criterion in §6.
 - **W5. Parallelise and tab-scope `loadAllData()`.** R6 + R7 + R8. Touches
   `reports.component.ts:477-511` and the tab-switch handler; re-enables the
   already-written lazy path at line 1180.
-- **W6. Fix the "Today" revenue KPI.** R12. Touches `getTotalSales()` and
+- **W6. Fix the "Today" revenue KPI race.** R12. Touches `getTotalSales()` and
   `getTransactionCount()`. Add a frontend spec asserting the KPI equals the
-  backend figure.
+  backend figure **with the transaction subject both empty and pre-populated** —
+  the defect is a race (see C1) and a test that only covers the empty case will
+  pass on broken code. Note that W3 changes which branch wins, so W6 and W3
+  should land together or W6 first.
 
 ### Wave 3 — layout
 
@@ -464,7 +590,9 @@ references its criterion in §6.
   below 640 px and hide exactly that many, as `css:904-917` already does for the
   Activity table. Verify with `node layout-probe.js` — all 11 widths must read
   `ok`. **Smallest, highest-visibility fix in this spec; good first pick.**
-- **W8. Make the top bar survive 700–1200 px.** R15.
+- **W8. Make the top bar survive 700–1200 px.** R15. Verify at **768 as well as
+  1024** — at 768 the Export button is not merely clipped, it is off-screen
+  entirely, so an Owner on a tablet cannot export. Promoted to run alongside W7.
 - **W9. Clamp the margin-health bar.** R16.
 - **W10. Per-section loading states; delete the 10-second timer.** R17.
 - **W11. `trackBy` + virtualised Activity table.** R18.
@@ -474,6 +602,10 @@ references its criterion in §6.
 - **W12. Write the arithmetic approach note** and take it to the board.
 - **W13. SQL pushdown for the report aggregates.** R5 + R9 + R10 + R11.
   Do not start before W1 is green and W12 is approved.
+- **W14. Reconcile the two expense bases.** R20. Blocked on **Q8** — the board
+  must state whether a single day's expenses are cash-basis (dated in the
+  window) or amortised. Engineering should not choose. W1b must be in place
+  first so the fix has a test to turn green.
 
 **Suggested order:** W1 → (W2, W3, W4, W5, W6 in parallel) → (W7–W11) →
 W12 → W13. W2–W6 should be re-measured with `.perf-harness` before Wave 4 is
@@ -514,6 +646,17 @@ deferred or dropped, which would be the cheapest possible outcome.
   removing it loses nothing that currently works. But an offline fallback was
   clearly intended. The board should say whether offline reports are a real
   requirement before W3 decides what to replace it with.
+- **Q8 — Which Net Profit figure is correct, and how should a recurring expense
+  be attributed to a single day?** This gates the C2 fix and is the one new
+  blocking question from browser verification. The P&L statement counts only
+  expenses dated inside the window (₱4,897.63 for a day); the Period Breakdown
+  prorates, pulling in a share of expenses dated outside it (₱15,453.37 for the
+  same day). Both are defensible accounting positions — cash-basis versus
+  accrual/amortised — and the right answer depends on how the client's
+  bookkeeper treats rent, salaries and utilities. **Engineering should not pick
+  one.** Once the board states the intended basis, the fix is to make both call
+  sites use it. Until then the two figures must at minimum not be presented side
+  by side as if both were true.
 
 ---
 
@@ -531,9 +674,43 @@ storage measurements. Raw endpoint results are committed as `bench-1d.json`,
 | Browser timings and attribution (§2.1) | `browser-probe.js --width 1440 --preset today` |
 | P&L grid defect at 11 widths (L1/L2) | `layout-probe.js` — no backend needed, runs in seconds |
 | Export button clipped at 1024 px (L3) | `browser-probe.js --width 1024 --tab pnl` → `layout.offenders` |
+| Export button unreachable at 768 px (L3) | `screenshot-probe.js --width 768 --tab pnl` → `geom.offenders` |
 | localStorage 4 MB ceiling (S3) | `storage-capacity-probe.js` |
+| Two Net Profit figures for one day (C2) | `GET /api/reports/profit-loss?startDate=<today>&endDate=<today>`; compare `totalExpenses` with `breakdown[0].expenses` |
 
 Teardown is `docker rm -f swi6-perf-mysql`.
+
+---
+
+## 11. Visual verification — 2026-10-17
+
+The board asked for the page to be put on screen before any implementation task
+was created, rather than relying on DOM geometry alone. That was done with
+`.perf-harness/screenshot-probe.js`, which drives the same real Chrome build and
+captures full-page PNGs of `/reports` signed in as Owner, against the synthetic
+dataset only.
+
+Widths captured: **1920, 1440, 1024, 768, 390**. Screenshots are written to
+`.perf-harness/shots/` and are **deliberately not committed** — they are large
+binaries of no long-term value and `.perf-harness/.gitignore` excludes them.
+They contain only fabricated data, but the standing rule is that no report
+imagery goes into comments or documents, so they stay local.
+
+| Claim | Visual outcome |
+| --- | --- |
+| L1 — P&L breakdown wraps every row | **Confirmed**, 1920/1440/1024/768/390. The header renders as "PERIOD / NET PROFIT" and "REVENUE / NET MARGIN" stacked; values land under the wrong headings. |
+| L3 — Export clipped at 1024 | **Confirmed**, and worse at 768 where the button is absent entirely. |
+| S1 — the page is slow | **Confirmed.** At 5 s the viewport is empty but for "Loading reports…". First content 10.9–11.5 s across widths; network idle 35.7–38.4 s. |
+| L4 — margin marker escapes track | **Confirmed** on the settled Dashboard at 1440 with a negative margin. |
+| C1 — revenue KPI capped at 50 | **Not reproduced** — it is a race and it resolved the safe way here. C1 rewritten accordingly; this is the one claim browser verification corrected. |
+| L5 — empty states during load | **Confirmed, and reclassified** — the panels fill in once settled, so they are a symptom of S1, not broken panels. |
+| C2 — two Net Profit figures | **New.** Found on screen, then reproduced against the API without a browser. |
+
+Two incidental observations, neither filed as reports defects: the PWA install
+banner floats over report content at every width (it is
+`shared/components/PwaInstallComponent`, app-wide, outside this task's scope),
+and at 390 px the top bar overlaps the "Reports" title with the FROM field —
+the same root cause as L3, at the other end of the range.
 
 ### One caveat on the browser probes
 
