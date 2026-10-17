@@ -138,8 +138,8 @@
           <div class="margin-health" *ngIf="profitLossData">
             <span class="sparkline-label">Margin health</span>
             <div class="health-bar-track">
-              <div class="health-bar-fill" [style.width.%]="profitLossData.marginPercent"></div>
-              <div class="health-bar-marker" [style.left.%]="profitLossData.marginPercent"></div>
+              <div class="health-bar-fill" [style.width.%]="clampPercent(profitLossData.marginPercent)"></div>
+              <div class="health-bar-marker" [style.left]="marginMarkerLeft(profitLossData.marginPercent)"></div>
             </div>
             <div class="health-bar-labels">
               <span>0%</span><span>50%</span><span>100%</span>

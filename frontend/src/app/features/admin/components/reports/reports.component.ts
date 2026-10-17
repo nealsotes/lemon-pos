@@ -1069,6 +1069,27 @@ export class ReportsComponent implements OnInit, OnDestroy {
     return 'margin-ok';
   }
 
+  /**
+   * Clamp a percentage onto the 0-100 range the margin-health track can show.
+   * A loss-making period yields a negative margin, which is an invalid width
+   * and sends the marker outside the track.
+   */
+  clampPercent(value: number | null | undefined): number {
+    if (value === null || value === undefined || !Number.isFinite(value)) {
+      return 0;
+    }
+    return Math.min(100, Math.max(0, value));
+  }
+
+  /**
+   * Left offset for the margin-health marker, inset by the marker's own 2px
+   * width so it stays inside the track at 0% and at 100% rather than
+   * straddling the end.
+   */
+  marginMarkerLeft(value: number | null | undefined): string {
+    return `calc(${this.clampPercent(value)} * (100% - 2px) / 100)`;
+  }
+
   hasData(): boolean {
     return this.getTransactionCount() > 0 || this.topProducts.length > 0 || this.recentTransactions.length > 0;
   }

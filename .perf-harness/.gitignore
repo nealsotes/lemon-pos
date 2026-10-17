@@ -1,0 +1,8 @@
+# Generated / local-only artefacts. Regenerate with `node seed-gen.js seed.sql`.
+seed.sql
+*.log
+chrome-prof*/
+chrome-profile/
+# Visual-verification captures. Synthetic data only, but large binaries of no
+# long-term value - regenerate with screenshot-probe.js.
+shots/

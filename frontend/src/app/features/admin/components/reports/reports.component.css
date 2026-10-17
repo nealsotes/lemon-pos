@@ -66,8 +66,12 @@
   gap: var(--spacing-lg);
 }
 
-/* ---------- Header Controls ---------- */
-.date-range-picker { display: flex; align-items: center; gap: 8px; }
+/* ---------- Header Controls ----------
+   The picker is projected into the shared top bar alongside Refresh and
+   Export. Five presets plus two date inputs are wider than the bar between
+   roughly 700px and 1200px, so let the picker wrap internally instead of
+   pushing Export past the viewport edge. */
+.date-range-picker { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; min-width: 0; }
 .date-inputs { display: flex; align-items: center; gap: 8px; }
 .date-input-group { display: flex; align-items: center; gap: 5px; }
 .date-input-group label { font-size: 0.6875rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
@@ -415,9 +419,14 @@
 .margin-ok { color: var(--text-primary); }
 .margin-bad { color: var(--danger, #ef4444); }
 
-.pnl-table-head, .pnl-table-row { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr 0.8fr; padding: 9px 18px; font-size: 0.8125rem; align-items: center; }
+/* Seven columns to match the seven spans the template emits per row:
+   Period, Revenue, COGS, Gross Profit, Expenses, Net Profit, Net Margin.
+   minmax(0, …) so a long currency value shrinks its own cell instead of
+   widening the track and pushing the table past the card. */
+.pnl-table-head, .pnl-table-row { display: grid; grid-template-columns: 1.4fr minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.8fr); gap: 8px; padding: 9px 18px; font-size: 0.8125rem; align-items: center; }
 .pnl-table-head { font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); font-size: 0.625rem; background: var(--bg-subtle, rgba(128,128,128,0.03)); }
 .pnl-table-row { font-family: var(--font-display); font-weight: 500; transition: background 0.08s ease; }
+.pnl-table-head span, .pnl-table-row span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pnl-table-row:hover { background: var(--bg-subtle, rgba(128,128,128,0.03)); }
 .pnl-table-row .cogs { color: var(--danger, #ef4444); }
 .pnl-table-row .profit { color: var(--success, #10b981); }
@@ -526,6 +535,24 @@
    ========================================================================== */
 @media (max-width: 1024px) {
   .two-col-row { grid-template-columns: 1fr; }
+
+  /* Still all seven columns, just tighter, so every value keeps its heading. */
+  .pnl-table-head, .pnl-table-row { gap: 6px; padding: 8px 12px; font-size: 0.75rem; }
+  .pnl-table-head { font-size: 0.5625rem; }
+
+  /* Reclaim the FROM/TO label width so the picker needs one wrapped row in
+     the top bar rather than two. Clipped, not display:none, so the label
+     still names its input for assistive tech. */
+  .date-input-group label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 }
 
 @media (max-width: 640px) {
@@ -537,11 +564,23 @@
   .date-inputs { flex-direction: column; }
   .date-input-group { width: 100%; }
   .date-input { flex: 1; }
+  /* The inputs stack full-width down here, so the labels are worth their
+     space again — undo the clipping the 1024px rule applies. */
+  .date-input-group label { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip-path: none; }
 
   .pnl-kpis { grid-template-columns: repeat(2, 1fr); }
   .pnl-kpi + .pnl-kpi::before { display: none; }
-  .pnl-table-head, .pnl-table-row { grid-template-columns: 1fr 1fr 1fr; padding: 6px 14px; }
-  .pnl-table-head span:nth-child(3), .pnl-table-row span:nth-child(3) { display: none; }
+  /* Four columns on a phone — Period, Revenue, Net Profit, Net Margin — and
+     hide exactly the three spans that leaves over (COGS, Gross Profit,
+     Expenses), the way the Activity table does at its own breakpoint.
+     Visible spans must equal declared columns or every record wraps. */
+  .pnl-table-head, .pnl-table-row { grid-template-columns: 0.85fr minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 0.95fr); gap: 6px; padding: 6px 14px; }
+  .pnl-table-head span:nth-child(3),
+  .pnl-table-head span:nth-child(4),
+  .pnl-table-head span:nth-child(5),
+  .pnl-table-row span:nth-child(3),
+  .pnl-table-row span:nth-child(4),
+  .pnl-table-row span:nth-child(5) { display: none; }
   .inv-two-col { grid-template-columns: 1fr; }
   .inv-sub-panel + .inv-sub-panel { border-left: none; border-top: 1px solid var(--border, rgba(128,128,128,0.1)); }
 
@@ -1040,14 +1079,16 @@
   border-radius: 3px;
 }
 
+/* `left` is bound to an inset calc() in the component, so the marker tracks
+   its position without escaping either end of the track. */
 .health-bar-marker {
   position: absolute;
   top: -3px;
+  left: 0;
   width: 2px;
   height: 12px;
   background: var(--text-primary, #fff);
   border-radius: 1px;
-  transform: translateX(-50%);
 }
 
 .health-bar-labels {
