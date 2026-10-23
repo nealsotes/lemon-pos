@@ -6,6 +6,7 @@ import { Subject } from 'rxjs';
 import { takeUntil, finalize } from 'rxjs/operators';
 import { UserAccount } from '../../../../shared/models/user.model';
 import { UserManagementService } from '../../services/user-management.service';
+import { KpiItem } from '../../../../shared/ui/kpi-strip/kpi-strip.component';
 import { AuthService } from '../../../../core/services/auth.service';
 import { TopBarComponent } from '../../../../shared/ui/top-bar/top-bar.component';
 import { KpiStripComponent } from '../../../../shared/ui/kpi-strip/kpi-strip.component';
@@ -54,7 +55,7 @@ export class UserManagementComponent implements OnInit, OnDestroy {
     { key: 'actions', label: '', width: '230px', align: 'right' as const, cellTemplate: 'actions' }
   ];
 
-  kpis: { label: string; value: string | number }[] = [];
+  kpis: KpiItem[] = [];
   users: UserView[] = [];
   isLoading = true;
 
@@ -194,12 +195,33 @@ export class UserManagementComponent implements OnInit, OnDestroy {
   private computeKpis(): void {
     const total = this.users.length;
     const active = this.users.filter(u => u.isActive).length;
+    const inactive = total - active;
     const neverLoggedIn = this.users.filter(u => !u.lastLoginAt).length;
     this.kpis = [
-      { label: 'Accounts', value: total },
-      { label: 'Active', value: active },
-      { label: 'Inactive', value: total - active },
-      { label: 'Never signed in', value: neverLoggedIn }
+      {
+        label: 'Total Accounts',
+        value: total,
+        trend: `${active} active logins`,
+        trendDirection: 'neutral' as const
+      },
+      {
+        label: 'Inactive',
+        value: inactive,
+        trend: inactive > 0 ? 'cannot sign in' : 'no disabled accounts',
+        trendDirection: inactive > 0 ? ('down' as const) : ('neutral' as const)
+      },
+      {
+        label: 'Never Signed In',
+        value: neverLoggedIn,
+        trend: 'unused accounts',
+        trendDirection: 'neutral' as const
+      },
+      {
+        label: 'Admins & Owners',
+        value: this.users.filter(u => ['Owner', 'Admin'].includes(this.roleLabel(u))).length,
+        trend: 'manager-level accounts',
+        trendDirection: 'neutral' as const
+      }
     ];
   }
 
