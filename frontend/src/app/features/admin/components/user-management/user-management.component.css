@@ -1,0 +1,109 @@
+.user-management-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--bg, #f6f7fb);
+}
+
+.page-body {
+  padding: 16px 20px 32px;
+}
+
+.settings-section {
+  background: #fff;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.section-header h2 {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+}
+
+.section-description {
+  margin: 0 0 12px;
+  color: var(--muted-foreground, #6b7280);
+  font-size: 0.85rem;
+}
+
+.add-account-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.add-account-form input[type='text'],
+.add-account-form input[type='password'],
+.add-account-form select {
+  padding: 8px 10px;
+  border: 1px solid var(--border, #d1d5db);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  min-width: 160px;
+}
+
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.users-table th,
+.users-table td {
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--border, #e5e7eb);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.users-table th {
+  font-weight: 600;
+  color: var(--muted-foreground, #6b7280);
+  border-bottom-width: 2px;
+}
+
+.users-table tr.inactive .username-cell {
+  text-decoration: line-through;
+  color: var(--muted-foreground, #9ca3af);
+}
+
+.actions-cell {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.password-reset-input {
+  padding: 6px 8px;
+  border: 1px solid var(--border, #d1d5db);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  min-width: 180px;
+}
+
+.badge-owner {
+  background: rgba(59, 130, 246, 0.12);
+  color: #1d4ed8;
+}
+
+.badge-admin {
+  background: rgba(234, 179, 8, 0.16);
+  color: #a16207;
+}
+
+.badge-active {
+  background: rgba(16, 185, 129, 0.14);
+  color: #047857;
+}
+
+.badge-inactive {
+  background: rgba(156, 163, 175, 0.18);
+  color: #6b7280;
+}
+
+.loading-text {
+  color: var(--muted-foreground, #6b7280);
+}

@@ -30,7 +30,8 @@ export class SettingsService {
       { path: '/reports', name: 'Reports', enabled: true, requiresOwner: true },
       { path: '/products', name: 'Products', enabled: true, requiresOwner: true },
       { path: '/inventory', name: 'Inventory', enabled: true, requiresOwner: true },
-      { path: '/printer-settings', name: 'Printer Settings', enabled: true, requiresOwner: true }
+      { path: '/printer-settings', name: 'Printer Settings', enabled: true, requiresOwner: true },
+      { path: '/users', name: 'Users', enabled: true, requiresOwner: true }
     ];
   }
 

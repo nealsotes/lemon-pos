@@ -14,6 +14,16 @@ public class UserRepository : IUserRepository
         _context = context;
     }
 
+    /// <summary>
+    /// Returns every user, including inactive ones (needed for admin account management).
+    /// </summary>
+    public async Task<List<User>> GetAllAsync()
+    {
+        return await _context.Users
+            .OrderBy(u => u.Username)
+            .ToListAsync();
+    }
+
     public async Task<User?> GetByUsernameAsync(string username)
     {
         return await _context.Users

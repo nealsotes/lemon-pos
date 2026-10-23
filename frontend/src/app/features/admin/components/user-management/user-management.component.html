@@ -1,0 +1,112 @@
+<div class="user-management-container">
+  <app-top-bar title="Users"></app-top-bar>
+
+  <div class="page-body">
+    <div class="alert alert-success" *ngIf="successMessage">
+      {{ successMessage }}
+    </div>
+    <div class="alert alert-error" *ngIf="errorMessage">
+      {{ errorMessage }}
+    </div>
+
+    <!-- Add Account -->
+    <div class="settings-section">
+      <div class="section-header">
+        <h2>👤 Add Account</h2>
+        <p class="section-description">Create login credentials for new staff</p>
+      </div>
+
+      <form class="add-account-form" (ngSubmit)="addAccount()">
+        <input
+          type="text"
+          name="username"
+          [(ngModel)]="newUsername"
+          placeholder="Username"
+          autocomplete="off"
+        >
+        <input
+          type="password"
+          name="password"
+          [(ngModel)]="newPassword"
+          placeholder="Password (min 6 characters)"
+          autocomplete="new-password"
+        >
+        <select name="role" [(ngModel)]="newRole">
+          <option *ngFor="let role of roleChoices" [value]="role">{{ role }}</option>
+        </select>
+        <button type="submit" class="btn btn-primary" [disabled]="isSaving">
+          {{ isSaving ? 'Saving...' : 'Add Account' }}
+        </button>
+      </form>
+    </div>
+
+    <!-- Accounts List -->
+    <div class="settings-section">
+      <div class="section-header">
+        <h2>👥 Accounts</h2>
+        <p class="section-description">Existing logins. Deactivated accounts cannot log in.</p>
+      </div>
+
+      <table class="users-table" *ngIf="!isLoading">
+        <thead>
+          <tr>
+            <th>Username</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Last Login</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let user of users" [class.inactive]="!user.isActive">
+            <td class="username-cell">{{ user.username }}</td>
+            <td>
+              <span class="badge" [class.badge-owner]="roleLabel(user) === 'Owner'"
+                [class.badge-admin]="roleLabel(user) === 'Admin'">{{ roleLabel(user) }}</span>
+            </td>
+            <td>
+              <span class="badge" [class.badge-active]="user.isActive" [class.badge-inactive]="!user.isActive">
+                {{ user.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+            <td>{{ user.lastLoginAt ? (user.lastLoginAt | date:'short') : 'Never' }}</td>
+            <td class="actions-cell">
+              <ng-container *ngIf="passwordResetId !== user.id; else passwordEditor">
+                <button type="button" class="btn btn-secondary btn-sm" (click)="startPasswordReset(user)">
+                  Reset Password
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm"
+                  [class.btn-danger]="user.isActive"
+                  [class.btn-primary]="!user.isActive"
+                  [disabled]="isSaving"
+                  (click)="toggleActive(user)">
+                  {{ user.isActive ? 'Deactivate' : 'Activate' }}
+                </button>
+              </ng-container>
+              <ng-template #passwordEditor>
+                <input
+                  type="password"
+                  name="passwordResetValue"
+                  [(ngModel)]="passwordResetValue"
+                  placeholder="New password (min 6)"
+                  autocomplete="new-password"
+                  class="password-reset-input"
+                >
+                <button type="button" class="btn btn-primary btn-sm" [disabled]="isSaving" (click)="savePasswordReset()">
+                  Save
+                </button>
+                <button type="button" class="btn btn-ghost btn-sm" (click)="cancelPasswordReset()">
+                  Cancel
+                </button>
+              </ng-template>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p class="loading-text" *ngIf="isLoading">Loading accounts...</p>
+    </div>
+  </div>
+</div>

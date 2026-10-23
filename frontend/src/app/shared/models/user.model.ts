@@ -19,6 +19,21 @@ export interface LoginResponse {
   expiresAt: string;
 }
 
+export interface UserAccount {
+  id: string;
+  username: string;
+  role: UserRole | string | number;
+  createdAt: string;
+  lastLoginAt: string | null;
+  isActive: boolean;
+}
+
+export interface CreateUserRequest {
+  username: string;
+  password: string;
+  role: string;
+}
+
 
 
 

@@ -219,6 +219,7 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IFileService, FileService>();
 builder.Services.AddScoped<IPrintService, PrintService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 // Configure JWT Authentication - Use environment variable if available (Railway)
 // Try multiple environment variable formats for compatibility

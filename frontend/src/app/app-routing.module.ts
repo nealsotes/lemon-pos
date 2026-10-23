@@ -9,6 +9,7 @@ import { LoginComponent } from './features/auth/components/login/login.component
 import { PublicMenuComponent } from './features/pos/components/public-menu/public-menu.component';
 import { SettingsComponent } from './features/admin/components/settings/settings.component';
 import { ExpensesComponent } from './features/admin/components/expenses/expenses.component';
+import { UserManagementComponent } from './features/admin/components/user-management/user-management.component';
 import { AuthGuard } from './core/guards/auth.guard';
 import { RoleGuard } from './core/guards/role.guard';
 import { AdminGuard } from './core/guards/admin.guard';
@@ -27,6 +28,7 @@ export const routes: Routes = [
   { path: 'expenses', component: ExpensesComponent, canActivate: [AuthGuard, RoleGuard] },
   { path: 'printer-settings', component: PrinterSettingsComponent, canActivate: [AuthGuard, RoleGuard] },
   { path: 'settings', component: SettingsComponent, canActivate: [AuthGuard, AdminGuard] },
+  { path: 'users', component: UserManagementComponent, canActivate: [AuthGuard, RoleGuard] },
 
   // Default redirects
   { path: '', redirectTo: '/pos', pathMatch: 'full' },
