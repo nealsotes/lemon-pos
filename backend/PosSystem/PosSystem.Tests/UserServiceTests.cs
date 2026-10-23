@@ -30,6 +30,35 @@ public class UserServiceTests
     }
 
     [Fact]
+    public async Task GetAllUsersAsync_WhenViewerIsOwner_HidesAdminAccounts()
+    {
+        _userRepository.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<User>
+        {
+            new User { Id = "1", Username = "admin", Role = UserRole.Admin, IsActive = true },
+            new User { Id = "2", Username = "owner", Role = UserRole.Owner, IsActive = true },
+            new User { Id = "3", Username = "emp", Role = UserRole.Employee, IsActive = true }
+        });
+
+        var result = await _service.GetAllUsersAsync("Owner");
+
+        Assert.Equal(new[] { "owner", "emp" }, result.Select(u => u.Username));
+    }
+
+    [Fact]
+    public async Task GetAllUsersAsync_WhenViewerIsAdmin_ShowsAdminAccounts()
+    {
+        _userRepository.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<User>
+        {
+            new User { Id = "1", Username = "admin", Role = UserRole.Admin, IsActive = true },
+            new User { Id = "2", Username = "owner", Role = UserRole.Owner, IsActive = true }
+        });
+
+        var result = await _service.GetAllUsersAsync("Admin");
+
+        Assert.Equal(new[] { "admin", "owner" }, result.Select(u => u.Username));
+    }
+
+    [Fact]
     public async Task CreateUserAsync_OwnerCreatingAdmin_ThrowsInvalidOperationException()
     {
         // Owner can mint Owner/Employee accounts, never Admin (the manager role)

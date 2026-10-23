@@ -15,9 +15,16 @@ public class UserService : IUserService
         _userRepository = userRepository;
     }
 
-    public async Task<List<UserDto>> GetAllUsersAsync()
+    public async Task<List<UserDto>> GetAllUsersAsync(string? viewerRole = null)
     {
         var users = await _userRepository.GetAllAsync();
+
+        // Owners manage staff — admin (manager role) accounts are not part of their view
+        if (string.Equals(viewerRole, nameof(UserRole.Owner), StringComparison.OrdinalIgnoreCase))
+        {
+            users = users.Where(u => u.Role != UserRole.Admin).ToList();
+        }
+
         return users.Select(ToDto).ToList();
     }
 

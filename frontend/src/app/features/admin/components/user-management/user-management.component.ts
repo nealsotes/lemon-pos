@@ -61,7 +61,10 @@ export class UserManagementComponent implements OnInit, OnDestroy {
 
   searchTerm = '';
   roleFilter = '';
-  readonly roleFilters = ['Owner', 'Employee', 'Admin'];
+  /** Role filter chips follow what the viewer is allowed to see/create — no Admin chip on Owner's view. */
+  get roleFilters(): string[] {
+    return this.authService.isOwner() ? ['Owner', 'Employee'] : ['Owner', 'Employee', 'Admin'];
+  }
 
   currentUsername: string | null = null;
 
@@ -217,7 +220,7 @@ export class UserManagementComponent implements OnInit, OnDestroy {
         trendDirection: 'neutral' as const
       },
       {
-        label: 'Admins & Owners',
+        label: this.authService.isOwner() ? 'Owner Accounts' : 'Admins & Owners',
         value: this.users.filter(u => ['Owner', 'Admin'].includes(this.roleLabel(u))).length,
         trend: 'manager-level accounts',
         trendDirection: 'neutral' as const

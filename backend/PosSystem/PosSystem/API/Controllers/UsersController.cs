@@ -21,7 +21,7 @@ public class UsersController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<List<UserDto>>> GetAllUsers()
     {
-        var users = await _userService.GetAllUsersAsync();
+        var users = await _userService.GetAllUsersAsync(User?.FindFirst(ClaimTypes.Role)?.Value);
         return Ok(users);
     }
 
