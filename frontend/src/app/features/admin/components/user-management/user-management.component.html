@@ -1,112 +1,100 @@
-<div class="user-management-container">
-  <app-top-bar title="Users"></app-top-bar>
+<div class="users-page">
+  <!-- Top Bar -->
+  <app-top-bar title="Users">
+    <button type="button" class="btn btn-primary btn-sm" (click)="openAddAccount()" [disabled]="isLoading">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <path d="M12 5v14M5 12h14"/>
+      </svg>
+      Add Account
+    </button>
+    <button type="button" class="btn btn-ghost btn-sm" (click)="loadUsers()" [disabled]="isLoading" title="Refresh">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1 4v6h6M23 20v-6h-6"/>
+        <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/>
+      </svg>
+    </button>
+  </app-top-bar>
 
   <div class="page-body">
-    <div class="alert alert-success" *ngIf="successMessage">
-      {{ successMessage }}
-    </div>
-    <div class="alert alert-error" *ngIf="errorMessage">
-      {{ errorMessage }}
-    </div>
+    <!-- Account overview -->
+    <app-kpi-strip [kpis]="kpis"></app-kpi-strip>
 
-    <!-- Add Account -->
-    <div class="settings-section">
-      <div class="section-header">
-        <h2>👤 Add Account</h2>
-        <p class="section-description">Create login credentials for new staff</p>
+    <!-- Accounts panel -->
+    <div class="panel">
+      <app-filter-bar
+        title="Account Management"
+        subtitle="Logins for the POS and admin pages"
+        searchPlaceholder="Search users..."
+        [searchValue]="searchTerm"
+        [categories]="roleFilters"
+        [selectedCategory]="roleFilter"
+        (searchChange)="searchTerm = $event"
+        (categoryChange)="roleFilter = $event">
+      </app-filter-bar>
+
+      <app-loading-spinner *ngIf="isLoading" message="Loading accounts..."></app-loading-spinner>
+
+      <div class="accounts-table-holder" *ngIf="!isLoading">
+        <app-data-table
+          [columns]="tableColumns"
+          [data]="filteredUsers"
+          [clickable]="false"
+          emptyIcon="👤"
+          emptyTitle="No accounts found"
+          [emptyMessage]="searchTerm || roleFilter ? 'No accounts match your filter' : 'Add your first account to get started'"
+          [emptyAction]="searchTerm || roleFilter ? '' : 'Add First Account'"
+          (emptyActionClick)="openAddAccount()">
+
+          <!-- User cell: initial avatar + username -->
+          <ng-template cellDef="user" let-row>
+            <div class="user-cell">
+              <span class="user-avatar" [class.inactive]="!row.isActive">{{ row.initial }}</span>
+              <span class="user-name" [class.strikethrough]="!row.isActive">{{ row.username }}</span>
+              <span *ngIf="row.username.toLowerCase() === (currentUsername || '').toLowerCase()"
+                class="you-chip">you</span>
+            </div>
+          </ng-template>
+
+          <!-- Role cell -->
+          <ng-template cellDef="role" let-row>
+            <span class="role-badge" [class]="'role-' + row.roleLabel.toLowerCase()">
+              {{ row.roleLabel }}
+            </span>
+          </ng-template>
+
+          <!-- Last login cell -->
+          <ng-template cellDef="lastLogin" let-row>
+            <span class="login-cell" *ngIf="row.lastLoginAt; else never">
+              {{ row.lastLoginAt | date:'MMM d, h:mm a' }}
+            </span>
+            <ng-template #never><span class="login-never">Never</span></ng-template>
+          </ng-template>
+
+          <!-- Status cell -->
+          <ng-template cellDef="status" let-row>
+            <span class="status-dot" [class.ok]="row.isActive" [class.off]="!row.isActive"></span>
+            {{ row.isActive ? 'Active' : 'Inactive' }}
+          </ng-template>
+
+          <!-- Actions cell -->
+          <ng-template cellDef="actions" let-row>
+            <div class="row-actions">
+              <button type="button" class="btn btn-secondary btn-sm" (click)="openPasswordReset(row)">
+                Reset Password
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm"
+                *ngIf="canToggle(row)"
+                [class.btn-danger]="row.isActive"
+                [class.btn-primary]="!row.isActive"
+                (click)="toggleActive(row)">
+                {{ row.isActive ? 'Deactivate' : 'Activate' }}
+              </button>
+            </div>
+          </ng-template>
+        </app-data-table>
       </div>
-
-      <form class="add-account-form" (ngSubmit)="addAccount()">
-        <input
-          type="text"
-          name="username"
-          [(ngModel)]="newUsername"
-          placeholder="Username"
-          autocomplete="off"
-        >
-        <input
-          type="password"
-          name="password"
-          [(ngModel)]="newPassword"
-          placeholder="Password (min 6 characters)"
-          autocomplete="new-password"
-        >
-        <select name="role" [(ngModel)]="newRole">
-          <option *ngFor="let role of roleChoices" [value]="role">{{ role }}</option>
-        </select>
-        <button type="submit" class="btn btn-primary" [disabled]="isSaving">
-          {{ isSaving ? 'Saving...' : 'Add Account' }}
-        </button>
-      </form>
-    </div>
-
-    <!-- Accounts List -->
-    <div class="settings-section">
-      <div class="section-header">
-        <h2>👥 Accounts</h2>
-        <p class="section-description">Existing logins. Deactivated accounts cannot log in.</p>
-      </div>
-
-      <table class="users-table" *ngIf="!isLoading">
-        <thead>
-          <tr>
-            <th>Username</th>
-            <th>Role</th>
-            <th>Status</th>
-            <th>Last Login</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let user of users" [class.inactive]="!user.isActive">
-            <td class="username-cell">{{ user.username }}</td>
-            <td>
-              <span class="badge" [class.badge-owner]="roleLabel(user) === 'Owner'"
-                [class.badge-admin]="roleLabel(user) === 'Admin'">{{ roleLabel(user) }}</span>
-            </td>
-            <td>
-              <span class="badge" [class.badge-active]="user.isActive" [class.badge-inactive]="!user.isActive">
-                {{ user.isActive ? 'Active' : 'Inactive' }}
-              </span>
-            </td>
-            <td>{{ user.lastLoginAt ? (user.lastLoginAt | date:'short') : 'Never' }}</td>
-            <td class="actions-cell">
-              <ng-container *ngIf="passwordResetId !== user.id; else passwordEditor">
-                <button type="button" class="btn btn-secondary btn-sm" (click)="startPasswordReset(user)">
-                  Reset Password
-                </button>
-                <button
-                  type="button"
-                  class="btn btn-sm"
-                  [class.btn-danger]="user.isActive"
-                  [class.btn-primary]="!user.isActive"
-                  [disabled]="isSaving"
-                  (click)="toggleActive(user)">
-                  {{ user.isActive ? 'Deactivate' : 'Activate' }}
-                </button>
-              </ng-container>
-              <ng-template #passwordEditor>
-                <input
-                  type="password"
-                  name="passwordResetValue"
-                  [(ngModel)]="passwordResetValue"
-                  placeholder="New password (min 6)"
-                  autocomplete="new-password"
-                  class="password-reset-input"
-                >
-                <button type="button" class="btn btn-primary btn-sm" [disabled]="isSaving" (click)="savePasswordReset()">
-                  Save
-                </button>
-                <button type="button" class="btn btn-ghost btn-sm" (click)="cancelPasswordReset()">
-                  Cancel
-                </button>
-              </ng-template>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <p class="loading-text" *ngIf="isLoading">Loading accounts...</p>
     </div>
   </div>
 </div>

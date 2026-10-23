@@ -1,70 +1,83 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subject } from 'rxjs';
-import { takeUntil, catchError, finalize } from 'rxjs/operators';
-import { throwError } from 'rxjs';
+import { takeUntil, finalize } from 'rxjs/operators';
 import { UserAccount } from '../../../../shared/models/user.model';
 import { UserManagementService } from '../../services/user-management.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { TopBarComponent } from '../../../../shared/ui/top-bar/top-bar.component';
+import { KpiStripComponent } from '../../../../shared/ui/kpi-strip/kpi-strip.component';
+import { FilterBarComponent } from '../../../../shared/ui/filter-bar/filter-bar.component';
+import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/loading-spinner.component';
+import {
+  DataTableComponent
+} from '../../../../shared/ui/data-table/data-table.component';
+import { CellDefDirective } from '../../../../shared/ui/data-table/cell-def.directive';
 import { ConfirmDialogService } from '../../../../shared/ui/confirm-dialog/confirm-dialog.service';
+import {
+  UserEditorDialogComponent,
+  UserEditorDialogData,
+  UserEditorDialogResult
+} from './user-editor-dialog.component';
 
-const ALL_ROLE_CHOICES = ['Owner', 'Employee', 'Admin'];
-/** A logged-in user can only create accounts at or beside their own role — never above it. */
-const CREATABLE_ROLES: Record<string, string[]> = {
-  owner: ['Owner', 'Employee'],
-  admin: ['Admin', 'Employee']
-};
+interface UserView extends UserAccount {
+  roleLabel: string;
+  initial: string;
+}
 
 @Component({
   selector: 'app-user-management',
   standalone: true,
-  imports: [CommonModule, FormsModule, TopBarComponent],
+  imports: [
+    CommonModule,
+    MatDialogModule,
+    TopBarComponent,
+    KpiStripComponent,
+    FilterBarComponent,
+    LoadingSpinnerComponent,
+    DataTableComponent,
+    CellDefDirective
+  ],
   templateUrl: './user-management.component.html',
   styleUrls: ['./user-management.component.css']
 })
 export class UserManagementComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
 
-  users: UserAccount[] = [];
+  readonly tableColumns = [
+    { key: 'username', label: 'User', cellTemplate: 'user' },
+    { key: 'roleLabel', label: 'Role', width: '110px', cellTemplate: 'role' },
+    { key: 'lastLoginAt', label: 'Last Login', width: '150px', cellTemplate: 'lastLogin' },
+    { key: 'isActive', label: 'Status', width: '100px', cellTemplate: 'status' },
+    { key: 'actions', label: '', width: '230px', align: 'right' as const, cellTemplate: 'actions' }
+  ];
+
+  kpis: { label: string; value: string | number }[] = [];
+  users: UserView[] = [];
   isLoading = true;
-  isSaving = false;
-  errorMessage: string | null = null;
-  successMessage: string | null = null;
 
-  // Add-account form — choices depend on who is logged in
-  newUsername = '';
-  newPassword = '';
-  newRole = 'Employee';
-  readonly roleChoices: string[];
+  searchTerm = '';
+  roleFilter = '';
+  readonly roleFilters = ['Owner', 'Employee', 'Admin'];
 
-  // Inline password reset
-  passwordResetId: string | null = null;
-  passwordResetValue = '';
+  currentUsername: string | null = null;
 
   constructor(
     private userManagementService: UserManagementService,
     private authService: AuthService,
+    private dialog: MatDialog,
+    private snackBar: MatSnackBar,
     private confirmService: ConfirmDialogService
-  ) {
-    // Owner sees Owner/Employee; Admin sees Admin/Employee (backend enforces the same rule)
-    this.roleChoices = this.computeRoleChoices();
-    this.newRole = this.roleChoices.includes('Employee') ? 'Employee' : this.roleChoices[0];
-  }
-
-  private computeRoleChoices(): string[] {
-    if (this.authService.isOwner()) {
-      return CREATABLE_ROLES['owner'];
-    }
-    if (this.authService.isAdmin()) {
-      return CREATABLE_ROLES['admin'];
-    }
-    return [];
-  }
+  ) {}
 
   ngOnInit(): void {
+    this.authService.currentUser$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(user => {
+        this.currentUsername = typeof user?.username === 'string' ? user.username : null;
+      });
     this.loadUsers();
   }
 
@@ -81,79 +94,50 @@ export class UserManagementComponent implements OnInit, OnDestroy {
         finalize(() => (this.isLoading = false))
       )
       .subscribe({
-        next: users => {
-          this.users = users;
+        next: accounts => {
+          this.users = accounts.map(account => this.toView(account));
+          this.computeKpis();
         },
-        error: error => {
-          this.errorMessage = this.extractMessage(error);
-        }
+        error: () => this.showSnack('Could not load accounts', 'error')
       });
   }
 
-  addAccount(): void {
-    const username = this.newUsername.trim();
-    if (!username || !this.newPassword) {
-      this.errorMessage = 'Username and password are required';
-      return;
-    }
-
-    this.isSaving = true;
-    this.clearMessages();
-    this.userManagementService.createUser({ username, password: this.newPassword, role: this.newRole })
-      .pipe(
-        takeUntil(this.destroy$),
-        catchError(error => {
-          this.errorMessage = this.extractMessage(error);
-          return throwError(() => error);
-        }),
-        finalize(() => (this.isSaving = false))
-      )
-      .subscribe({
-        next: () => {
-          this.showSuccess(`Account '${username}' created`);
-          this.newUsername = '';
-          this.newPassword = '';
-          this.newRole = 'Employee';
-          this.loadUsers();
-        }
-      });
+  get filteredUsers(): UserView[] {
+    const term = this.searchTerm.trim().toLowerCase();
+    return this.users.filter(user => {
+      if (this.roleFilter && user.roleLabel !== this.roleFilter) {
+        return false;
+      }
+      return !term || user.username.toLowerCase().includes(term);
+    });
   }
 
-  startPasswordReset(user: UserAccount): void {
-    this.passwordResetId = user.id;
-    this.passwordResetValue = '';
+  openAddAccount(): void {
+    const data: UserEditorDialogData = { mode: 'create', creatableRoles: this.creatableRoles() };
+    this.dialog.open<UserEditorDialogComponent, UserEditorDialogData, UserEditorDialogResult>(
+      UserEditorDialogComponent,
+      { data, width: '420px', autoFocus: 'first-taggable' }
+    ).afterClosed().pipe(takeUntil(this.destroy$)).subscribe(result => {
+      if (result?.created) {
+        this.showSnack(`Account '${result.username}' created`, 'success');
+        this.loadUsers();
+      }
+    });
   }
 
-  cancelPasswordReset(): void {
-    this.passwordResetId = null;
-    this.passwordResetValue = '';
+  openPasswordReset(user: UserView): void {
+    const data: UserEditorDialogData = { mode: 'reset-password', account: user };
+    this.dialog.open<UserEditorDialogComponent, UserEditorDialogData, UserEditorDialogResult>(
+      UserEditorDialogComponent,
+      { data, width: '420px', autoFocus: 'first-taggable' }
+    ).afterClosed().pipe(takeUntil(this.destroy$)).subscribe(result => {
+      if (result?.saved) {
+        this.showSnack(`Password updated for '${user.username}'`, 'success');
+      }
+    });
   }
 
-  savePasswordReset(): void {
-    if (!this.passwordResetId) {
-      return;
-    }
-
-    this.isSaving = true;
-    this.clearMessages();
-    this.userManagementService.setUserPassword(this.passwordResetId, this.passwordResetValue)
-      .pipe(
-        takeUntil(this.destroy$),
-        catchError(error => {
-          this.errorMessage = this.extractMessage(error);
-          return throwError(() => error);
-        }),
-        finalize(() => (this.isSaving = false))
-      )
-      .subscribe({
-        next: () => {
-          this.showSuccess('Password updated');
-          this.cancelPasswordReset();
-        }
-      });
-  }
-
-  async toggleActive(user: UserAccount): Promise<void> {
+  async toggleActive(user: UserView): Promise<void> {
     if (user.isActive) {
       const confirmed = await this.confirmService.confirm({
         title: 'Deactivate Account',
@@ -166,43 +150,63 @@ export class UserManagementComponent implements OnInit, OnDestroy {
       }
     }
 
-    this.isSaving = true;
-    this.clearMessages();
     this.userManagementService.setUserStatus(user.id, !user.isActive)
-      .pipe(
-        takeUntil(this.destroy$),
-        catchError(error => {
-          this.errorMessage = this.extractMessage(error);
-          return throwError(() => error);
-        }),
-        finalize(() => (this.isSaving = false))
-      )
+      .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: () => this.loadUsers()
+        next: () => {
+          this.showSnack(`Account '${user.username}' ${user.isActive ? 'deactivated' : 'activated'}`, 'success');
+          this.loadUsers();
+        },
+        error: error => this.showSnack(error?.error?.message ?? 'Could not update account', 'error')
       });
   }
 
-  roleLabel(user: UserAccount): string {
+  /** Whether this row's deactivate/activate action should be offered. */
+  canToggle(user: UserView): boolean {
+    return !user.isActive ||
+      this.currentUsername === null ||
+      user.username.toLowerCase() !== this.currentUsername.toLowerCase();
+  }
+
+  private creatableRoles(): string[] {
+    if (this.authService.isOwner()) {
+      return ['Owner', 'Employee'];
+    }
+    if (this.authService.isAdmin()) {
+      return ['Admin', 'Employee'];
+    }
+    return [];
+  }
+
+  private toView(account: UserAccount): UserView {
+    const label = this.roleLabel(account);
+    return { ...account, roleLabel: label, initial: (account.username[0] ?? '?').toUpperCase() };
+  }
+
+  private roleLabel(user: UserAccount): string {
     const role = user.role;
     if (typeof role === 'number') {
-      return ALL_ROLE_CHOICES[role - 1] ?? String(role);
+      return ['Owner', 'Employee', 'Admin'][role - 1] ?? String(role);
     }
     return String(role);
   }
 
-  private extractMessage(error: any): string {
-    return error?.error?.message ?? error?.error?.errors?.join(', ') ?? error?.message ?? 'Something went wrong';
+  private computeKpis(): void {
+    const total = this.users.length;
+    const active = this.users.filter(u => u.isActive).length;
+    const neverLoggedIn = this.users.filter(u => !u.lastLoginAt).length;
+    this.kpis = [
+      { label: 'Accounts', value: total },
+      { label: 'Active', value: active },
+      { label: 'Inactive', value: total - active },
+      { label: 'Never signed in', value: neverLoggedIn }
+    ];
   }
 
-  private showSuccess(message: string): void {
-    this.successMessage = message;
-    setTimeout(() => {
-      this.successMessage = null;
-    }, 3000);
-  }
-
-  private clearMessages(): void {
-    this.errorMessage = null;
-    this.successMessage = null;
+  private showSnack(message: string, kind: 'success' | 'error'): void {
+    this.snackBar.open(message, 'Close', {
+      duration: 3000,
+      panelClass: [kind === 'success' ? 'success-snackbar' : 'error-snackbar']
+    });
   }
 }

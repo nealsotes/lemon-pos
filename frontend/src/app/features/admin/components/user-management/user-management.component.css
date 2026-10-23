@@ -1,109 +1,160 @@
-.user-management-container {
+.users-page {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: var(--bg, #f6f7fb);
+  background: var(--bg-app);
+  color: var(--text-primary);
 }
 
 .page-body {
   padding: 16px 20px 32px;
-}
-
-.settings-section {
-  background: #fff;
-  border: 1px solid var(--border, #e5e7eb);
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 16px;
-}
-
-.section-header h2 {
-  margin: 0 0 4px;
-  font-size: 1.05rem;
-}
-
-.section-description {
-  margin: 0 0 12px;
-  color: var(--muted-foreground, #6b7280);
-  font-size: 0.85rem;
-}
-
-.add-account-form {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.accounts-table-holder {
+  padding: 12px 16px 16px;
+}
+
+/* ---------- User cell ---------- */
+.user-cell {
+  display: flex;
   align-items: center;
+  gap: 10px;
+  min-width: 0;
 }
 
-.add-account-form input[type='text'],
-.add-account-form input[type='password'],
-.add-account-form select {
-  padding: 8px 10px;
-  border: 1px solid var(--border, #d1d5db);
+.user-avatar {
+  width: 30px;
+  height: 30px;
   border-radius: 8px;
-  font-size: 0.9rem;
-  min-width: 160px;
+  background: var(--accent-subtle);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.users-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
+.user-avatar.inactive {
+  filter: grayscale(1);
+  opacity: 0.55;
 }
 
-.users-table th,
-.users-table td {
-  padding: 10px 8px;
-  border-bottom: 1px solid var(--border, #e5e7eb);
-  text-align: left;
+.user-name {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-name.strikethrough {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.you-chip {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  background: var(--accent-subtle);
+  border-radius: 999px;
+  padding: 2px 8px;
+  flex-shrink: 0;
+}
+
+/* ---------- Role badges ---------- */
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.role-owner {
+  background: var(--accent-subtle);
+  color: var(--accent);
+}
+
+.role-employee {
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.role-admin {
+  background: rgba(217, 119, 6, 0.12);
+  color: var(--warning);
+}
+
+/* ---------- Status ---------- */
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
   vertical-align: middle;
 }
 
-.users-table th {
-  font-weight: 600;
-  color: var(--muted-foreground, #6b7280);
-  border-bottom-width: 2px;
+.status-dot.ok {
+  background: var(--success);
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
 }
 
-.users-table tr.inactive .username-cell {
-  text-decoration: line-through;
-  color: var(--muted-foreground, #9ca3af);
+.status-dot.off {
+  background: var(--text-muted);
+  opacity: 0.5;
+  box-shadow: none;
 }
 
-.actions-cell {
+.login-cell {
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+}
+
+.login-never {
+  color: var(--text-muted);
+  font-size: 0.84rem;
+  font-style: italic;
+}
+
+/* ---------- Row actions ---------- */
+.row-actions {
   display: flex;
   gap: 8px;
+  justify-content: flex-end;
   flex-wrap: wrap;
 }
 
-.password-reset-input {
-  padding: 6px 8px;
-  border: 1px solid var(--border, #d1d5db);
-  border-radius: 8px;
-  font-size: 0.85rem;
-  min-width: 180px;
-}
+/* ---------- Mobile ---------- */
+@media (max-width: 768px) {
+  .page-body {
+    padding: 12px 12px 96px;
+  }
 
-.badge-owner {
-  background: rgba(59, 130, 246, 0.12);
-  color: #1d4ed8;
-}
+  .accounts-table-holder {
+    padding: 8px 10px 12px;
+  }
 
-.badge-admin {
-  background: rgba(234, 179, 8, 0.16);
-  color: #a16207;
-}
-
-.badge-active {
-  background: rgba(16, 185, 129, 0.14);
-  color: #047857;
-}
-
-.badge-inactive {
-  background: rgba(156, 163, 175, 0.18);
-  color: #6b7280;
-}
-
-.loading-text {
-  color: var(--muted-foreground, #6b7280);
+  .row-actions .btn {
+    margin-right: 0;
+  }
 }
