@@ -157,11 +157,18 @@ import { PwaService } from '../../../core/services/pwa.service';
       }
     }
 
+    /* On phones the bottom tab bar (56px + safe-area) can't be covered — keep the banner above it */
+    @media (max-width: 768px) {
+      .pwa-install-banner {
+        bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+      }
+    }
+
     @media (max-width: 480px) {
       .pwa-install-banner {
         left: 10px;
         right: 10px;
-        bottom: 10px;
+        bottom: calc(64px + env(safe-area-inset-bottom, 0px));
       }
       
       .banner-content {
