@@ -21,7 +21,7 @@ public class UserService : IUserService
         return users.Select(ToDto).ToList();
     }
 
-    public async Task<UserDto> CreateUserAsync(CreateUserRequest request)
+    public async Task<UserDto> CreateUserAsync(CreateUserRequest request, string? creatorRole = null)
     {
         var username = request.Username?.Trim() ?? string.Empty;
         ValidateUsername(username);
@@ -31,6 +31,8 @@ public class UserService : IUserService
         {
             throw new ArgumentException($"Invalid role '{request.Role}'. Expected Owner, Employee, or Admin.");
         }
+
+        ValidateCreatorRole(creatorRole, role);
 
         var existingUsers = await _userRepository.GetAllAsync();
         if (existingUsers.Any(u => u.Username.Equals(username, StringComparison.OrdinalIgnoreCase)))
@@ -76,6 +78,36 @@ public class UserService : IUserService
 
         user.IsActive = isActive;
         await _userRepository.UpdateAsync(user);
+    }
+
+    /// <summary>
+    /// A user cannot mint accounts that outrank or sidestep their own role:
+    /// Owner can create Owner/Employee, Admin can create Admin/Employee,
+    /// but Owner cannot create Admin and Admin cannot create Owner.
+    /// </summary>
+    private static readonly Dictionary<string, UserRole[]> CreatorAllowedRoles = new(StringComparer.OrdinalIgnoreCase)
+    {
+        [nameof(UserRole.Owner)] = new[] { UserRole.Owner, UserRole.Employee },
+        [nameof(UserRole.Admin)] = new[] { UserRole.Admin, UserRole.Employee }
+    };
+
+    private static void ValidateCreatorRole(string? creatorRole, UserRole requestedRole)
+    {
+        if (string.IsNullOrEmpty(creatorRole))
+        {
+            return;
+        }
+
+        if (!CreatorAllowedRoles.TryGetValue(creatorRole, out var allowed))
+        {
+            throw new InvalidOperationException($"Role '{creatorRole}' cannot create accounts.");
+        }
+
+        if (!allowed.Contains(requestedRole))
+        {
+            throw new InvalidOperationException(
+                $"A {creatorRole} account cannot create {requestedRole} accounts.");
+        }
     }
 
     private void ValidateUsername(string username)

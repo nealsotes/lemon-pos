@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PosSystem.Core.Interfaces;
@@ -42,7 +43,8 @@ public class UsersController : ControllerBase
     {
         try
         {
-            var user = await _userService.CreateUserAsync(request);
+            var creatorRole = User?.FindFirst(ClaimTypes.Role)?.Value;
+            var user = await _userService.CreateUserAsync(request, creatorRole);
             return CreatedAtAction(nameof(GetUserById), new { id = user.Id }, user);
         }
         catch (ArgumentException ex)

@@ -30,6 +30,36 @@ public class UserServiceTests
     }
 
     [Fact]
+    public async Task CreateUserAsync_OwnerCreatingAdmin_ThrowsInvalidOperationException()
+    {
+        // Owner can mint Owner/Employee accounts, never Admin (the manager role)
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => _service.CreateUserAsync(ValidRequest(role: "Admin"), creatorRole: "Owner"));
+    }
+
+    [Fact]
+    public async Task CreateUserAsync_AdminCreatingOwner_ThrowsInvalidOperationException()
+    {
+        // Symmetric rule: Admin cannot mint Owner accounts
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => _service.CreateUserAsync(ValidRequest(role: "Owner"), creatorRole: "Admin"));
+    }
+
+    [Fact]
+    public async Task CreateUserAsync_OwnerCanCreateOwnerAndEmployee()
+    {
+        _userRepository.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<User>());
+        _userRepository.Setup(r => r.CreateAsync(It.IsAny<User>()))
+            .ReturnsAsync((User user) => user);
+
+        var ownerAccount = await _service.CreateUserAsync(ValidRequest(username: "co-owner", role: "Owner"), creatorRole: "Owner");
+        var employeeAccount = await _service.CreateUserAsync(ValidRequest(username: "worker", role: "Employee"), creatorRole: "Owner");
+
+        Assert.Equal("Owner", ownerAccount.Role);
+        Assert.Equal("Employee", employeeAccount.Role);
+    }
+
+    [Fact]
     public async Task CreateUserAsync_WithValidRequest_HashesPasswordAndReturnsDto()
     {
         _userRepository.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<User>());
