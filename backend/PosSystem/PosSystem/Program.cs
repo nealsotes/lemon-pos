@@ -721,6 +721,16 @@ using (var scope = app.Services.CreateScope())
         // Column already exists - expected, ignore
     }
 
+    // Add Stock column (older databases track quantity via low-stock thresholds only)
+    try
+    {
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE `Products` ADD COLUMN `Stock` INT NOT NULL DEFAULT 0");
+    }
+    catch
+    {
+        // Column already exists - expected, ignore
+    }
+
     // Widen Products.Image to MEDIUMTEXT so base64-encoded images fit (Railway has no persistent FS for uploads)
     try
     {
