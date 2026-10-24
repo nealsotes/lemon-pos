@@ -44,6 +44,13 @@ public class ExpensesController : ControllerBase
         }
     }
 
+    [HttpGet("import-template")]
+    public IActionResult ImportExpensesTemplate()
+    {
+        var bytes = _importService.GetTemplateWorkbook(ImportKind.Expenses);
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "expenses_import_template.xlsx");
+    }
+
     [HttpGet("export")]
     public async Task<IActionResult> ExportExpensesAsync(
         [FromQuery] string format = "xlsx",

@@ -30,4 +30,6 @@ public class ImportResultReport
 public interface IImportService
 {
     Task<ImportResultReport> ImportAsync(ImportKind kind, string fileName, Stream stream, string userId);
+
+    byte[] GetTemplateWorkbook(ImportKind kind);
 }

@@ -38,6 +38,49 @@ public class ImportService : IImportService
         _expenseCategoryRepository = expenseCategoryRepository;
     }
 
+    // ── Template workbook: the same columns ImportAsync reads, with one obvious
+    // placeholder row (clearly marked to be replaced) so users can see the expected
+    // format before filling it in. ──
+
+    public byte[] GetTemplateWorkbook(ImportKind kind)
+    {
+        var (sheetName, headers, example) = GetTemplateShape(kind);
+
+        using var workbook = new XLWorkbook();
+        var ws = workbook.Worksheets.Add(sheetName);
+        for (var c = 0; c < headers.Length; c++)
+        {
+            ws.Cell(1, c + 1).Value = headers[c];
+            ws.Cell(1, c + 1).Style.Font.Bold = true;
+        }
+        for (var c = 0; c < example.Length; c++)
+        {
+            ws.Cell(2, c + 1).Value = example[c];
+        }
+        ws.Columns().AdjustToContents();
+
+        using var ms = new MemoryStream();
+        workbook.SaveAs(ms);
+        return ms.ToArray();
+    }
+
+    private static (string sheetName, string[] headers, string[] example) GetTemplateShape(ImportKind kind) => kind switch
+    {
+        ImportKind.Products => (
+            "Products",
+            new[] { "Name", "Category", "Price", "Hot Price", "Cold Price", "Stock", "Low Stock Threshold", "Status" },
+            new[] { "Sample Product (replace)", "Drinks", "85", "", "", "50", "10", "Active" }),
+        ImportKind.Ingredients => (
+            "Ingredients",
+            new[] { "Name", "Quantity", "Unit", "Unit Cost", "Supplier", "Low Stock Threshold", "Expiration", "Last Purchase", "Last Purchase Cost", "Status" },
+            new[] { "Sample Ingredient (replace)", "5", "kg", "42.50", "Supplier Co", "3", "", "", "", "Active" }),
+        ImportKind.Expenses => (
+            "Expenses",
+            new[] { "Date", "Category", "Description", "Amount", "Recurring", "Recurrence", "Notes" },
+            new[] { "2026-10-24", "Utilities", "Sample expense (replace)", "320.50", "No", "", "" }),
+        _ => throw new ArgumentException("Unknown import kind.")
+    };
+
     public async Task<ImportResultReport> ImportAsync(ImportKind kind, string fileName, Stream stream, string userId)
     {
         if (string.IsNullOrWhiteSpace(fileName))

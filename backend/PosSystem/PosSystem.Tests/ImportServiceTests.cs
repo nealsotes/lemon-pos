@@ -191,6 +191,32 @@ public class ImportServiceTests
         Assert.Empty(report.Errors);
     }
 
+    // ── Templates ──
+
+    [Fact]
+    public async Task GetTemplateWorkbook_Products_ReturnsXlsxWithImportHeadersAndExampleRow()
+    {
+        var bytes = CreateService().GetTemplateWorkbook(ImportKind.Products);
+
+        using var workbook = new XLWorkbook(new MemoryStream(bytes));
+        var ws = workbook.Worksheets.First();
+        Assert.Equal("Name", ws.Cell(1, 1).GetString());
+        Assert.Equal("Status", ws.Cell(1, 8).GetString());
+        Assert.Contains("Sample Product", ws.Cell(2, 1).GetString());
+        // Header + exactly one example row — templates must arrive clean, not half-filled.
+        Assert.Equal(2, ws.RowsUsed().Count());
+
+        // And the template itself must round-trip through the importer once filled.
+        using var filled = new XLWorkbook(new MemoryStream(bytes));
+        filled.Worksheets.First().Cell(2, 1).Value = "Template Roundtrip Coffee";
+        var ms = new MemoryStream();
+        filled.SaveAs(ms);
+        ms.Position = 0;
+        _productService.Setup(s => s.GetAllProductsAsync()).ReturnsAsync(new List<Product>());
+        var report = await CreateService().ImportAsync(ImportKind.Products, "t.xlsx", ms, "system");
+        Assert.Equal(1, report.Created);
+    }
+
     // ── CSV plumbing ──
 
     [Fact]

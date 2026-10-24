@@ -43,6 +43,13 @@ public class IngredientsController : ControllerBase
         }
     }
 
+    [HttpGet("import-template")]
+    public IActionResult ImportIngredientsTemplate()
+    {
+        var bytes = _importService.GetTemplateWorkbook(ImportKind.Ingredients);
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "ingredients_import_template.xlsx");
+    }
+
     [HttpGet("export")]
     public async Task<IActionResult> ExportIngredientsAsync([FromQuery] string format = "xlsx")
     {

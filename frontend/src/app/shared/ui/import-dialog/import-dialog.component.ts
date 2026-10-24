@@ -22,20 +22,23 @@ export interface ImportResultReport {
 // expenses. Mirrors the confirm-dialog look (backdrop + dialog-card) so it feels
 // native to the app. Uploads multipart FormData to <api>/x/import and shows the
 // row-level report the backend returns; emits (imported) so the host page reloads.
-const IMPORT_META: Record<ImportKind, { title: string; endpoint: string; hint: string }> = {
+const IMPORT_META: Record<ImportKind, { title: string; endpoint: string; templateEndpoint: string; hint: string }> = {
   products: {
     title: 'Import Products',
     endpoint: `${environment.apiUrl}/products/import`,
+    templateEndpoint: `${environment.apiUrl}/products/import-template`,
     hint: 'Columns match the Products export: Name, Category, Price, Hot Price, Cold Price, Stock, Low Stock Threshold, Status. Existing products are matched by name and updated; new names are added.'
   },
   ingredients: {
     title: 'Import Ingredients',
     endpoint: `${environment.apiUrl}/ingredients/import`,
+    templateEndpoint: `${environment.apiUrl}/ingredients/import-template`,
     hint: 'Columns match the Ingredients export: Name, Quantity, Unit, Unit Cost, Supplier, Low Stock Threshold, Expiration (YYYY-MM-DD), Status. Existing items are matched by name and updated; new names are added.'
   },
   expenses: {
     title: 'Import Expenses',
     endpoint: `${environment.apiUrl}/expenses/import`,
+    templateEndpoint: `${environment.apiUrl}/expenses/import-template`,
     hint: 'Columns match the Expenses export: Date (YYYY-MM-DD), Category, Description, Amount, Recurring, Recurrence, Notes. Every row adds a new expense; unknown categories are created automatically.'
   }
 };
@@ -66,6 +69,12 @@ const IMPORT_META: Record<ImportKind, { title: string; endpoint: string; hint: s
             <span class="drop-zone-text" *ngIf="!selectedFile">Click to choose a .csv or .xlsx file</span>
           </div>
           <p class="dialog-error" *ngIf="fileError">{{ fileError }}</p>
+          <p class="template-row">
+            Not sure of the format?
+            <button type="button" class="template-link" (click)="downloadTemplate()">
+              ⬇ Download the template (.xlsx)
+            </button>
+          </p>
         </div>
 
         <!-- Uploading -->
@@ -185,6 +194,29 @@ const IMPORT_META: Record<ImportKind, { title: string; endpoint: string; hint: s
       font-size: 12px;
       color: var(--danger, #dc3545);
       margin: var(--spacing-sm) 0 0;
+    }
+
+    .template-row {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin: var(--spacing-sm) 0 0;
+      text-align: center;
+    }
+
+    .template-link {
+      background: none;
+      border: none;
+      padding: 0;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .template-link:hover {
+      color: var(--accent-hover);
     }
 
     .drop-zone {
@@ -381,6 +413,29 @@ export class ImportDialogComponent {
     this.fileError = '';
     this.selectedFile = file;
     input.value = '';
+  }
+
+  // Fetch the server's template workbook and trigger a browser download.
+  downloadTemplate(): void {
+    const label = this.kind;
+    this.http.get(this.meta.templateEndpoint, { responseType: 'blob' }).subscribe({
+      next: blob => {
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = `${label}_import_template.xlsx`;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+      },
+      error: err => {
+        this.fileError =
+          (err?.error && typeof err.error === 'string' && err.error) ||
+          err?.error?.message ||
+          'Could not download the template.';
+      }
+    });
   }
 
   upload(): void {

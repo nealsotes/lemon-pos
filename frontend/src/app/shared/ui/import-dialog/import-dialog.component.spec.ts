@@ -52,6 +52,21 @@ describe('ImportDialogComponent', () => {
     expect(emitted.length).toBe(1);
   });
 
+  it('downloads the template workbook from the kind-specific endpoint', () => {
+    component.open();
+    let downloaded = false;
+    const stubClick = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function () { downloaded = true; };
+
+    component.downloadTemplate();
+    const request = httpMock.expectOne(`${environment.apiUrl}/products/import-template`);
+    expect(request.request.method).toBe('GET');
+    request.flush(new Blob(['px']));
+
+    expect(downloaded).toBeTrue();
+    HTMLAnchorElement.prototype.click = stubClick;
+  });
+
   it('surfaces an upload failure back to the pick state with the message', () => {
     component.open();
     component.onFilePicked(fileInputEvent(new File(['x'], 'products.csv')));

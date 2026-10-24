@@ -349,6 +349,15 @@ public class ProductsController : ControllerBase
         }
     }
 
+    // Blank-format workbook for the import: same columns the import reads.
+    [HttpGet("import-template")]
+    [Authorize(Roles = "Owner,Admin")]
+    public IActionResult ImportProductsTemplate()
+    {
+        var bytes = _importService.GetTemplateWorkbook(ImportKind.Products);
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "products_import_template.xlsx");
+    }
+
     [HttpGet("category/{category}")]
     public async Task<ActionResult<IEnumerable<Product>>> GetProductsByCategory(string category)
     {
