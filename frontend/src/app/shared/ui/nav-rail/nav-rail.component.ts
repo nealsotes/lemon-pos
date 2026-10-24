@@ -23,7 +23,7 @@ import { UserRole } from '../../models/user.model';
       <div class="nav-rail-top">
         <div class="nav-logo">
           <span class="logo-icon">FB</span>
-          <span class="logo-text" *ngIf="!collapsed">FinnBites</span>
+          <span class="logo-text" *ngIf="!collapsed">Lemon POS</span>
         </div>
       </div>
 

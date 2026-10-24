@@ -1090,7 +1090,7 @@ export class ThermalPrinterService {
 
     commands.push(ESC + 'a' + '\x01'); // Center
     commands.push(ESC + '!' + '\x30'); // Double height + double width
-    commands.push('FinnBites\n');
+    commands.push('Lemon POS\n');
     commands.push(ESC + '!' + '\x00'); // Reset
 
     // ── Success hero (matches .success-hero in the sidebar) ─────────────────
