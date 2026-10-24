@@ -13,11 +13,35 @@ public class ExpensesController : ControllerBase
 {
     private readonly IExpenseService _expenseService;
     private readonly IExportService _exportService;
+    private readonly IImportService _importService;
 
-    public ExpensesController(IExpenseService expenseService, IExportService exportService)
+    public ExpensesController(IExpenseService expenseService, IExportService exportService, IImportService importService)
     {
         _expenseService = expenseService;
         _exportService = exportService;
+        _importService = importService;
+    }
+
+    // Upload a CSV/XLSX (same columns as the expense export above). Expenses are
+    // ledger entries, so every data row inserts a new expense; unknown category
+    // names are auto-created. Row-level failures land in the returned report.
+    [HttpPost("import")]
+    public async Task<IActionResult> ImportExpensesAsync(IFormFile file)
+    {
+        try
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("No file uploaded.");
+
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "system";
+            using var stream = file.OpenReadStream();
+            var report = await _importService.ImportAsync(ImportKind.Expenses, file.FileName, stream, userId);
+            return Ok(report);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpGet("export")]

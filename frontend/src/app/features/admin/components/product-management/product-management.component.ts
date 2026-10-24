@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -19,6 +19,7 @@ import { SkeletonKpisComponent } from '../../../../shared/ui/skeleton/skeleton-k
 import { SkeletonTableComponent } from '../../../../shared/ui/skeleton/skeleton-table.component';
 import { ToastService } from '../../../../shared/ui/toast/toast.service';
 import { ConfirmDialogService } from '../../../../shared/ui/confirm-dialog/confirm-dialog.service';
+import { ImportDialogComponent, ImportResultReport } from '../../../../shared/ui/import-dialog/import-dialog.component';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
@@ -37,12 +38,14 @@ import { takeUntil } from 'rxjs/operators';
     StockIndicatorComponent,
     SkeletonKpisComponent,
     SkeletonTableComponent,
-    MatDialogModule
+    MatDialogModule,
+    ImportDialogComponent
   ],
   templateUrl: './product-management.component.html',
   styleUrls: ['./product-management.component.css']
 })
 export class ProductManagementComponent implements OnInit, OnDestroy {
+  @ViewChild('importDialog') importDialog?: ImportDialogComponent;
   private destroy$ = new Subject<void>();
   products: Product[] = [];
   filteredProducts: Product[] = [];
@@ -461,6 +464,16 @@ export class ProductManagementComponent implements OnInit, OnDestroy {
           this.isExporting = false;
         }
       });
+  }
+
+  onProductsImported(report: ImportResultReport): void {
+    const ok = report.created + report.updated;
+    this.toast.success(
+      `Imported ${ok} product${ok === 1 ? '' : 's'}` +
+      (report.errors.length ? ` — ${report.errors.length} row${report.errors.length === 1 ? '' : 's'} failed` : ''));
+    // New categories can arrive with the file; refresh both streams.
+    this.loadProducts();
+    this.loadCategories();
   }
 
   private extractFilename(contentDisposition: string | null): string | null {

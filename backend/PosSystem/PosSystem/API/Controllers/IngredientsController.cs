@@ -13,12 +13,34 @@ public class IngredientsController : ControllerBase
     private readonly IIngredientService _ingredientService;
     private readonly IIngredientLotService _lotService;
     private readonly IExportService _exportService;
+    private readonly IImportService _importService;
 
-    public IngredientsController(IIngredientService ingredientService, IIngredientLotService lotService, IExportService exportService)
+    public IngredientsController(IIngredientService ingredientService, IIngredientLotService lotService, IExportService exportService, IImportService importService)
     {
         _ingredientService = ingredientService;
         _lotService = lotService;
         _exportService = exportService;
+        _importService = importService;
+    }
+
+    // Upload a CSV/XLSX (same columns as the ingredient export above) and upsert by name.
+    // Row-level failures land in the returned report instead of aborting valid rows.
+    [HttpPost("import")]
+    public async Task<IActionResult> ImportIngredientsAsync(IFormFile file)
+    {
+        try
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("No file uploaded.");
+
+            using var stream = file.OpenReadStream();
+            var report = await _importService.ImportAsync(ImportKind.Ingredients, file.FileName, stream, "system");
+            return Ok(report);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpGet("export")]

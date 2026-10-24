@@ -14,13 +14,15 @@ public class ProductsController : ControllerBase
     private readonly IProductService _productService;
     private readonly IFileService _fileService;
     private readonly IExportService _exportService;
+    private readonly IImportService _importService;
     private readonly IReportingService _reportingService;
 
-    public ProductsController(IProductService productService, IFileService fileService, IExportService exportService, IReportingService reportingService)
+    public ProductsController(IProductService productService, IFileService fileService, IExportService exportService, IImportService importService, IReportingService reportingService)
     {
         _productService = productService;
         _fileService = fileService;
         _exportService = exportService;
+        _importService = importService;
         _reportingService = reportingService;
     }
 
@@ -324,6 +326,27 @@ public class ProductsController : ControllerBase
 
         var result = await _exportService.ExportProductsAsync(parsedFormat);
         return File(result.Content, result.ContentType, result.FileName);
+    }
+
+    // Upload a CSV/XLSX (same columns as the product export above) and upsert by name.
+    // Row-level failures land in the returned report; the file never half-fails silently.
+    [HttpPost("import")]
+    [Authorize(Roles = "Owner,Admin")]
+    public async Task<IActionResult> ImportProductsAsync(IFormFile file)
+    {
+        try
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("No file uploaded.");
+
+            using var stream = file.OpenReadStream();
+            var report = await _importService.ImportAsync(ImportKind.Products, file.FileName, stream, "system");
+            return Ok(report);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpGet("category/{category}")]

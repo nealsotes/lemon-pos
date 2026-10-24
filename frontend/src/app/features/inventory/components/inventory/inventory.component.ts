@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
@@ -19,6 +19,7 @@ import { CellDefDirective } from '../../../../shared/ui/data-table/cell-def.dire
 import { BadgeComponent } from '../../../../shared/ui/badge/badge.component';
 import { SkeletonTableComponent } from '../../../../shared/ui/skeleton/skeleton-table.component';
 import { SearchInputComponent } from '../../../../shared/ui/search-input/search-input.component';
+import { ImportDialogComponent, ImportResultReport } from '../../../../shared/ui/import-dialog/import-dialog.component';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
@@ -35,12 +36,14 @@ import { takeUntil } from 'rxjs/operators';
     DataTableComponent,
     CellDefDirective,
     BadgeComponent,
-    SearchInputComponent
+    SearchInputComponent,
+    ImportDialogComponent
   ],
   templateUrl: './inventory.component.html',
   styleUrls: ['./inventory.component.css']
 })
 export class InventoryComponent implements OnInit, OnDestroy {
+  @ViewChild('importDialog') importDialog?: ImportDialogComponent;
   private destroy$ = new Subject<void>();
   ingredients: Ingredient[] = [];
   filteredIngredients: Ingredient[] = [];
@@ -94,6 +97,14 @@ export class InventoryComponent implements OnInit, OnDestroy {
         this.isLoading = false;
       }
     });
+  }
+
+  onIngredientsImported(report: ImportResultReport): void {
+    const ok = report.created + report.updated;
+    this.toast.success(
+      `Imported ${ok} ingredient${ok === 1 ? '' : 's'}` +
+      (report.errors.length ? ` — ${report.errors.length} row${report.errors.length === 1 ? '' : 's'} failed` : ''));
+    this.loadIngredients();
   }
 
   applyFilter(): void {

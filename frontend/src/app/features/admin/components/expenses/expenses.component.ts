@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
@@ -13,6 +13,7 @@ import { ExpenseModalComponent } from '../expense-modal/expense-modal.component'
 import { DataTableComponent, TableColumn } from '../../../../shared/ui/data-table/data-table.component';
 import { CellDefDirective } from '../../../../shared/ui/data-table/cell-def.directive';
 import { BadgeComponent } from '../../../../shared/ui/badge/badge.component';
+import { ImportDialogComponent, ImportResultReport } from '../../../../shared/ui/import-dialog/import-dialog.component';
 
 @Component({
   selector: 'app-expenses',
@@ -25,12 +26,14 @@ import { BadgeComponent } from '../../../../shared/ui/badge/badge.component';
     ExpenseModalComponent,
     DataTableComponent,
     CellDefDirective,
-    BadgeComponent
+    BadgeComponent,
+    ImportDialogComponent
   ],
   templateUrl: './expenses.component.html',
   styleUrls: ['./expenses.component.css']
 })
 export class ExpensesComponent implements OnInit, OnDestroy {
+  @ViewChild('importDialog') importDialog?: ImportDialogComponent;
   expenses: ExpenseResponse[] = [];
   categories: ExpenseCategory[] = [];
   isLoading = false;
@@ -113,6 +116,18 @@ export class ExpensesComponent implements OnInit, OnDestroy {
         next: (cats) => this.categories = cats,
         error: () => {}
       });
+  }
+
+  // Import dialog result: expenses are always inserted, so reload the current
+  // period (rows may fall outside it, but the period the user sees must update)
+  // and refresh the category filter dropdown (import auto-creates categories).
+  onExpensesImported(report: ImportResultReport): void {
+    const created = report.created;
+    this.toast.success(
+      `Imported ${created} expense${created === 1 ? '' : 's'}` +
+      (report.errors.length ? ` — ${report.errors.length} row${report.errors.length === 1 ? '' : 's'} failed` : ''));
+    this.loadExpenses();
+    this.loadCategories();
   }
 
   // ── Filters ──

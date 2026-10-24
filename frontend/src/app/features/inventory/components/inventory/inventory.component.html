@@ -14,6 +14,12 @@
         </svg>
         {{ isExporting ? 'Exporting...' : 'Export' }}
       </button>
+      <button type="button" class="btn btn-secondary btn-sm" (click)="importDialog.open()" [disabled]="isLoading" *ngIf="activeTab === 'ingredients'">
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Import
+      </button>
       <button type="button" class="btn btn-secondary btn-sm" (click)="downloadLowStockReport()" [disabled]="isLoading || isDownloadingLowStock" *ngIf="activeTab === 'ingredients'">
         <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -190,3 +196,4 @@
   </div>
   </div>
 </div>
+<app-import-dialog #importDialog kind="ingredients" (imported)="onIngredientsImported($event)"></app-import-dialog>
