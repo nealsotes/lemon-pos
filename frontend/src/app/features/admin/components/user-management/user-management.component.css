@@ -146,6 +146,40 @@
   justify-content: flex-end;
 }
 
+.action-btn-mini {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  background: transparent;
+  border: 1px solid var(--border, var(--border-color));
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color var(--transition-fast, 150ms), border-color var(--transition-fast, 150ms);
+}
+
+.action-btn-mini:hover {
+  color: var(--accent, var(--primary-color));
+  border-color: var(--accent, var(--primary-color));
+}
+
+.action-btn-mini.delete:hover {
+  color: var(--error, var(--error-color));
+  border-color: var(--error, var(--error-color));
+}
+
+.action-btn-mini svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Focus visibility for icon-only row actions */
+.action-btn-mini:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 /* ---------- Responsive — Medium screens (≤ 768px) ---------- */
 @media (max-width: 768px) {
   .page-body {

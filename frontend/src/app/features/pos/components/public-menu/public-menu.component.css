@@ -362,6 +362,44 @@
   }
 }
 
+/* Small phones: single-column cards, tighter header, and keep the
+   container's bottom clear of browsers' own nav UI. */
+@media (max-width: 480px) {
+  .menu-header {
+    padding: 1.75rem 0.75rem;
+  }
+
+  .restaurant-name {
+    font-size: 1.65rem;
+  }
+
+  .restaurant-tagline {
+    font-size: 0.875rem;
+  }
+
+  .products-grid {
+    grid-template-columns: 1fr;
+    gap: 0.875rem;
+    margin-top: 1.25rem;
+  }
+
+  .menu-content {
+    padding: 0 0.75rem 4.5rem;
+  }
+}
+
+/* Touch devices: hover transforms stick after tap — neutralize them so
+   cards don't stay lifted/scaled. */
+@media (hover: none) {
+  .product-card:hover {
+    transform: none;
+  }
+
+  .category-btn:hover {
+    transform: none;
+  }
+}
+
 
 
 

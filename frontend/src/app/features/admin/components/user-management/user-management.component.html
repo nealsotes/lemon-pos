@@ -16,14 +16,11 @@
   </app-top-bar>
 
   <div class="page-body">
-    <!-- Account overview -->
-    <app-kpi-strip [kpis]="kpis"></app-kpi-strip>
-
     <!-- Accounts panel -->
     <div class="panel">
       <app-filter-bar
         title="Account Management"
-        subtitle="Logins for the POS and admin pages"
+        [subtitle]="summaryLine"
         searchPlaceholder="Search users..."
         [searchValue]="searchTerm"
         [categories]="roleFilters"
@@ -78,17 +75,24 @@
           <!-- Actions cell -->
           <ng-template cellDef="actions" let-row>
             <div class="row-actions">
-              <button type="button" class="btn btn-secondary btn-sm" (click)="openPasswordReset(row)">
-                Reset Password
+              <button type="button" class="action-btn-mini" title="Reset password" aria-label="Reset password for {{ row.username }}"
+                (click)="openPasswordReset(row)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+                </svg>
               </button>
               <button
                 type="button"
-                class="btn btn-sm"
+                class="action-btn-mini"
                 *ngIf="canToggle(row)"
-                [class.btn-danger]="row.isActive"
-                [class.btn-primary]="!row.isActive"
+                [class.delete]="row.isActive"
+                [title]="row.isActive ? 'Deactivate account' : 'Activate account'"
+                [attr.aria-label]="(row.isActive ? 'Deactivate ' : 'Activate ') + row.username"
                 (click)="toggleActive(row)">
-                {{ row.isActive ? 'Deactivate' : 'Activate' }}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
+                  <path d="M12 2v10"/>
+                </svg>
               </button>
             </div>
           </ng-template>

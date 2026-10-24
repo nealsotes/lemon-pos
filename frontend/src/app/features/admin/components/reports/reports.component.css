@@ -408,7 +408,7 @@
 /* ==========================================================================
    ACCOUNTING — P&L / Inventory / Summary
    ========================================================================== */
-.pnl-kpis { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(--border, rgba(128,128,128,0.1)); }
+.pnl-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); border-bottom: 1px solid var(--border, rgba(128,128,128,0.1)); }
 
 .pnl-kpi { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 18px 12px; position: relative; }
 .pnl-kpi + .pnl-kpi::before { content: ''; position: absolute; left: 0; top: 22%; height: 56%; width: 1px; background: rgba(128,128,128,0.08); }
@@ -445,8 +445,20 @@
 .inv-table-row { font-family: var(--font-display); font-weight: 500; }
 .inv-name { font-weight: 600; }
 .inv-qty { color: var(--text-muted); }
-.inv-pct { display: flex; align-items: center; gap: 5px; font-size: 0.6875rem; }
+.inv-pct { display: flex; align-items: center; gap: 5px; font-size: 0.6875rem; min-width: 0; overflow: hidden; }
 .inv-pct-bar { height: 4px; min-width: 3px; max-width: 70px; background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 50%, white)); border-radius: 2px; flex-shrink: 0; }
+
+/* Named panels (hooks set in the template) get real column templates — the
+   supplier and consumption tables previously had none and blew past the
+   card edge on narrow screens, where .card's overflow:hidden clipped them. */
+.panel-supplier .inv-table-head, .panel-supplier .inv-table-row { grid-template-columns: minmax(0, 1.6fr) minmax(0, 0.7fr) minmax(0, 1fr) minmax(0, 1.3fr) minmax(0, 0.9fr); }
+.panel-consumption .inv-table-head, .panel-consumption .inv-table-row { grid-template-columns: 22px minmax(0, 1.6fr) minmax(0, 0.85fr) minmax(0, 0.9fr) minmax(0, 1.1fr) minmax(0, 0.8fr); }
+
+/* Keep long ingredient/supplier names from widening the grid past the card —
+   shrink + ellipsis, matching the P&L table treatment. */
+.inv-table-head > span, .inv-table-row > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The %-of-total cell is a flex div (bar + span); only its inner span clips. */
+.inv-pct > span { white-space: nowrap; flex-shrink: 0; }
 
 /* Accountant Summary */
 .accountant-card { }
@@ -454,7 +466,9 @@
 .acct-section { padding: 14px 18px; }
 .acct-section + .acct-section { border-top: 1px solid var(--border, rgba(128,128,128,0.08)); }
 .acct-section-label { font-size: 0.5625rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); margin-bottom: 8px; }
-.acct-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 0.8125rem; font-family: var(--font-display); }
+.acct-row { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; font-size: 0.8125rem; font-family: var(--font-display); }
+.acct-row > span:first-child { min-width: 0; }
+.acct-row > span:last-child { text-align: right; flex-shrink: 0; }
 .acct-row.negative { color: var(--text-muted); }
 .acct-row.bold { font-weight: 700; padding-top: 8px; margin-top: 4px; border-top: 1px solid var(--border, rgba(128,128,128,0.08)); }
 .acct-row .cogs { color: var(--danger, #ef4444); }
@@ -593,8 +607,45 @@
 
   .card-header { padding: 12px 14px; flex-wrap: wrap; gap: 6px; }
   .lb-item { padding: 6px 14px; }
-  .lb-name-row { flex-direction: column; gap: 0; }
+  /* Column direction + align-items:baseline switches the name span to
+     shrink-to-fit, so the ellipsis never engages and the row overflows the
+     card. Stretch gives the span the row's width, then it can clip. */
+  .lb-name-row { flex-direction: column; gap: 0; align-items: stretch; }
   .list-row { padding: 8px 14px; }
+
+  /* Inventory sub-panels: tighter padding and drop the least-critical
+     columns, the same way the Activity table collapses above. Visible
+     spans must equal declared columns or every record wraps. */
+  .inv-sub-panel { padding: 12px 14px; }
+
+  /* Spend by Supplier: keep Supplier, Total Spent, Avg/Purchase. */
+  .panel-supplier .inv-table-head, .panel-supplier .inv-table-row { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.1fr) minmax(0, 1fr); }
+  .panel-supplier .inv-table-head span:nth-child(2),
+  .panel-supplier .inv-table-head span:nth-child(4),
+  .panel-supplier .inv-table-row span:nth-child(2),
+  .panel-supplier .inv-table-row span:nth-child(4) { display: none; }
+
+  /* Consumption ranking: drop # and Avg Daily, keep name, qty, cost, %. */
+  .panel-consumption .inv-table-head, .panel-consumption .inv-table-row { grid-template-columns: minmax(0, 1.5fr) minmax(0, 0.9fr) minmax(0, 1fr) minmax(0, 1.1fr); }
+  .panel-consumption .inv-table-head span:nth-child(1),
+  .panel-consumption .inv-table-head span:nth-child(6),
+  .panel-consumption .inv-table-row span:nth-child(1),
+  .panel-consumption .inv-table-row span:nth-child(6) { display: none; }
+
+  /* Bar+% is redundant on a phone — keep the % text, drop the bar so the
+     cell never clips its value. */
+  .inv-pct-bar { display: none; }
+
+  /* P&L statement: reclaim padding and type size without losing hierarchy. */
+  .pnl-body { padding: 14px; }
+  .pnl-line { font-size: 13px; }
+  .pnl-line.indent { }
+  .pnl-line-name.indent { padding-left: 12px; }
+  .pnl-line.grand-total { font-size: 15px; }
+  .pnl-line.net-profit { font-size: 16px; padding: 12px 12px; }
+  .pnl-line.net-profit .net-profit-value { font-size: 18px; }
+
+  .activity-footer { flex-wrap: wrap; gap: 10px; }
 }
 
 /* ==========================================================================
@@ -1230,6 +1281,9 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  /* Long titles/descriptions shrink here instead of pushing the summary
+     stats row out of the header. */
+  min-width: 0;
 }
 
 .collapsible-chevron {
@@ -1243,11 +1297,20 @@
 .collapsible-title {
   font-weight: 600;
   font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .collapsible-desc {
   font-size: 11px;
   opacity: 0.4;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .collapsible-summary {
@@ -1456,12 +1519,15 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
   padding: 4px 0;
   font-size: 14px;
 }
 
 .pnl-line-name {
   color: var(--text-primary, #111827);
+  /* Long names wrap instead of pushing the value column past the card. */
+  min-width: 0;
 }
 
 .pnl-line-name.indent {

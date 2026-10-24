@@ -58,7 +58,7 @@ export class ProductManagementComponent implements OnInit, OnDestroy {
   // Table columns definition
   tableColumns: TableColumn[] = [
     { key: 'name', label: 'Product', cellTemplate: 'product', sortable: true },
-    { key: 'category', label: 'Category', cellTemplate: 'category', sortable: true },
+    { key: 'category', label: 'Category', cellTemplate: 'category', sortable: true, hideOnMobile: true },
     { key: 'price', label: 'Price', cellTemplate: 'price', sortable: true },
     { key: 'stock', label: 'Stock', cellTemplate: 'stock', sortable: true },
     { key: 'isActive', label: 'Status', cellTemplate: 'status', sortable: true },

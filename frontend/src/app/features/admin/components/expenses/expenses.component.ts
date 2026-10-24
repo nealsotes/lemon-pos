@@ -39,9 +39,9 @@ export class ExpensesComponent implements OnInit, OnDestroy {
 
   tableColumns: TableColumn[] = [
     { key: 'date', label: 'Date', cellTemplate: 'date', width: '100px', sortable: true },
-    { key: 'categoryName', label: 'Category', cellTemplate: 'category', sortable: true },
+    { key: 'categoryName', label: 'Category', cellTemplate: 'category', sortable: true, hideOnMobile: true },
     { key: 'description', label: 'Description', cellTemplate: 'description', sortable: true },
-    { key: 'isRecurring', label: 'Type', cellTemplate: 'type', width: '110px', sortable: true },
+    { key: 'isRecurring', label: 'Type', cellTemplate: 'type', width: '110px', sortable: true, hideOnMobile: true },
     { key: 'amount', label: 'Amount', cellTemplate: 'amount', align: 'right', sortable: true },
     { key: 'actions', label: '', cellTemplate: 'actions', width: '100px', align: 'right' }
   ];

@@ -729,7 +729,7 @@
           </div>
           <div class="collapsible-body" *ngIf="inventoryExpanded['suppliers']">
             <div *ngIf="supplierData">
-              <div class="inv-sub-panel" *ngIf="supplierData.supplierSummary?.length > 0">
+              <div class="inv-sub-panel panel-supplier" *ngIf="supplierData.supplierSummary?.length > 0">
                 <div class="inv-sub-title">Spend by Supplier</div>
                 <div class="inv-table-head"><span>Supplier</span><span>Purchases</span><span>Total Spent</span><span>Ingredients</span><span>Avg/Purchase</span></div>
                 <div class="inv-table-row" *ngFor="let s of supplierData.supplierSummary">
@@ -791,7 +791,7 @@
                   <span class="pnl-kpi-value">{{ consumptionData.ingredientsUsedCount | number:'1.0-0' }}</span>
                 </div>
               </div>
-              <div class="inv-sub-panel" *ngIf="consumptionData.items?.length > 0">
+              <div class="inv-sub-panel panel-consumption" *ngIf="consumptionData.items?.length > 0">
                 <div class="inv-sub-title">Consumption Ranking</div>
                 <div class="inv-table-head"><span>#</span><span>Ingredient</span><span>Qty Used</span><span>Cost</span><span>% of Total</span><span>Avg Daily</span></div>
                 <div class="inv-table-row" *ngFor="let item of consumptionData.items; let i = index">

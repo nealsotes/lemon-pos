@@ -27,13 +27,15 @@
   overflow: hidden;
 }
 
-/* On mobile, no nav rail offset, add bottom padding for tab bar */
+/* On mobile, no nav rail offset, add bottom padding for tab bar.
+   The tab bar is 56px + safe-area inset, so the padding must match or
+   content on notched phones scrolls under the bar. */
 @media (max-width: 768px) {
   .app-shell.has-nav .app-main {
     margin-left: 0;
   }
 
   .main-content {
-    padding-bottom: 56px;
+    padding-bottom: calc(56px + env(safe-area-inset-bottom));
   }
 }

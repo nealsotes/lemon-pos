@@ -21,6 +21,8 @@ export interface TableColumn {
   align?: 'left' | 'center' | 'right';
   sortable?: boolean;
   cellTemplate?: string;
+  /** Hide this column below 640px (secondary data; still on tap-through screens). */
+  hideOnMobile?: boolean;
 }
 
 @Component({
@@ -28,7 +30,7 @@ export interface TableColumn {
   standalone: true,
   imports: [CommonModule, EmptyStateComponent, CellDefDirective],
   template: `
-    <div class="table-wrapper">
+    <div class="table-wrapper" [class.has-mobile-hide]="hasMobileHide">
       <table class="data-table" *ngIf="data.length > 0">
         <thead>
           <tr>
@@ -47,6 +49,7 @@ export interface TableColumn {
               [style.text-align]="col.align || 'left'"
               [class.sortable]="col.sortable"
               [class.sorted]="sortKey === col.key"
+              [class.hide-on-mobile]="col.hideOnMobile"
               (click)="col.sortable ? onSort(col.key) : null">
               {{ col.label }}
               <span
@@ -74,7 +77,8 @@ export interface TableColumn {
             </td>
             <td
               *ngFor="let col of columns"
-              [style.text-align]="col.align || 'left'">
+              [style.text-align]="col.align || 'left'"
+              [class.hide-on-mobile]="col.hideOnMobile">
               <ng-container *ngIf="getCellTemplate(col) as tmpl; else plainText">
                 <ng-container
                   *ngTemplateOutlet="tmpl; context: { $implicit: row }">
@@ -253,6 +257,27 @@ export interface TableColumn {
         min-width: 600px;
       }
     }
+
+    /* Phones: drop secondary columns entirely so the primary columns fit
+       without a long horizontal scroll. The surviving columns define the
+       table's natural width (min-width: 0), cells keep 44px-row touch size. */
+    @media (max-width: 640px) {
+      .has-mobile-hide .data-table {
+        min-width: 0;
+      }
+
+      .hide-on-mobile {
+        display: none;
+      }
+
+      .has-mobile-hide .data-table th {
+        padding: 10px 12px;
+      }
+
+      .has-mobile-hide .data-table td {
+        padding: 12px 12px;
+      }
+    }
   `]
 })
 export class DataTableComponent implements AfterContentInit, OnChanges {
@@ -265,6 +290,11 @@ export class DataTableComponent implements AfterContentInit, OnChanges {
   @Input() emptyTitle = '';
   @Input() emptyMessage = '';
   @Input() emptyAction = '';
+
+  /** True when any column opts into mobile hiding (drives tighter phone layout). */
+  get hasMobileHide(): boolean {
+    return this.columns.some(col => col.hideOnMobile);
+  }
 
   @Output() rowClick = new EventEmitter<any>();
   @Output() sortChange = new EventEmitter<{ key: string; direction: 'asc' | 'desc' }>();

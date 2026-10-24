@@ -1,7 +1,24 @@
 {
   "permissions": {
     "allow": [
-      "Bash(dotnet ef:*)"
-    ]
+      "Bash(C:\\Users\\Full Scale\\Desktop\\lemon-pos/scripts/paperclip-issue-update.sh:*)",
+      "Bash(C:\\Users\\Full Scale\\Desktop\\lemon-pos/scripts/paperclip:*)",
+      "Bash(curl:*)",
+      "Bash(dotnet ef:*)",
+      "Bash(env)",
+      "Bash(env:*)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\Full Scale\\.paperclip\\instances\\default\\companies\\70f91691-8425-4197-a357-6741b8c7bd7e",
+      "C:\\Users\\Full Scale\\.paperclip\\instances\\default\\companies\\70f91691-8425-4197-a357-6741b8c7bd7e\\acp-engine\\agents\\7cf113ad-076b-4b5e-8a0f-5949d107ce4a",
+      "C:\\Users\\Full Scale\\.paperclip\\instances\\default\\companies\\70f91691-8425-4197-a357-6741b8c7bd7e\\acp-engine\\agents\\caa8da6d-2569-46cc-baf9-5875df207a51",
+      "C:\\Users\\Full Scale\\.paperclip\\instances\\default\\companies\\70f91691-8425-4197-a357-6741b8c7bd7e\\acp-engine\\agents\\e6610a0e-b183-4524-a072-ef879e3bdf82",
+      "C:\\Users\\Full Scale\\.paperclip\\instances\\default\\companies\\70f91691-8425-4197-a357-6741b8c7bd7e\\acp-engine\\agents\\eaa08260-02a0-4626-92d6-d7e85ca76a6c",
+      "C:\\Users\\Full Scale\\.paperclip\\instances\\default\\workspaces\\7cf113ad-076b-4b5e-8a0f-5949d107ce4a",
+      "C:\\Users\\Full Scale\\.paperclip\\instances\\default\\workspaces\\caa8da6d-2569-46cc-baf9-5875df207a51",
+      "C:\\Users\\Full Scale\\.paperclip\\instances\\default\\workspaces\\e6610a0e-b183-4524-a072-ef879e3bdf82",
+      "C:\\Users\\Full Scale\\.paperclip\\instances\\default\\workspaces\\eaa08260-02a0-4626-92d6-d7e85ca76a6c"
+    ],
+    "defaultMode": "default"
   }
 }

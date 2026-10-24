@@ -6,10 +6,8 @@ import { Subject } from 'rxjs';
 import { takeUntil, finalize } from 'rxjs/operators';
 import { UserAccount } from '../../../../shared/models/user.model';
 import { UserManagementService } from '../../services/user-management.service';
-import { KpiItem } from '../../../../shared/ui/kpi-strip/kpi-strip.component';
 import { AuthService } from '../../../../core/services/auth.service';
 import { TopBarComponent } from '../../../../shared/ui/top-bar/top-bar.component';
-import { KpiStripComponent } from '../../../../shared/ui/kpi-strip/kpi-strip.component';
 import { FilterBarComponent } from '../../../../shared/ui/filter-bar/filter-bar.component';
 import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/loading-spinner.component';
 import {
@@ -35,7 +33,6 @@ interface UserView extends UserAccount {
     CommonModule,
     MatDialogModule,
     TopBarComponent,
-    KpiStripComponent,
     FilterBarComponent,
     LoadingSpinnerComponent,
     DataTableComponent,
@@ -50,12 +47,11 @@ export class UserManagementComponent implements OnInit, OnDestroy {
   readonly tableColumns = [
     { key: 'username', label: 'User', cellTemplate: 'user' },
     { key: 'roleLabel', label: 'Role', width: '110px', cellTemplate: 'role' },
-    { key: 'lastLoginAt', label: 'Last Login', width: '150px', cellTemplate: 'lastLogin' },
+    { key: 'lastLoginAt', label: 'Last Login', width: '150px', cellTemplate: 'lastLogin', hideOnMobile: true },
     { key: 'isActive', label: 'Status', width: '100px', cellTemplate: 'status' },
-    { key: 'actions', label: '', width: '230px', align: 'right' as const, cellTemplate: 'actions' }
+    { key: 'actions', label: '', width: '92px', align: 'right' as const, cellTemplate: 'actions' }
   ];
 
-  kpis: KpiItem[] = [];
   users: UserView[] = [];
   isLoading = true;
 
@@ -100,7 +96,6 @@ export class UserManagementComponent implements OnInit, OnDestroy {
       .subscribe({
         next: accounts => {
           this.users = accounts.map(account => this.toView(account));
-          this.computeKpis();
         },
         error: () => this.showSnack('Could not load accounts', 'error')
       });
@@ -195,37 +190,11 @@ export class UserManagementComponent implements OnInit, OnDestroy {
     return String(role);
   }
 
-  private computeKpis(): void {
+  get summaryLine(): string {
     const total = this.users.length;
     const active = this.users.filter(u => u.isActive).length;
-    const inactive = total - active;
     const neverLoggedIn = this.users.filter(u => !u.lastLoginAt).length;
-    this.kpis = [
-      {
-        label: 'Total Accounts',
-        value: total,
-        trend: `${active} active logins`,
-        trendDirection: 'neutral' as const
-      },
-      {
-        label: 'Inactive',
-        value: inactive,
-        trend: inactive > 0 ? 'cannot sign in' : 'no disabled accounts',
-        trendDirection: inactive > 0 ? ('down' as const) : ('neutral' as const)
-      },
-      {
-        label: 'Never Signed In',
-        value: neverLoggedIn,
-        trend: 'unused accounts',
-        trendDirection: 'neutral' as const
-      },
-      {
-        label: this.authService.isOwner() ? 'Owner Accounts' : 'Admins & Owners',
-        value: this.users.filter(u => ['Owner', 'Admin'].includes(this.roleLabel(u))).length,
-        trend: 'manager-level accounts',
-        trendDirection: 'neutral' as const
-      }
-    ];
+    return `${total} ${total === 1 ? 'account' : 'accounts'} · ${active} active · ${neverLoggedIn} never signed in`;
   }
 
   private showSnack(message: string, kind: 'success' | 'error'): void {

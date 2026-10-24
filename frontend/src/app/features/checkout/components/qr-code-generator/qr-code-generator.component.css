@@ -86,6 +86,22 @@
   max-width: 450px;
 }
 
+/* Small phones: trim the 2rem paddings/gaps so the 200px QR + URL row
+   still leave breathing room at 375px. */
+@media (max-width: 480px) {
+  .qr-code-container {
+    padding: 1.25rem;
+  }
+
+  .qr-code-wrapper {
+    gap: 1.25rem;
+  }
+
+  .qr-code-display {
+    padding: 1rem;
+  }
+}
+
 .qr-label {
   font-size: 0.875rem;
   font-weight: 600;
