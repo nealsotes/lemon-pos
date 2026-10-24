@@ -8,7 +8,7 @@ import { ProductService } from '../../../pos/services/product.service';
 import { IngredientService } from '../../../pos/services/ingredient.service';
 import { RecipeService } from '../../../pos/services/recipe.service';
 import { TopBarComponent } from '../../../../shared/ui/top-bar/top-bar.component';
-import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/loading-spinner.component';
+import { SkeletonCardsComponent } from '../../../../shared/ui/skeleton/skeleton-cards.component';
 import { SearchInputComponent } from '../../../../shared/ui/search-input/search-input.component';
 import { RecipeEditorDialogComponent } from './recipe-editor-dialog.component';
 
@@ -19,7 +19,7 @@ import { RecipeEditorDialogComponent } from './recipe-editor-dialog.component';
     CommonModule,
     FormsModule,
     TopBarComponent,
-    LoadingSpinnerComponent,
+    SkeletonCardsComponent,
     SearchInputComponent,
     MatDialogModule
   ],

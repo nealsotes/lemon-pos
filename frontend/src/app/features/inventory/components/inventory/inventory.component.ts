@@ -17,7 +17,7 @@ import { ConfirmDialogService } from '../../../../shared/ui/confirm-dialog/confi
 import { DataTableComponent, TableColumn } from '../../../../shared/ui/data-table/data-table.component';
 import { CellDefDirective } from '../../../../shared/ui/data-table/cell-def.directive';
 import { BadgeComponent } from '../../../../shared/ui/badge/badge.component';
-import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/loading-spinner.component';
+import { SkeletonTableComponent } from '../../../../shared/ui/skeleton/skeleton-table.component';
 import { SearchInputComponent } from '../../../../shared/ui/search-input/search-input.component';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -31,7 +31,7 @@ import { takeUntil } from 'rxjs/operators';
     ProductRecipesComponent,
     FormsModule,
     MatDialogModule,
-    LoadingSpinnerComponent,
+    SkeletonTableComponent,
     DataTableComponent,
     CellDefDirective,
     BadgeComponent,

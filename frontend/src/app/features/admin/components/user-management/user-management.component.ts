@@ -9,7 +9,7 @@ import { UserManagementService } from '../../services/user-management.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { TopBarComponent } from '../../../../shared/ui/top-bar/top-bar.component';
 import { FilterBarComponent } from '../../../../shared/ui/filter-bar/filter-bar.component';
-import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/loading-spinner.component';
+import { SkeletonTableComponent } from '../../../../shared/ui/skeleton/skeleton-table.component';
 import {
   DataTableComponent
 } from '../../../../shared/ui/data-table/data-table.component';
@@ -34,7 +34,7 @@ interface UserView extends UserAccount {
     MatDialogModule,
     TopBarComponent,
     FilterBarComponent,
-    LoadingSpinnerComponent,
+    SkeletonTableComponent,
     DataTableComponent,
     CellDefDirective
   ],

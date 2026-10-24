@@ -36,12 +36,7 @@
     </div>
 
     <!-- Loading -->
-    <div *ngIf="isLoading" class="loading-state">
-      <div class="loading-receipt">
-        <span></span><span></span><span></span><span></span>
-      </div>
-      <p class="ed-eyebrow ed-eyebrow--accent">Loading the menu</p>
-    </div>
+    <app-skeleton-cards *ngIf="isLoading" [count]="12"></app-skeleton-cards>
 
     <!-- Product Grid -->
     <div *ngIf="!isLoading && paginatedProducts.length > 0" class="product-grid">

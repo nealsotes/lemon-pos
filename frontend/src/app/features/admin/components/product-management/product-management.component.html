@@ -23,7 +23,10 @@
 
   <div class="page-body">
   <!-- Loading State -->
-  <app-loading-spinner *ngIf="isLoading" message="Loading products..."></app-loading-spinner>
+  <div class="product-skeleton" *ngIf="isLoading">
+    <app-skeleton-kpis [count]="4"></app-skeleton-kpis>
+    <app-skeleton-table [rows]="10" [cols]="6"></app-skeleton-table>
+  </div>
 
   <div class="product-management-content" *ngIf="!isLoading">
 

@@ -15,7 +15,8 @@ import { CellDefDirective } from '../../../../shared/ui/data-table/cell-def.dire
 import { BadgeComponent } from '../../../../shared/ui/badge/badge.component';
 import { ImageDisplayComponent } from '../../../../shared/ui/image-display/image-display.component';
 import { StockIndicatorComponent } from '../../../../shared/ui/stock-indicator/stock-indicator.component';
-import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/loading-spinner.component';
+import { SkeletonKpisComponent } from '../../../../shared/ui/skeleton/skeleton-kpis.component';
+import { SkeletonTableComponent } from '../../../../shared/ui/skeleton/skeleton-table.component';
 import { ToastService } from '../../../../shared/ui/toast/toast.service';
 import { ConfirmDialogService } from '../../../../shared/ui/confirm-dialog/confirm-dialog.service';
 import { Subject } from 'rxjs';
@@ -34,7 +35,8 @@ import { takeUntil } from 'rxjs/operators';
     BadgeComponent,
     ImageDisplayComponent,
     StockIndicatorComponent,
-    LoadingSpinnerComponent,
+    SkeletonKpisComponent,
+    SkeletonTableComponent,
     MatDialogModule
   ],
   templateUrl: './product-management.component.html',

@@ -198,3 +198,9 @@
     gap: var(--spacing-md);
   }
 }
+
+.product-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}

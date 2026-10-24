@@ -34,6 +34,7 @@ export class ProductService {
   private apiUrl = '/api';
   private productsSubject = new BehaviorSubject<Product[]>([]);
   private categoriesSubject = new BehaviorSubject<string[]>([]);
+  private productsLoadingSubject = new BehaviorSubject<boolean>(true);
 
   constructor(
     private http: HttpClient,
@@ -47,12 +48,18 @@ export class ProductService {
     return this.productsSubject.asObservable();
   }
 
+  /** True while the catalog HTTP fetch is in flight — drives skeleton states. */
+  getProductsLoading(): Observable<boolean> {
+    return this.productsLoadingSubject.asObservable();
+  }
+
   getCategories(): Observable<string[]> {
     return this.categoriesSubject.asObservable();
   }
 
   private loadProducts(): void {
     if (this.offlineService.isOnline$.value) {
+      this.productsLoadingSubject.next(true);
       this.http.get<Product[]>(`${this.apiUrl}/products?page=1&pageSize=100`).pipe(
         tap(products => {
           const updatedProducts = products || [];
@@ -67,11 +74,15 @@ export class ProductService {
           });
           return of([]);
         })
-      ).subscribe();
+      ).subscribe({
+        next: () => this.productsLoadingSubject.next(false),
+        error: () => this.productsLoadingSubject.next(false)
+      });
     } else {
       this.loadFromLocalStorage('products').subscribe(products => {
         this.productsSubject.next(products || []);
         this.updateCategories();
+        this.productsLoadingSubject.next(false);
       });
     }
   }
@@ -283,14 +294,17 @@ export class ProductService {
     localStorage.removeItem('categories');
 
     if (this.offlineService.isOnline$.value) {
+      this.productsLoadingSubject.next(true);
       return this.http.get<Product[]>(`${this.apiUrl}/products?page=1&pageSize=100`).pipe(
         tap(products => {
           const updatedProducts = products || [];
           this.productsSubject.next(updatedProducts);
           this.saveToLocalStorage('products', updatedProducts);
           this.updateCategories();
+          this.productsLoadingSubject.next(false);
         }),
         catchError(error => {
+          this.productsLoadingSubject.next(false);
           this.loadFromLocalStorage('products').subscribe(products => {
             this.productsSubject.next(products || []);
             this.updateCategories();

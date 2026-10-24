@@ -15,6 +15,7 @@ import { POSCartSidebarComponent } from '../../../checkout/components/cart/pos-c
 import { SearchInputComponent } from '../../../../shared/ui/search-input/search-input.component';
 import { ChipGroupComponent } from '../../../../shared/ui/chip-group/chip-group.component';
 import { EmptyStateComponent } from '../../../../shared/ui/empty-state/empty-state.component';
+import { SkeletonCardsComponent } from '../../../../shared/ui/skeleton/skeleton-cards.component';
 import { TopBarComponent } from '../../../../shared/ui/top-bar/top-bar.component';
 import { TemperatureSelectDialogComponent, TemperatureDialogResult } from './temperature-select-dialog.component';
 import { Subject, takeUntil } from 'rxjs';
@@ -31,6 +32,7 @@ import { Subject, takeUntil } from 'rxjs';
     SearchInputComponent,
     ChipGroupComponent,
     EmptyStateComponent,
+    SkeletonCardsComponent,
     TopBarComponent
   ],
   templateUrl: './product-grid.component.html',
@@ -99,6 +101,14 @@ export class ProductGridComponent implements OnInit, OnDestroy {
     this.isLoading = true;
     this.cdr.markForCheck();
 
+    // Skeleton stays until the catalog HTTP fetch actually completes
+    this.productService.getProductsLoading()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(loading => {
+        this.isLoading = loading;
+        this.cdr.markForCheck();
+      });
+
     // Subscribe to product updates - this will automatically update when products change
     this.productService.getProducts().pipe(
       takeUntil(this.destroy$)
@@ -106,7 +116,6 @@ export class ProductGridComponent implements OnInit, OnDestroy {
       next: (products) => {
         this.products = products || [];
         this.filterProducts();
-        this.isLoading = false;
         if (this.categories.length === 0 && this.products.length > 0) {
           this.generateCategoriesFromProducts();
         }

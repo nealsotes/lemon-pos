@@ -17,7 +17,7 @@
         </app-search-input>
       </div>
 
-      <app-loading-spinner *ngIf="isLoadingProducts" message="Loading products..."></app-loading-spinner>
+      <app-skeleton-cards *ngIf="isLoadingProducts" [count]="8"></app-skeleton-cards>
 
       <div class="product-card-grid" *ngIf="!isLoadingProducts">
         <button type="button"

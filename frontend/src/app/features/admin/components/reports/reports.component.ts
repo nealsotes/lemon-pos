@@ -15,7 +15,8 @@ import { ExpenseModalComponent } from '../expense-modal/expense-modal.component'
 import { TopBarComponent } from '../../../../shared/ui/top-bar/top-bar.component';
 import { ToastService } from '../../../../shared/ui/toast/toast.service';
 import { KpiStripComponent, KpiItem } from '../../../../shared/ui/kpi-strip/kpi-strip.component';
-import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/loading-spinner.component';
+import { SkeletonKpisComponent } from '../../../../shared/ui/skeleton/skeleton-kpis.component';
+import { SkeletonTableComponent } from '../../../../shared/ui/skeleton/skeleton-table.component';
 import { BadgeComponent } from '../../../../shared/ui/badge/badge.component';
 import { FilterBarComponent } from '../../../../shared/ui/filter-bar/filter-bar.component';
 import { DataTableComponent, TableColumn } from '../../../../shared/ui/data-table/data-table.component';
@@ -28,7 +29,7 @@ import { takeUntil } from 'rxjs/operators';
 @Component({
   selector: 'app-reports',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, TopBarComponent, KpiStripComponent, LoadingSpinnerComponent, BadgeComponent, FilterBarComponent, ExpenseModalComponent, NgxChartsModule, DataTableComponent, CellDefDirective],
+  imports: [CommonModule, RouterModule, FormsModule, TopBarComponent, KpiStripComponent, SkeletonKpisComponent, SkeletonTableComponent, BadgeComponent, FilterBarComponent, ExpenseModalComponent, NgxChartsModule, DataTableComponent, CellDefDirective],
   templateUrl: './reports.component.html',
   styleUrls: ['./reports.component.css']
 })

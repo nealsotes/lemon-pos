@@ -36,7 +36,9 @@
   </div>
 
   <!-- Loading -->
-  <app-loading-spinner *ngIf="isLoading" message="Loading expenses..."></app-loading-spinner>
+  <div *ngIf="isLoading" class="skeleton-wrap">
+    <app-skeleton-table [rows]="9" [cols]="6"></app-skeleton-table>
+  </div>
 
   <!-- Error -->
   <div *ngIf="errorMessage && !isLoading" class="error-banner">

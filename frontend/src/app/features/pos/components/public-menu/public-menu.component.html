@@ -46,10 +46,7 @@
   </div>
 
   <!-- Loading State -->
-  <div *ngIf="loading" class="loading-container">
-    <div class="loading-spinner"></div>
-    <p>Loading menu...</p>
-  </div>
+  <app-skeleton-cards *ngIf="loading" [count]="12"></app-skeleton-cards>
 
   <!-- Products Grid -->
   <div *ngIf="!loading" class="menu-content">

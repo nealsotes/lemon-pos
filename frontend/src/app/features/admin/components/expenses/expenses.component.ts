@@ -8,7 +8,7 @@ import { environment } from '../../../../../environments/environment.prod';
 import { ExpenseService, ExpenseCategory, ExpenseResponse } from '../../../../core/services/expense.service';
 import { ToastService } from '../../../../shared/ui/toast/toast.service';
 import { TopBarComponent } from '../../../../shared/ui/top-bar/top-bar.component';
-import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/loading-spinner.component';
+import { SkeletonTableComponent } from '../../../../shared/ui/skeleton/skeleton-table.component';
 import { ExpenseModalComponent } from '../expense-modal/expense-modal.component';
 import { DataTableComponent, TableColumn } from '../../../../shared/ui/data-table/data-table.component';
 import { CellDefDirective } from '../../../../shared/ui/data-table/cell-def.directive';
@@ -21,7 +21,7 @@ import { BadgeComponent } from '../../../../shared/ui/badge/badge.component';
     CommonModule,
     FormsModule,
     TopBarComponent,
-    LoadingSpinnerComponent,
+    SkeletonTableComponent,
     ExpenseModalComponent,
     DataTableComponent,
     CellDefDirective,

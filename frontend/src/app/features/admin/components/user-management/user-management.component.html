@@ -29,7 +29,7 @@
         (categoryChange)="roleFilter = $event">
       </app-filter-bar>
 
-      <app-loading-spinner *ngIf="isLoading" message="Loading accounts..."></app-loading-spinner>
+      <app-skeleton-table *ngIf="isLoading" [rows]="9" [cols]="5"></app-skeleton-table>
 
       <app-data-table *ngIf="!isLoading"
           [columns]="tableColumns"

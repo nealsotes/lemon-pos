@@ -74,7 +74,10 @@
 
   <div class="reports-body">
     <!-- Loading -->
-    <app-loading-spinner *ngIf="isLoading" message="Loading reports..."></app-loading-spinner>
+    <div *ngIf="isLoading" class="skeleton-wrap">
+      <app-skeleton-kpis [count]="4"></app-skeleton-kpis>
+      <app-skeleton-table [rows]="8" [cols]="5"></app-skeleton-table>
+    </div>
 
     <!-- Content -->
     <div class="reports-content" *ngIf="!isLoading">

@@ -290,3 +290,9 @@
     max-width: 150px;
   }
 }
+
+.skeleton-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}

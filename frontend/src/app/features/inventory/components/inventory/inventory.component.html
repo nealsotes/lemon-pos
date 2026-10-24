@@ -55,7 +55,9 @@
   <div class="page-body">
 
   <!-- Loading State -->
-  <app-loading-spinner *ngIf="isLoading" message="Loading inventory..."></app-loading-spinner>
+  <div *ngIf="isLoading" class="skeleton-wrap">
+    <app-skeleton-table [rows]="10" [cols]="8"></app-skeleton-table>
+  </div>
 
   <div class="inventory-content" *ngIf="!isLoading">
 

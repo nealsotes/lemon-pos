@@ -2,13 +2,14 @@ import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRe
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ProductService } from '../../services/product.service';
+import { SkeletonCardsComponent } from '../../../../shared/ui/skeleton/skeleton-cards.component';
 import { Product } from '../../models/product.model';
 import { Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-public-menu',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SkeletonCardsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './public-menu.component.html',
   styleUrls: ['./public-menu.component.css']
@@ -39,13 +40,23 @@ export class PublicMenuComponent implements OnInit, OnDestroy {
   }
 
   private loadProducts(): void {
+    this.loading = true;
+    this.cdr.markForCheck();
+
+    // Skeleton stays until the catalog HTTP fetch actually completes
+    this.productService.getProductsLoading()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(loading => {
+        this.loading = loading;
+        this.cdr.markForCheck();
+      });
+
     this.productService.getProducts()
       .pipe(takeUntil(this.destroy$))
       .subscribe(products => {
         // Only show active products
         this.products = products.filter(p => p.isActive !== false && p.stock > 0);
         this.applyFilters();
-        this.loading = false;
         this.cdr.markForCheck();
       });
   }
