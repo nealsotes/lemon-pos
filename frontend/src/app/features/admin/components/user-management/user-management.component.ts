@@ -172,7 +172,7 @@ export class UserManagementComponent implements OnInit, OnDestroy {
       return ['Owner', 'Employee'];
     }
     if (this.authService.isAdmin()) {
-      return ['Admin', 'Employee'];
+      return ['Owner', 'Admin', 'Employee'];
     }
     return [];
   }

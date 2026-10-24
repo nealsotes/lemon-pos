@@ -88,14 +88,13 @@ public class UserService : IUserService
     }
 
     /// <summary>
-    /// A user cannot mint accounts that outrank or sidestep their own role:
-    /// Owner can create Owner/Employee, Admin can create Admin/Employee,
-    /// but Owner cannot create Admin and Admin cannot create Owner.
+    /// Owner can create Owner/Employee, Admin can create Owner/Admin/Employee,
+    /// but Owner cannot create Admin (the manager role).
     /// </summary>
     private static readonly Dictionary<string, UserRole[]> CreatorAllowedRoles = new(StringComparer.OrdinalIgnoreCase)
     {
         [nameof(UserRole.Owner)] = new[] { UserRole.Owner, UserRole.Employee },
-        [nameof(UserRole.Admin)] = new[] { UserRole.Admin, UserRole.Employee }
+        [nameof(UserRole.Admin)] = new[] { UserRole.Owner, UserRole.Admin, UserRole.Employee }
     };
 
     private static void ValidateCreatorRole(string? creatorRole, UserRole requestedRole)

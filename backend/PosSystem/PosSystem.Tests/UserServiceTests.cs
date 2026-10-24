@@ -67,11 +67,17 @@ public class UserServiceTests
     }
 
     [Fact]
-    public async Task CreateUserAsync_AdminCreatingOwner_ThrowsInvalidOperationException()
+    public async Task CreateUserAsync_AdminCanCreateOwner()
     {
-        // Symmetric rule: Admin cannot mint Owner accounts
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => _service.CreateUserAsync(ValidRequest(role: "Owner"), creatorRole: "Admin"));
+        // Admin may mint Owner accounts (per product decision 2026-10-24)
+        _userRepository.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<User>());
+        _userRepository.Setup(r => r.CreateAsync(It.IsAny<User>()))
+            .ReturnsAsync((User user) => user);
+
+        var result = await _service.CreateUserAsync(
+            ValidRequest(username: "co-owner", role: "Owner"), creatorRole: "Admin");
+
+        Assert.Equal("Owner", result.Role);
     }
 
     [Fact]
