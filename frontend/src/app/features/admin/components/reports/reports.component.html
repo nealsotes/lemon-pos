@@ -150,7 +150,11 @@
         <!-- Insights Strip -->
         <div class="insights-strip" *ngIf="insights.length > 0 && hasData()">
           <div *ngFor="let insight of insights" class="insight-card" [attr.data-level]="insight.level">
-            <span class="insight-icon">{{ insight.icon }}</span>
+            <span class="insight-icon" [attr.data-level]="insight.level">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+                <path [attr.d]="insightIconPath(insight.level)"/>
+              </svg>
+            </span>
             <div class="insight-body">
               <div class="insight-headline">{{ insight.headline }}</div>
               <div class="insight-detail">{{ insight.detail }}</div>

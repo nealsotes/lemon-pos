@@ -65,7 +65,7 @@ export class ReportsComponent implements OnInit, OnDestroy {
     name: 'quickserve',
     selectable: true,
     group: ScaleType.Ordinal,
-    domain: ['#3b82f6', '#10b981']
+    domain: ['#8B5CF6', '#16A34A']
   };
   readonly chartGradient = true;
 
@@ -393,20 +393,29 @@ export class ReportsComponent implements OnInit, OnDestroy {
   }
 
   getBarColor(index: number): string {
+    // Harmonized flat palette anchored on the app's violet accent — no rainbow gradients
     const colors = [
-      'linear-gradient(to top, #3b82f6, #60a5fa)',      // Blue
-      'linear-gradient(to top, #10b981, #34d399)',      // Green
-      'linear-gradient(to top, #f59e0b, #fbbf24)',      // Amber
-      'linear-gradient(to top, #ef4444, #f87171)',      // Red
-      'linear-gradient(to top, #8b5cf6, #a78bfa)',      // Purple
-      'linear-gradient(to top, #06b6d4, #22d3ee)',      // Cyan
-      'linear-gradient(to top, #84cc16, #a3e635)',      // Lime
-      'linear-gradient(to top, #f97316, #fb923c)',      // Orange
-      'linear-gradient(to top, #ec4899, #f472b6)',      // Pink
-      'linear-gradient(to top, #6b7280, #9ca3af)'      // Gray
+      '#8B5CF6',                       // Violet (accent)
+      '#0EA5E9',                       // Sky
+      '#14B8A6',                       // Teal
+      '#F59E0B',                       // Amber
+      '#64748B',                       // Slate
+      '#16A34A',                       // Green
+      '#6366F1',                       // Indigo
+      '#94A3B8'                        // Light slate
     ];
 
     return colors[index % colors.length];
+  }
+
+  /** SVG icon paths per insight level (replaces emoji icons). */
+  insightIconPath(level: 'positive' | 'warning' | 'alert' | 'info'): string {
+    switch (level) {
+      case 'positive': return 'M23 6l-9.5 9.5-5-5L1 18';   // trending-up
+      case 'warning': return 'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z'; // alert-triangle
+      case 'alert': return 'M18 6L6 18M6 6l12 12';          // x-circle-ish cross
+      default: return 'M12 16v-4M12 8h.01';                 // info dot + line
+    }
   }
 
   getBarHeight(sales: number): number {
