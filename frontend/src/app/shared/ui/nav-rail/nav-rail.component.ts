@@ -22,7 +22,7 @@ import { UserRole } from '../../models/user.model';
          aria-label="Main navigation">
       <div class="nav-rail-top">
         <div class="nav-logo">
-          <span class="logo-icon">FB</span>
+          <span class="logo-icon">LP</span>
           <span class="logo-text" *ngIf="!collapsed">Lemon POS</span>
         </div>
       </div>

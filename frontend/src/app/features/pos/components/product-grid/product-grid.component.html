@@ -54,6 +54,7 @@
               <path d="M21 15l-5-5L5 21"/>
             </svg>
           </div>
+          <span class="ed-pill best-seller-badge" *ngIf="isBestSeller(product) && product.stock > 0">&#128293; Best seller</span>
           <span class="ed-pill ed-pill--warning stock-badge" *ngIf="isLowStock(product) && product.stock > 0">Low &middot; {{ product.stock | number:'1.0-0' }}</span>
           <span class="ed-pill ed-pill--danger stock-badge" *ngIf="product.stock <= 0">Sold out</span>
         </div>

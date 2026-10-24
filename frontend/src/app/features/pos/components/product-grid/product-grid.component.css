@@ -203,6 +203,24 @@
 .stock-badge.ed-pill--warning { background: var(--warning); }
 .stock-badge.ed-pill--danger { background: var(--danger); }
 
+/* Best seller pill (uses .ed-pill base) — top-left so it never collides with
+   the top-right stock pill */
+.best-seller-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 3px 8px;
+  background: var(--warning);
+  color: #fff;
+  border: none;
+  backdrop-filter: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  z-index: 1;
+}
+
 /* Body */
 .card-body {
   display: flex;

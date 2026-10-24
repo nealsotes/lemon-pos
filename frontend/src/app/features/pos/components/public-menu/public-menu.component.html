@@ -4,7 +4,7 @@
     <div class="header-content">
       <div class="logo-section">
         <div class="logo-icon">
-          <div class="logo-bg">FB</div>
+          <div class="logo-bg">LP</div>
         </div>
         <h1 class="restaurant-name">Lemon POS Advance</h1>
         <p class="restaurant-tagline">Digital Menu</p>
@@ -66,6 +66,9 @@
             class="product-image"
             (error)="onImageError($event)"
           />
+          <div *ngIf="isBestSeller(product.id)" class="stock-badge best-seller">
+            &#128293; Best seller
+          </div>
           <div *ngIf="product.stock <= (product.lowQuantityThreshold || 5)" class="stock-badge low-stock">
             Limited
           </div>

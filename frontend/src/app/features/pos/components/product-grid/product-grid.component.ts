@@ -9,6 +9,7 @@ import { Product } from '../../models/product.model';
 import { CartItem } from '../../../checkout/models/cart-item.model';
 import { OpenOrder } from '../../../checkout/models/open-order.model';
 import { ProductService } from '../../services/product.service';
+import { BestSellerService } from '../../services/best-seller.service';
 import { CartService } from '../../../checkout/services/cart.service';
 import { CheckoutSidebarComponent } from '../../../checkout/components/checkout/checkout-sidebar.component';
 import { POSCartSidebarComponent } from '../../../checkout/components/cart/pos-cart-sidebar.component';
@@ -68,6 +69,7 @@ export class ProductGridComponent implements OnInit, OnDestroy {
 
   constructor(
     private productService: ProductService,
+    private bestSellerService: BestSellerService,
     private cartService: CartService,
     private cdr: ChangeDetectorRef,
     private dialog: MatDialog,
@@ -78,6 +80,7 @@ export class ProductGridComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadProducts();
     this.loadCategories();
+    this.loadBestSellers();
     this.loadCart();
     this.observeBreakpoint();
   }
@@ -153,6 +156,17 @@ export class ProductGridComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       });
     });
+  }
+
+  private loadBestSellers(): void {
+    this.bestSellerService.load(30, 10);
+    this.bestSellerService.bestSellerIds$.pipe(
+      takeUntil(this.destroy$)
+    ).subscribe(() => this.cdr.markForCheck());
+  }
+
+  isBestSeller(product: Product): boolean {
+    return this.bestSellerService.isBestSeller(product.id);
   }
 
   filterProducts(): void {
@@ -326,6 +340,9 @@ export class ProductGridComponent implements OnInit, OnDestroy {
 
     // Reload cart data to update counts and totals
     this.loadCart();
+
+    // A completed sale may change which products rank as best sellers
+    this.bestSellerService.refresh();
 
     // Force refresh products from server to update stock quantities immediately
     // This clears cache and fetches fresh data from the API

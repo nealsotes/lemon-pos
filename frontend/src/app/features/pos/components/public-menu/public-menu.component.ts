@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRe
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ProductService } from '../../services/product.service';
+import { BestSellerService } from '../../services/best-seller.service';
 import { SkeletonCardsComponent } from '../../../../shared/ui/skeleton/skeleton-cards.component';
 import { Product } from '../../models/product.model';
 import { Subject, takeUntil } from 'rxjs';
@@ -26,12 +27,14 @@ export class PublicMenuComponent implements OnInit, OnDestroy {
 
   constructor(
     private productService: ProductService,
+    private bestSellerService: BestSellerService,
     private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
     this.loadProducts();
     this.loadCategories();
+    this.loadBestSellers();
   }
 
   ngOnDestroy(): void {
@@ -68,6 +71,17 @@ export class PublicMenuComponent implements OnInit, OnDestroy {
         this.categories = categories;
         this.cdr.markForCheck();
       });
+  }
+
+  private loadBestSellers(): void {
+    this.bestSellerService.load(30, 10);
+    this.bestSellerService.bestSellerIds$.pipe(
+      takeUntil(this.destroy$)
+    ).subscribe(() => this.cdr.markForCheck());
+  }
+
+  isBestSeller(productId: string): boolean {
+    return this.bestSellerService.isBestSeller(productId);
   }
 
   selectCategory(category: string | null): void {

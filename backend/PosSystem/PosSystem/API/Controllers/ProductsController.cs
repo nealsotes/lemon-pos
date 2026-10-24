@@ -14,12 +14,29 @@ public class ProductsController : ControllerBase
     private readonly IProductService _productService;
     private readonly IFileService _fileService;
     private readonly IExportService _exportService;
+    private readonly IReportingService _reportingService;
 
-    public ProductsController(IProductService productService, IFileService fileService, IExportService exportService)
+    public ProductsController(IProductService productService, IFileService fileService, IExportService exportService, IReportingService reportingService)
     {
         _productService = productService;
         _fileService = fileService;
         _exportService = exportService;
+        _reportingService = reportingService;
+    }
+
+    // Best sellers over the last N days — powers the "Best seller" badges in the
+    // POS grid and public menu. Same aggregation as ReportsController.top-products
+    // but reachable by POS employees (class-level role covers Owner,Employee,Admin).
+    [HttpGet("best-sellers")]
+    public async Task<ActionResult<object>> GetBestSellers([FromQuery] int days = 30, [FromQuery] int count = 10)
+    {
+        if (days <= 0) days = 30;
+        if (count <= 0) count = 10;
+
+        var endDate = DateTime.UtcNow;
+        var startDate = endDate.AddDays(-days);
+        var bestSellers = await _reportingService.GetTopSellingProductsAsync(startDate, endDate, count);
+        return Ok(bestSellers);
     }
 
     [HttpGet]
