@@ -52,13 +52,21 @@ public class AuthService : IAuthService
             return null;
         }
 
-        if (!VerifyPassword(password, user.PasswordHash))
+        if (!VerifyPasswordHash(password, user.PasswordHash, out var passwordHashIsLegacy))
         {
+            // RC-01: the legacy unsalted SHA-256 form is only ever upgraded on a
+            // successful login; failed attempts must not touch the account row.
             return null;
         }
 
         // Update last login
         user.LastLoginAt = DateTime.UtcNow;
+        if (passwordHashIsLegacy)
+        {
+            // RC-01 transparent rehash: rows still carrying the legacy unsalted SHA-256
+            // digest upgrade to salted PBKDF2 on their next successful login.
+            user.PasswordHash = HashPassword(password);
+        }
         await _userRepository.UpdateAsync(user);
 
         // Generate token
@@ -156,19 +164,103 @@ public class AuthService : IAuthService
         return tokenHandler.WriteToken(token);
     }
 
+    // RC-01: storage format for password hashes. New rows use salted PBKDF2 written
+    // self-describing as pbkdf2-sha512$<iterations>$<salt-b64>$<hash-b64>. The legacy
+    // form (bare base64 of an unsalted SHA-256 digest, no prefix) remains verifiable
+    // and is transparently upgraded on the next successful login (see LoginAsync).
+    internal const string HashFormatPrefix = "pbkdf2-sha512$";
+    internal const int DefaultIterations = 100_000;
+    private const int SaltSizeBytes = 16;
+    private const int HashSizeBytes = 64;
+
+    /// <summary>
+    /// Produces a self-describing salted hash: pbkdf2-sha512$&lt;iterations&gt;$&lt;salt-b64&gt;$&lt;hash-b64&gt;.
+    /// </summary>
     public static string HashPassword(string password)
     {
-        using (var sha256 = SHA256.Create())
-        {
-            var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
-            return Convert.ToBase64String(hashedBytes);
-        }
+        var salt = RandomNumberGenerator.GetBytes(SaltSizeBytes);
+        var hash = Rfc2898DeriveBytes.Pbkdf2(
+            Encoding.UTF8.GetBytes(password),
+            salt,
+            DefaultIterations,
+            HashAlgorithmName.SHA512,
+            HashSizeBytes);
+
+        return $"{HashFormatPrefix}{DefaultIterations}${Convert.ToBase64String(salt)}${Convert.ToBase64String(hash)}";
     }
 
-    private bool VerifyPassword(string password, string passwordHash)
+    /// <summary>
+    /// True when the stored hash predates the salted PBKDF2 scheme (RC-01): a bare
+    /// base64 unsalted SHA-256 digest carrying no format prefix.
+    /// </summary>
+    public static bool IsLegacyHashFormat(string? passwordHash)
     {
-        var hashedPassword = HashPassword(password);
-        return hashedPassword == passwordHash;
+        return !string.IsNullOrEmpty(passwordHash)
+            && !passwordHash.StartsWith(HashFormatPrefix, StringComparison.Ordinal);
+    }
+
+    private static bool VerifyPasswordHash(string password, string passwordHash, out bool passwordHashIsLegacy)
+    {
+        passwordHashIsLegacy = false;
+
+        if (string.IsNullOrEmpty(passwordHash))
+        {
+            return false;
+        }
+
+        if (passwordHash.StartsWith(HashFormatPrefix, StringComparison.Ordinal))
+        {
+            return VerifyPbkdf2Hash(password, passwordHash);
+        }
+
+        // Legacy unsalted SHA-256 (pre-RC-01 rows): the base64 digest of the raw UTF-8
+        // password. Compared byte-wise in constant time like the modern form.
+        passwordHashIsLegacy = true;
+        byte[] legacyDigest;
+        try
+        {
+            legacyDigest = Convert.FromBase64String(passwordHash);
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
+
+        var computed = SHA256.HashData(Encoding.UTF8.GetBytes(password));
+        return CryptographicOperations.FixedTimeEquals(computed, legacyDigest);
+    }
+
+    private static bool VerifyPbkdf2Hash(string password, string passwordHash)
+    {
+        var parts = passwordHash.Split('$');
+        if (parts.Length != 4
+            || !int.TryParse(parts[1], out var iterations)
+            || iterations < DefaultIterations)
+        {
+            // Malformed or below the iteration floor — never honor it.
+            return false;
+        }
+
+        byte[] salt;
+        byte[] expected;
+        try
+        {
+            salt = Convert.FromBase64String(parts[2]);
+            expected = Convert.FromBase64String(parts[3]);
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
+
+        var candidate = Rfc2898DeriveBytes.Pbkdf2(
+            Encoding.UTF8.GetBytes(password),
+            salt,
+            iterations,
+            HashAlgorithmName.SHA512,
+            expected.Length);
+
+        return CryptographicOperations.FixedTimeEquals(candidate, expected);
     }
 }
 

@@ -313,12 +313,68 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public void HashPassword_ProducesTheExpectedSha256Base64Digest()
+    public void HashPassword_UsesTheSelfDescribingPbkdf2Sha512Format()
     {
-        var expected = Convert.ToBase64String(
+        // RC-01: the legacy bare-SHA256 pin is replaced by the salted PBKDF2 contract.
+        var hash = AuthService.HashPassword("s3cret!");
+
+        Assert.StartsWith(AuthService.HashFormatPrefix, hash);
+        var parts = hash.Split('$');
+        Assert.Equal(4, parts.Length);
+        Assert.True(int.Parse(parts[1]) >= 100_000, "iteration count must be at least 100k");
+        Assert.Equal(16, Convert.FromBase64String(parts[2]).Length);
+        Assert.Equal(64, Convert.FromBase64String(parts[3]).Length);
+
+        // A fresh random salt per call: equal passwords never share a stored hash.
+        Assert.NotEqual(AuthService.HashPassword("s3cret!"), hash);
+        Assert.NotEqual(AuthService.HashPassword("other"), AuthService.HashPassword("other"));
+    }
+
+    [Fact]
+    public void IsLegacyHashFormat_DistinguishesTheTwoForms()
+    {
+        var legacy = Convert.ToBase64String(
             System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes("s3cret!")));
 
-        Assert.Equal(expected, AuthService.HashPassword("s3cret!"));
-        Assert.NotEqual(AuthService.HashPassword("s3cret!"), AuthService.HashPassword("other"));
+        Assert.True(AuthService.IsLegacyHashFormat(legacy));
+        Assert.False(AuthService.IsLegacyHashFormat(AuthService.HashPassword("s3cret!")));
+        Assert.False(AuthService.IsLegacyHashFormat(null));
+        Assert.False(AuthService.IsLegacyHashFormat(""));
+        // A prefixed string is "modern" regardless of its payload; verification — not
+        // the prefix — decides whether it can pass (below the iteration floor it can't).
+        Assert.False(AuthService.IsLegacyHashFormat("pbkdf2-sha512$junk"));
+    }
+
+    [Fact]
+    public async Task LoginAsync_LegacyUnsaltedSha256Hash_VerifiesAndUpgradesToPbkdf2()
+    {
+        // RC-01: rows predating the hashed upgrade carry the legacy unsalted SHA-256
+        // digest; a correct login must still succeed AND replace the digest in the very
+        // same single write-back that stamps LastLoginAt.
+        var user = ActiveUser();
+        user.PasswordHash = Convert.ToBase64String(
+            System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes("s3cret!")));
+        StubUser(user);
+
+        var result = await _service.LoginAsync("owner", "s3cret!");
+
+        Assert.NotNull(result);
+        _userRepository.Verify(r => r.UpdateAsync(It.IsAny<User>()), Times.Once);
+        _userRepository.Verify(r => r.UpdateAsync(It.Is<User>(u =>
+            u.PasswordHash.StartsWith(AuthService.HashFormatPrefix))), Times.Once);
+    }
+
+    [Fact]
+    public async Task LoginAsync_LegacyUnsaltedSha256Hash_WrongPassword_ReturnsNullAndDoesNotUpgrade()
+    {
+        var user = ActiveUser();
+        user.PasswordHash = Convert.ToBase64String(
+            System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes("s3cret!")));
+        StubUser(user);
+
+        var result = await _service.LoginAsync("owner", "wrong-password");
+
+        Assert.Null(result);
+        _userRepository.Verify(r => r.UpdateAsync(It.IsAny<User>()), Times.Never);
     }
 }

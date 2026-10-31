@@ -107,8 +107,10 @@ public class UserServiceTests
         Assert.Equal("manager", result.Username);
         Assert.Equal("Employee", result.Role);
         Assert.True(result.IsActive);
+        // RC-01: the stored hash is the new self-describing salted format (the old
+        // byte-equality pin was replaced — PBKDF2 salts make equal calls differ).
         _userRepository.Verify(r => r.CreateAsync(It.Is<User>(u =>
-            u.PasswordHash == AuthService.HashPassword("secret123"))), Times.Once);
+            u.PasswordHash.StartsWith(AuthService.HashFormatPrefix))), Times.Once);
     }
 
     [Fact]
