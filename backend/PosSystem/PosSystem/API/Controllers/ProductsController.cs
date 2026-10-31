@@ -290,12 +290,19 @@ public class ProductsController : ControllerBase
         var wwwrootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
         var webHostEnv = HttpContext.RequestServices.GetRequiredService<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>();
         var rootPath = webHostEnv.WebRootPath ?? wwwrootPath;
-        var filePath = Path.Combine(rootPath, "uploads", fileName);
 
-        if (!System.IO.File.Exists(filePath))
+        // RC-05: fileName is an attacker-controlled route value (and URL-decoded by the
+        // pipeline before it reaches us). ResolveUploadFilePath canonicalizes the path,
+        // confines it to <webroot>/uploads, and keeps the extension whitelist.
+        var filePath = ResolveUploadFilePath(rootPath, fileName);
+        if (filePath == null)
+        {
             return NotFound();
+        }
 
-        var extension = Path.GetExtension(fileName).ToLowerInvariant();
+        // ResolveUploadFilePath has already enforced the extension whitelist, so this
+        // switch maps every serving request; the fallback is unreachable but kept.
+        var extension = Path.GetExtension(filePath).ToLowerInvariant();
         var contentType = extension switch
         {
             ".jpg" or ".jpeg" => "image/jpeg",
@@ -306,6 +313,59 @@ public class ProductsController : ControllerBase
         };
 
         return PhysicalFile(filePath, contentType);
+    }
+
+    private static readonly string[] AllowedImageExtensions =
+        { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+
+    /// <summary>
+    /// RC-05: resolves an uploaded-image file name to an absolute path under
+    /// <paramref name="rootPath"/>/uploads, or null when the request must get a 404.
+    ///
+    /// The file-name segment is never trusted: the path is canonicalized with
+    /// Path.GetFullPath and the result must still resolve at or below the uploads
+    /// directory — so `..` (plain, backslashed, or percent-encoded, which the routing
+    /// pipeline decodes before this value arrives) cannot escape uploads.
+    /// </summary>
+    public static string? ResolveUploadFilePath(string rootPath, string fileName)
+    {
+        if (string.IsNullOrWhiteSpace(fileName))
+        {
+            return null;
+        }
+
+        try
+        {
+            var uploadsRoot = Path.GetFullPath(Path.Combine(rootPath, "uploads"));
+            var candidate = Path.GetFullPath(Path.Combine(uploadsRoot, fileName));
+
+            // At/below uploadsRoot only: GetRelativePath yields ".." prefix for escapes
+            // and an absolute path for rooted candidates on another drive.
+            var relative = Path.GetRelativePath(uploadsRoot, candidate);
+            if (relative.StartsWith("..", StringComparison.Ordinal) || Path.IsPathRooted(relative))
+            {
+                return null;
+            }
+
+            // Extension whitelist (kept from the original route): only actual image
+            // uploads are served; anything else in uploads gets a 404.
+            if (!AllowedImageExtensions.Contains(Path.GetExtension(candidate).ToLowerInvariant()))
+            {
+                return null;
+            }
+
+            if (!System.IO.File.Exists(candidate))
+            {
+                return null;
+            }
+
+            return candidate;
+        }
+        catch
+        {
+            // Malformed paths (invalid drive-relative forms etc.) are simply rejected.
+            return null;
+        }
     }
 
     [HttpGet("categories")]
