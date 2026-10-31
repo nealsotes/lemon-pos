@@ -16,7 +16,7 @@ Mirror the threshold fallback for hot/cold when the columns are blank (and recom
 
 ## LB-002 — AuthService.GetUserFromTokenAsync can never resolve a user: claim-type lookup contradicts the tokens the same service mints
 
-**Logged:** 2026-10-31 · **Status:** OPEN (pinned by `GetUserFromTokenAsync_ServiceMintedToken_ReturnsNull_ClaimTypeLookupNeverMatches` in `PosSystem.Tests/AuthServiceTests.cs`) · **Severity:** latent (breaks `POST /api/auth/validate` only; the SPA's `validateToken()` has no callers today — `frontend/src/app/core/services/auth.service.ts:222`) · **Origin:** exposed by roadmap item 4 coverage work (t_08a7942f), proven by a standalone JWT probe against the repo's exact JWT package version.
+**Logged:** 2026-10-31 · **Status:** FIXED 2026-10-31 — commit `e681af1` (read side of `GetUserFromTokenAsync` resolves BOTH claim forms; mint side + wire contract byte-unchanged); live `POST /api/auth/validate` verified `{valid:true}` for a self-minted token in t_bfe79f59, and re-verified at phase-2 HEAD 07486bc by the phase-2 QA gate (t_308c3403): AuthServiceTests 20/20 incl. the reworked pin `GetUserFromTokenAsync_ServiceMintedToken_ResolvesUserFromShortClaimKey`, guard `GetUserFromTokenAsync_TokenWithOnlyAnIdentifierClaim_ReturnsNull`, IdP-shape pin `GetUserFromTokenAsync_TokenCarryingTheLongClaimType_LoadsUserByUsername`, and the `unique_name`/`nameid` wire-contract asserts (AuthServiceTests.cs:165-166); full suite 231/231 · **Severity:** latent (breaks `POST /api/auth/validate` only; the SPA's `validateToken()` has no callers today — `frontend/src/app/core/services/auth.service.ts:222`) · **Origin:** exposed by roadmap item 4 coverage work (t_08a7942f), proven by a standalone JWT probe against the repo's exact JWT package version.
 
 ### Symptom
 
@@ -30,7 +30,7 @@ Mirror the threshold fallback for hot/cold when the columns are blank (and recom
 
 ### Disposition
 
-Lead decision needed. Suggested direction: make the write and the read sides agree — either mint with the literal short names and read `unique_name`, or keep the long-name mint and do the username lookup on a mapped validation pass (`jwtHandler.ValidateToken(...)`) instead of raw `ReadJwtToken`. Either is a two-line change; the pinned tests describe both target shapes (the long-claim variant is exercised via a forged IdP-style token).
+**Resolved** by the adopted vote (motion t_15c91c93): keep the long-name mint and its pinned wire contract byte-unchanged; the read side (`GetUserFromTokenAsync`) now accepts both the raw payload's short `unique_name` form and the literal long ClaimTypes.Name URI (external-IdP-shaped tokens). A nameid-only token returns null without a repository call, so the identifier claim can never stand in for a username.
 
 ## LB-001 — Reports "Revenue by Category" renders ₱0.00 / blank share % (display-field mismatch)
 
