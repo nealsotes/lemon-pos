@@ -222,23 +222,14 @@ builder.Services.AddScoped<IPrintService, PrintService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 
-// Configure JWT Authentication - Use environment variable if available (Railway)
-// Try multiple environment variable formats for compatibility
-var jwtSecretKey = builder.Configuration["Jwt:SecretKey"] 
-    ?? Environment.GetEnvironmentVariable("JWT_SECRET_KEY")
-    ?? Environment.GetEnvironmentVariable("JWT__SECRETKEY")  // ASP.NET Core format
-    ?? Environment.GetEnvironmentVariable("Jwt__SecretKey")  // Alternative format
-    ?? "YourSuperSecretKeyThatShouldBeAtLeast32CharactersLongForSecurity!";
-var jwtIssuer = builder.Configuration["Jwt:Issuer"] 
-    ?? Environment.GetEnvironmentVariable("JWT_ISSUER")
-    ?? Environment.GetEnvironmentVariable("JWT__ISSUER")
-    ?? Environment.GetEnvironmentVariable("Jwt__Issuer")
-    ?? "QuickServePOS";
-var jwtAudience = builder.Configuration["Jwt:Audience"] 
-    ?? Environment.GetEnvironmentVariable("JWT_AUDIENCE")
-    ?? Environment.GetEnvironmentVariable("JWT__AUDIENCE")
-    ?? Environment.GetEnvironmentVariable("Jwt__Audience")
-    ?? "QuickServePOS";
+// Configure JWT Authentication (RC-03): one source of truth — JwtKeyResolver resolves
+// the material and FAILS FAST at startup when the signing key is missing, shorter than
+// 32 characters, or set to the publicly-known value that used to be the hardcoded
+// fallback. There is no silent fallback key anymore.
+var jwt = JwtKeyResolver.Resolve(builder.Configuration);
+var jwtSecretKey = jwt.SecretKey;
+var jwtIssuer = jwt.Issuer;
+var jwtAudience = jwt.Audience;
 
 
 builder.Services.AddAuthentication(options =>

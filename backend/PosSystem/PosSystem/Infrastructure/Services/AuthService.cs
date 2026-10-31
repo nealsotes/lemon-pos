@@ -12,7 +12,6 @@ namespace PosSystem.Infrastructure.Services;
 public class AuthService : IAuthService
 {
     private readonly IUserRepository _userRepository;
-    private readonly IConfiguration _configuration;
     private readonly string _secretKey;
     private readonly string _issuer;
     private readonly string _audience;
@@ -20,28 +19,15 @@ public class AuthService : IAuthService
     public AuthService(IUserRepository userRepository, IConfiguration configuration)
     {
         _userRepository = userRepository;
-        _configuration = configuration;
-        
-        // Use the same key resolution logic as Program.cs to ensure consistency
-        // Try multiple environment variable formats for compatibility
-        _secretKey = configuration["Jwt:SecretKey"] 
-            ?? Environment.GetEnvironmentVariable("JWT_SECRET_KEY")
-            ?? Environment.GetEnvironmentVariable("JWT__SECRETKEY")  // ASP.NET Core format
-            ?? Environment.GetEnvironmentVariable("Jwt__SecretKey")  // Alternative format
-            ?? "YourSuperSecretKeyThatShouldBeAtLeast32CharactersLongForSecurity!";
-        
-        _issuer = configuration["Jwt:Issuer"] 
-            ?? Environment.GetEnvironmentVariable("JWT_ISSUER")
-            ?? Environment.GetEnvironmentVariable("JWT__ISSUER")
-            ?? Environment.GetEnvironmentVariable("Jwt__Issuer")
-            ?? "QuickServePOS";
-        
-        _audience = configuration["Jwt:Audience"] 
-            ?? Environment.GetEnvironmentVariable("JWT_AUDIENCE")
-            ?? Environment.GetEnvironmentVariable("JWT__AUDIENCE")
-            ?? Environment.GetEnvironmentVariable("Jwt__Audience")
-            ?? "QuickServePOS";
-        
+
+        // RC-03: single source of truth for the JWT material. JwtKeyResolver fail-fasts
+        // on a missing / too short / publicly-known secret instead of silently minting
+        // tokens with the hardcoded fallback key that used to ship in the repo.
+        var jwt = JwtKeyResolver.Resolve(configuration);
+
+        _secretKey = jwt.SecretKey;
+        _issuer = jwt.Issuer;
+        _audience = jwt.Audience;
     }
 
     public async Task<LoginResult?> LoginAsync(string username, string password, bool rememberMe = false)

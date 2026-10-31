@@ -7,38 +7,68 @@ Both assume no custom domain — each uses a free hostname with working HTTPS.
 
 ## 0. Security pre-flight — do this before either host
 
-Two issues make this app unsafe to expose on the public internet as-is. `github.com/nealsotes/lemon-pos`
-is a **public repository**, so both are readable by anyone.
+### 0.1 The JWT signing key is now fail-fast enforced (RC-03)
 
-### 0.1 The JWT signing key has a public fallback
+Earlier builds silently fell back to a hardcoded key (`Program.cs` / `AuthService.cs`,
+the string `YourSuperSecretKey…`) when no environment variable was set. That fallback is
+**removed**. The app now refuses to boot unless a real signing key is configured — the
+startup error lists every configuration key it tried.
 
-`Program.cs:229` and `AuthService.cs:31` both fall back to a hardcoded key when no env var is set:
+The key resolves from ONE place (`JwtKeyResolver`), consulted by both the bearer
+validation stack and token minting:
 
-```
-"YourSuperSecretKeyThatShouldBeAtLeast32CharactersLongForSecurity!"
-```
+1. `Jwt:SecretKey` configuration — appsettings/secrets; the standard `__` env forms
+   (`Jwt__SecretKey`, `JWT__SecretKey`, `JWT__SECRETKEY`) map onto it automatically;
+2. `JWT_SECRET_KEY` — the Railway/Oracle convenience environment variable.
 
-If `JWT_SECRET_KEY` is unset the app starts anyway and signs tokens with that constant — anyone
-who reads the repo can forge an Owner or Admin token. **Setting `JWT_SECRET_KEY` is mandatory, not optional.**
+Startup throws — listing the keys it tried — when:
 
-Generate one:
+- no key is configured;
+- the key is shorter than **32 characters**;
+- the key equals the publicly-known value that used to be hardcoded in the repo
+  (that string must now be treated as compromised and is rejected on sight).
+
+Generate and set one:
 
 ```bash
 openssl rand -base64 48
+# Railway → app service → Variables:  JWT_SECRET_KEY=<output>
+# Oracle compose → environment:       JWT_SECRET_KEY=<output>
 ```
 
-### 0.2 Default users are seeded automatically
+Local development: the committed dev-only value in `Properties/launchSettings.json`
+covers plain `dotnet run` / VS debug. When booting without the launch profile, supply
+your own:
 
-`SeedData.InitializeUsersAsync` runs on every startup (`Program.cs:734`) and creates:
+```bash
+JWT_SECRET_KEY='<your 32+ char random value>' dotnet run --no-launch-profile
+```
+
+### 0.2 Default users are no longer seeded automatically (RC-02)
+
+Earlier builds ran `SeedData.InitializeUsersAsync` on **every** boot and re-created the
+accounts below whenever absent — in every environment including production, and
+including accounts you had deliberately deleted. Now:
+
+- **Default: OFF.** Nothing is seeded unless you explicitly opt in with
+  `Seed:DefaultUsers` (`Seed__DefaultUsers=true` env on Railway/Oracle, or
+  `"Seed": { "DefaultUsers": true }` in a local dev appsettings).
+- **Opt-in seeds only what is missing.** With the gate on, a fresh database (or any
+  database missing a default) gets the three starter accounts — change their passwords
+  immediately after your first login, before pointing anyone at the URL.
+- **Deletions stick.** SeedData writes a one-time marker per default username
+  (`seed:defaultuser:<username>` in ApplicationSettings). Once marked, that username is
+  never re-inserted on later boots — even with the gate left on. Databases seeded
+  before this change get their marker written without touching existing credentials,
+  so an account deleted just before upgrading stays deleted.
+
+These credentials exist in the public repo and are only relevant if you opt in:
 
 | Username   | Password   | Role     |
 | ---------- | ---------- | -------- |
 | `owner`    | `admin123` | Owner    |
 | `admin`    | `admin123` | Admin    |
 | `employee` | `emp123`   | Employee |
-
-These are in the public repo. Change all three passwords immediately after your first login,
-before pointing anyone at the URL.
 
 ---
 
@@ -63,6 +93,7 @@ before pointing anyone at the URL.
 | `JWT_AUDIENCE`           | Yes      | Any stable string, e.g. `QuickServePOSUsers`                        |
 | `ASPNETCORE_ENVIRONMENT` | Yes      | `Production`                                                        |
 | `PORT`                   | Platform | Railway sets it; on Oracle set it yourself (or accept 5001)         |
+| `Seed__DefaultUsers`     | No       | `true` seeds the three starter accounts on a FRESH database (§0.2). Default OFF — nothing seeds without it. |
 | `MYSQL_URL`              | One of   | `mysql://user:pass@host:3306/dbname` — parsed at `Program.cs:74`    |
 | `MYSQLHOST` / `MYSQLPORT` / `MYSQLDATABASE` / `MYSQLUSER` / `MYSQLPASSWORD` | One of | Individual vars, `Program.cs:159-169` |
 | `CORS__AllowedOrigins`   | No       | SPA and API share an origin, so CORS is not in play. Only needed if you later split them. |
@@ -273,6 +304,8 @@ docker compose pull && docker compose up -d
 ## After either deploy
 
 1. Log in as `owner` / `admin123` and **change all three seeded passwords** (§0.2).
+   (If you did NOT opt into default-user seeding — the default — there is nothing
+   seeded: create your own Owner account on first boot instead.)
 2. `curl https://<host>/api/health` should return healthy.
 3. Confirm the public menu route (`/menu`) loads — it's the only unauthenticated page.
 4. Printing is client-side, so hosting choice does not affect it — but the two printer paths in
@@ -306,9 +339,9 @@ Do §0 on the *Railway* deploy before dumping, not after:
 - Log in and change the `owner`, `admin`, and `employee` passwords (§0.2).
 
 Password hashes live in the `Users` table, so changing them now means the dump carries the fixed
-credentials into Oracle automatically. `SeedData.InitializeUsersAsync` only inserts a user when that
-username is absent (`SeedData.cs:122`), so your changed passwords will not be reverted on first boot
-in the new environment.
+credentials into Oracle automatically. Since RC-02, `SeedData` records a one-time marker per default
+username the first time it accounts for it (`seed:defaultuser:<username>` in ApplicationSettings),
+so changed (or deleted) default accounts are never re-inserted by later boots.
 
 ### M.2 Dump from Railway
 

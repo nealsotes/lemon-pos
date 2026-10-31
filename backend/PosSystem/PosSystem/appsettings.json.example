@@ -21,7 +21,6 @@
                     "Name":  ""
                 },
     "Jwt":  {
-                "SecretKey":  "YourSuperSecretKeyThatShouldBeAtLeast32CharactersLongForSecurity!",
                 "Issuer":  "QuickServePOS",
                 "Audience":  "QuickServePOS"
             }
