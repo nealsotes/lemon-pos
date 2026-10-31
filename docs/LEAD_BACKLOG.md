@@ -2,6 +2,24 @@
 
 Running log of defects and improvement items the team lead tracks outside the currently active roadmap phases. Each entry carries evidence, a disposition, and its routing. Supersedes ad-hoc notes in task results.
 
+## LB-002 — AuthService.GetUserFromTokenAsync can never resolve a user: claim-type lookup contradicts the tokens the same service mints
+
+**Logged:** 2026-10-31 · **Status:** OPEN (pinned by `GetUserFromTokenAsync_ServiceMintedToken_ReturnsNull_ClaimTypeLookupNeverMatches` in `PosSystem.Tests/AuthServiceTests.cs`) · **Severity:** latent (breaks `POST /api/auth/validate` only; the SPA's `validateToken()` has no callers today — `frontend/src/app/core/services/auth.service.ts:222`) · **Origin:** exposed by roadmap item 4 coverage work (t_08a7942f), proven by a standalone JWT probe against the repo's exact JWT package version.
+
+### Symptom
+
+`POST /api/auth/validate` returns `{ valid: false }` for any token minted by this service, no matter how fresh or correctly signed.
+
+### Root cause
+
+- `AuthService.GenerateToken` builds claims with the long `System.Security.Claims.ClaimTypes` URIs (`ClaimTypes.Name`, `NameIdentifier`, `Role` — `Infrastructure/Services/AuthService.cs:131-136`). `JwtSecurityTokenHandler`'s **outbound claim map** writes these into the JWT as the short payload keys `unique_name` / `nameid` / `role`.
+- `AuthService.GetUserFromTokenAsync` then parses the raw token with `tokenHandler.ReadJwtToken` (`AuthService.cs:109`) — which returns the payload's **raw** claim types with no inbound mapping — and greps for `c.Type == ClaimTypes.Name` (`AuthService.cs:110`), i.e. the long WS-Fed URI. A raw payload never carries that key, so `username` is always null and the method returns null before the repository is ever consulted.
+- Proven with the shipped JWT package: `ReadJwtToken(GenerateToken(...)).Claims` yields exactly `unique_name`, `nameid`, `role` (plus nbf/exp/iat/iss/aud).
+
+### Disposition
+
+Lead decision needed. Suggested direction: make the write and the read sides agree — either mint with the literal short names and read `unique_name`, or keep the long-name mint and do the username lookup on a mapped validation pass (`jwtHandler.ValidateToken(...)`) instead of raw `ReadJwtToken`. Either is a two-line change; the pinned tests describe both target shapes (the long-claim variant is exercised via a forged IdP-style token).
+
 ## LB-001 — Reports "Revenue by Category" renders ₱0.00 / blank share % (display-field mismatch)
 
 **Logged:** 2026-10-31 · **Status:** FIXED 2026-10-31 — contract-preserving UI rebind landed (see git log `fix(reports)`); card re-verified in the running app against `GET /api/reports/category` (drinks ₱910.00/91.0%, bakery ₱90.00/9.0%) · **Severity:** display-only (API data is correct; no money at risk, but user-facing wrong figures on a money screen) · **Origin:** discovered live during the roadmap item 2 acceptance gate, step 4 (t_fa5f2c6a); explicitly declared outside the authorized gate scope by the consolidator t_7ce1ca44 — the item-2 gate verdict remains PASS at HEAD 8363cb6.
