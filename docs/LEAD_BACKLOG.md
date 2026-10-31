@@ -2,6 +2,18 @@
 
 Running log of defects and improvement items the team lead tracks outside the currently active roadmap phases. Each entry carries evidence, a disposition, and its routing. Supersedes ad-hoc notes in task results.
 
+## LB-003 — Product import nulls Hot/Cold prices for rows without those columns
+
+**Logged:** 2026-10-31 · **Status:** OPEN (adjacent to rider OT-03, deliberately out of its scope) · **Severity:** low (only affects hand-built CSVs without Hot Price/Cold Price columns; the standard product export always includes them, and re-importing a real export round-trips) · **Origin:** noticed while fixing OT-03 (rider batch B, t_b8af3d46).
+
+### Root cause
+
+`ImportService.ImportProductsAsync` treats a missing/blank Hot Price or Cold Price column as "no hot/cold pricing": `hotPrice`/`coldPrice` parse to null and the upsert sets `HotPrice = null, ColdPrice = null, HasHotCold = false`, which `ProductService.UpdateProductAsync` then overwrites the live row with. Contrast the Low Stock Threshold fallback (`ParseOptionalInt(...) ?? existingProduct?.LowQuantityThreshold`), which carries the existing value when the column is absent.
+
+### Disposition
+
+Mirror the threshold fallback for hot/cold when the columns are blank (and recompute HasHotCold against the existing values); alternatively recompute only when provided. Two-line change + one round-trip test.
+
 ## LB-002 — AuthService.GetUserFromTokenAsync can never resolve a user: claim-type lookup contradicts the tokens the same service mints
 
 **Logged:** 2026-10-31 · **Status:** OPEN (pinned by `GetUserFromTokenAsync_ServiceMintedToken_ReturnsNull_ClaimTypeLookupNeverMatches` in `PosSystem.Tests/AuthServiceTests.cs`) · **Severity:** latent (breaks `POST /api/auth/validate` only; the SPA's `validateToken()` has no callers today — `frontend/src/app/core/services/auth.service.ts:222`) · **Origin:** exposed by roadmap item 4 coverage work (t_08a7942f), proven by a standalone JWT probe against the repo's exact JWT package version.

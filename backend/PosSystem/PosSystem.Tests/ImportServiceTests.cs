@@ -118,6 +118,88 @@ public class ImportServiceTests
     }
 
     [Fact]
+    public async Task ImportAsync_ProductsReimport_WithoutAddOnsColumn_PreservesExistingAddOnConfig()
+    {
+        // OT-03: a stale product export carries no add-on columns; re-importing it
+        // used to wipe the product's add-on configuration.
+        var existing = new Product
+        {
+            Id = "p1",
+            Name = "Milk",
+            Category = "Drinks",
+            Price = 10m,
+            Stock = 5,
+            HasAddOns = true,
+            AddOnsJson = "[{\"Name\":\"Boba\",\"Price\":15.0}]"
+        };
+        _productService.Setup(s => s.GetAllProductsAsync()).ReturnsAsync(new List<Product> { existing });
+
+        var csv = "Name,Category,Price,Stock\nMilk,Drinks,12,50\n";
+        var report = await CreateService().ImportAsync(ImportKind.Products, "products.csv", ToStream(csv), "system");
+
+        Assert.Equal(1, report.Updated);
+        Assert.Empty(report.Errors);
+        _productService.Verify(s => s.UpdateProductAsync("p1", It.Is<Product>(p =>
+            p.HasAddOns &&
+            p.AddOns != null && p.AddOns.Count == 1 &&
+            p.AddOns[0].Name == "Boba" && p.AddOns[0].Price == 15m)), Times.Once);
+    }
+
+    [Fact]
+    public async Task ImportAsync_Products_ExplicitAddOnsColumn_AppliesProvidedValues()
+    {
+        var existing = new Product
+        {
+            Id = "p1",
+            Name = "Milk",
+            Category = "Drinks",
+            Price = 10m,
+            Stock = 5,
+            HasAddOns = false,
+            AddOnsJson = "[]"
+        };
+        _productService.Setup(s => s.GetAllProductsAsync()).ReturnsAsync(new List<Product> { existing });
+
+        var csv = "Name,Category,Price,Stock,Add-ons\nMilk,Drinks,12,50,Boba:15; Syrup:5\n";
+        var report = await CreateService().ImportAsync(ImportKind.Products, "products.csv", ToStream(csv), "system");
+
+        Assert.Equal(1, report.Updated);
+        Assert.Empty(report.Errors);
+        _productService.Verify(s => s.UpdateProductAsync("p1", It.Is<Product>(p =>
+            p.HasAddOns &&
+            p.AddOns != null && p.AddOns.Count == 2 &&
+            p.AddOns[0].Name == "Boba" && p.AddOns[0].Price == 15m &&
+            p.AddOns[1].Name == "Syrup" && p.AddOns[1].Price == 5m)), Times.Once);
+    }
+
+    [Fact]
+    public async Task ImportAsync_Products_AddOnsColumnOnNewRow_CreatesConfiguredAddOns()
+    {
+        _productService.Setup(s => s.GetAllProductsAsync()).ReturnsAsync(new List<Product>());
+
+        var csv = "Name,Category,Price,Stock,Add-ons\nCake,Desserts,89.50,12,Boba:15\n";
+        var report = await CreateService().ImportAsync(ImportKind.Products, "products.csv", ToStream(csv), "system");
+
+        Assert.Equal(1, report.Created);
+        Assert.Empty(report.Errors);
+        _productService.Verify(s => s.CreateProductAsync(It.Is<Product>(p =>
+            p.HasAddOns && p.AddOns != null && p.AddOns.Count == 1 && p.AddOns[0].Price == 15m)), Times.Once);
+    }
+
+    [Fact]
+    public async Task ImportAsync_Products_InvalidAddOnsCell_GoesToErrors()
+    {
+        _productService.Setup(s => s.GetAllProductsAsync()).ReturnsAsync(new List<Product>());
+
+        var csv = "Name,Category,Price,Stock,Add-ons\nMilk,Drinks,12,50,Boba\n";
+        var report = await CreateService().ImportAsync(ImportKind.Products, "products.csv", ToStream(csv), "system");
+
+        Assert.Equal(0, report.Created);
+        Assert.Single(report.Errors);
+        Assert.Contains("Name:Price", report.Errors[0].Message);
+    }
+
+    [Fact]
     public async Task ImportAsync_UnsupportedFileType_Throws()
     {
         await Assert.ThrowsAsync<ArgumentException>(() =>

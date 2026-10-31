@@ -13,10 +13,10 @@ namespace PosSystem.Tests;
 /// .GetTopSellingProductsAsync). Pins ranking by quantity sold, revenue
 /// summation, and the requested take count.
 ///
-/// The service returns anonymous-typed rows, so assertions go through JSON
-/// round-tripping (dynamic binding cannot see internal types from this
-/// assembly). Serializer uses default property casing → PascalCase keys, which
-/// is exactly what the frontend maps over.
+/// The service returns typed TopSellingProductDto rows (OT-02; formerly
+/// anonymous-typed). Assertions still go through JSON round-tripping, which
+/// pins the wire property casing (default PascalCase) that the frontend maps
+/// over.
 /// </summary>
 public class ReportingServiceBestSellersTests
 {

@@ -298,29 +298,31 @@ public class ExportService : IExportService
             }
         }
 
+        // OT-02: these two reports are consumed typed from IReportingService. The
+        // old reflection loop read props like "sales"/"total"/"percent" that the
+        // report shapes never exposed (they expose Revenue), so the Revenue and
+        // Total/Percent columns always printed 0 on Top Products / Sales by Category.
         var topProducts = await _reportingService.GetTopSellingProductsAsync(startDate, endDate, 50);
         var topSheet = wb.AddSheet("Top Products");
         topSheet.AddHeader("Rank", "Name", "Category", "Quantity Sold", "Revenue");
         int rank = 1;
-        foreach (var item in EnumerateDynamicList(topProducts))
+        foreach (var item in topProducts)
         {
-            topSheet.AddRow(
-                rank++,
-                GetProp(item, "name") ?? GetProp(item, "Name") ?? string.Empty,
-                GetProp(item, "category") ?? GetProp(item, "Category") ?? string.Empty,
-                GetProp(item, "quantity") ?? GetProp(item, "Quantity") ?? 0,
-                GetProp(item, "sales") ?? GetProp(item, "Sales") ?? 0);
+            topSheet.AddRow(rank++, item.Name, item.Category, item.Quantity, item.Revenue);
         }
 
         var categoryBreakdown = await _reportingService.GetCategoryReportAsync(startDate, endDate);
         var catSheet = wb.AddSheet("Sales by Category");
         catSheet.AddHeader("Category", "Total", "Percent");
-        foreach (var cat in EnumerateDynamicList(categoryBreakdown))
+        var totalCategoryRevenue = categoryBreakdown.Sum(c => c.Revenue);
+        foreach (var cat in categoryBreakdown)
         {
-            catSheet.AddRow(
-                GetProp(cat, "category") ?? GetProp(cat, "Category") ?? string.Empty,
-                GetProp(cat, "total") ?? GetProp(cat, "Total") ?? 0,
-                GetProp(cat, "percent") ?? GetProp(cat, "Percent") ?? 0);
+            // Share of period revenue — matches the reports page's client-side
+            // revenue-share computation (revenue / Σ revenue * 100).
+            var percent = totalCategoryRevenue > 0m
+                ? Math.Round(cat.Revenue / totalCategoryRevenue * 100m, 2, MidpointRounding.AwayFromZero)
+                : 0m;
+            catSheet.AddRow(cat.Category, cat.Revenue, percent);
         }
     }
 
@@ -630,25 +632,6 @@ public class ExportService : IExportService
         // Excel sheet names: max 31 chars, cannot contain : \ / ? * [ ]
         var cleaned = new string(name.Where(c => c != ':' && c != '\\' && c != '/' && c != '?' && c != '*' && c != '[' && c != ']').ToArray());
         return cleaned.Length > 31 ? cleaned.Substring(0, 31) : cleaned;
-    }
-
-    // Safely enumerate dynamic/object return values from ReportingService methods
-    private static IEnumerable<object> EnumerateDynamicList(object? value)
-    {
-        if (value is System.Collections.IEnumerable enumerable and not string)
-        {
-            foreach (var item in enumerable)
-            {
-                if (item != null) yield return item;
-            }
-        }
-    }
-
-    private static object? GetProp(object source, string name)
-    {
-        var prop = source.GetType().GetProperty(name,
-            System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.IgnoreCase);
-        return prop?.GetValue(source);
     }
 }
 

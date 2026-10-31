@@ -114,14 +114,18 @@ public class ReportingService : IReportingService
         };
     }
 
-    public async Task<object> GetTopSellingProductsAsync(DateTime startDate, DateTime endDate, int count = 10)
+    // OT-02: typed DTO rows (were Task<object> anonymous types). Same PascalCase
+    // property names, so the wires these endpoints drive (/api/reports, the
+    // best-sellers consumers) serialize identically — only consumers compile
+    // against real types now, instead of reflection-guessing prop names.
+    public async Task<List<TopSellingProductDto>> GetTopSellingProductsAsync(DateTime startDate, DateTime endDate, int count = 10)
     {
         var allTransactions = await _transactionRepository.GetByDateRangeAsync(startDate, endDate);
 
         var topProducts = allTransactions
             .SelectMany(t => t.Items)
             .GroupBy(item => item.ProductId)
-            .Select(g => new
+            .Select(g => new TopSellingProductDto
             {
                 ProductId = g.Key,
                 Name = g.FirstOrDefault()!.Name,
@@ -136,7 +140,7 @@ public class ReportingService : IReportingService
         return topProducts;
     }
 
-    public async Task<object> GetCategoryReportAsync(DateTime startDate, DateTime endDate)
+    public async Task<List<CategoryRevenueDto>> GetCategoryReportAsync(DateTime startDate, DateTime endDate)
     {
         var allTransactions = await _transactionRepository.GetByDateRangeAsync(startDate, endDate);
         var products = (await _productRepository.GetAllAsync()).ToDictionary(p => p.Id);
@@ -145,7 +149,7 @@ public class ReportingService : IReportingService
             .SelectMany(t => t.Items)
             .Where(item => products.ContainsKey(item.ProductId))
             .GroupBy(item => products[item.ProductId].Category)
-            .Select(g => new
+            .Select(g => new CategoryRevenueDto
             {
                 Category = g.Key,
                 Quantity = g.Sum(item => item.Quantity),

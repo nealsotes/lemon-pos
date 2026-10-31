@@ -9,6 +9,9 @@ namespace PosSystem.Infrastructure.Services;
 // Bulk import from CSV/XLSX. Columns mirror the matching ExportService sheets, so
 // an export can be edited and re-imported round-trip:
 //   Products    — Name, Category, Price, Hot Price, Cold Price, Stock, Low Stock Threshold, Status
+//                 (+ optional non-standard "Add-ons" column: "Name:Price" pairs separated by ';';
+//                  when the column is absent, an updated product keeps its existing add-on
+//                  configuration — a re-import of a stale export must not wipe it, OT-03)
 //   Ingredients — Name, Quantity, Unit, Unit Cost, Supplier, Low Stock Threshold, Expiration,
 //                 Last Purchase, Last Purchase Cost, Status
 //   Expenses    — Date, Category, Description, Amount, Recurring, Recurrence, Notes
@@ -250,6 +253,15 @@ public class ImportService : IImportService
                 var hotPrice = ParseOptionalDecimal(GetValue(row, "hotprice", "hot"));
                 var coldPrice = ParseOptionalDecimal(GetValue(row, "coldprice", "cold"));
 
+                // OT-03: add-ons are not part of the standard export columns. A
+                // re-import of a stale export must carry the live row's add-on
+                // configuration over (ProductService.UpdateProductAsync assigns
+                // HasAddOns/AddOnsJson unconditionally — a fresh Product without
+                // them used to blank the config). A file that DOES carry the
+                // Add-ons column still wins.
+                var importAddOns = ParseAddOnsColumn(GetValue(row, "addons", "addon"));
+                var effectiveAddOns = importAddOns ?? existingProduct?.AddOns;
+
                 var product = new Product
                 {
                     Name = name,
@@ -266,7 +278,12 @@ public class ImportService : IImportService
                     CreatedAt = existingProduct?.CreatedAt ?? DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
                     IsActive = ParseStatus(GetValue(row, "status"), existingProduct?.IsActive ?? true),
-                    HasHotCold = hotPrice.HasValue || coldPrice.HasValue
+                    HasHotCold = hotPrice.HasValue || coldPrice.HasValue,
+                    // Assigned through the AddOns property so AddOnsJson serializes
+                    // in the same format the rest of the app stores; HasAddOns
+                    // tracks whether any add-on is actually configured.
+                    AddOns = effectiveAddOns,
+                    HasAddOns = effectiveAddOns?.Count > 0
                 };
 
                 if (existingProduct != null)
@@ -473,6 +490,41 @@ public class ImportService : IImportService
 
     private static decimal? ParseOptionalDecimal(string raw) =>
         string.IsNullOrWhiteSpace(raw) ? null : ParseDecimal(raw, "Value", canBeZero: true);
+
+    // Optional Products "Add-ons" column (OT-03): entries are "Name:Price" pairs
+    // separated by ';' (e.g. "Boba:15; Syrup:5"). Returns null when the column is
+    // absent/blank so the caller falls back to the live product row; a non-empty
+    // value must contain at least one valid entry.
+    private static List<AddOnDto>? ParseAddOnsColumn(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+
+        var entries = raw.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (entries.Length == 0)
+            throw new ArgumentException("Add-ons must list at least one 'Name:Price' entry.");
+
+        var list = new List<AddOnDto>();
+        foreach (var entry in entries)
+        {
+            var separator = entry.LastIndexOf(':');
+            if (separator <= 0 || separator == entry.Length - 1)
+                throw new ArgumentException($"Invalid add-on entry '{entry}'. Use 'Name:Price' pairs separated by ';'.");
+
+            var name = entry[..separator].Trim();
+            var priceText = entry[(separator + 1)..].Trim();
+            if (string.IsNullOrWhiteSpace(name))
+                throw new ArgumentException($"Invalid add-on entry '{entry}'. The add-on name is required.");
+            // ':' also appears in formatted prices ("₱1,500") — reuse the shared
+            // number cleanup before parsing.
+            var price = ParseDecimal(priceText, $"Add-on '{name}' price", canBeZero: true);
+            if (price < 0)
+                throw new ArgumentException($"Add-on '{name}' price cannot be negative.");
+
+            list.Add(new AddOnDto { Name = name, Price = price });
+        }
+
+        return list;
+    }
 
     private static int ParseInt(string raw)
     {
