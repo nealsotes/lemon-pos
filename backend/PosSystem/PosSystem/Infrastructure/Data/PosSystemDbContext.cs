@@ -96,6 +96,13 @@ public class PosSystemDbContext : DbContext
             
             entity.Property(e => e.ServiceType).IsRequired();
             entity.Property(e => e.ServiceFee).HasPrecision(18, 2);
+
+            // Idempotency key - one stored sale per client-supplied key (retry safety).
+            // MySQL unique indexes treat NULLs as mutually distinct, so rows without a
+            // key are unaffected; keys are also matched case-sensitively (MySQL default
+            // utf8mb4_0900_ai_ci collation is case-insensitive, which is fine here).
+            entity.Property(e => e.IdempotencyKey).HasMaxLength(100);
+            entity.HasIndex(e => e.IdempotencyKey).IsUnique();
         });
 
         // Ingredient configuration

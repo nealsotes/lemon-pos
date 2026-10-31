@@ -488,19 +488,22 @@ public class PrintService : IPrintService
         // Format: "Item Name (hot/Iced) x2     Php 100.00"
         var nameQtyPart = $"{truncatedName}{tempIndicator}{qtyPart}";
 
-        // Format add-ons - display each on its own line for better readability
+        // Format add-ons on separate indented lines — as MODIFIERS WITHOUT THEIR OWN
+        // money figure (roadmap item 2, OT-14): the line's amount above is add-on
+        // inclusive (the cart bakes add-ons into the line price and the server's
+        // total counts them exactly once), so printing a price under each add-on
+        // made the receipt's line block sum ABOVE the TOTAL by the add-on amount.
+        // With the money removed, Σ item-line amounts == Subtotal and the receipt
+        // reconciles exactly.
         var addOnsText = string.Empty;
         if (addOns != null && addOns.Count > 0)
         {
-            // Format each add-on on a separate indented line. Each line supplies its own
-            // trailing newline, and the item line below now terminates itself.
-            addOnsText = string.Empty;
             foreach (var addOn in addOns)
             {
-                var addOnLine = $"  + {addOn.Name}";
-                var addOnPriceStr = FormatPrice(addOn.Price);
-                var addOnSpacing = Math.Max(1, 30 - addOnLine.Length - addOnPriceStr.Length);
-                addOnsText += $"{addOnLine}{new string(' ', addOnSpacing)}{addOnPriceStr}\n";
+                var qtyPrefix = addOn.Quantity > 1 ? $"{addOn.Quantity}x " : string.Empty;
+                var addOnLine = $"  + {qtyPrefix}{addOn.Name}";
+                var addOnSpacing = Math.Max(1, LineWidth - addOnLine.Length);
+                addOnsText += $"{addOnLine}{new string(' ', addOnSpacing)}\n";
             }
         }
         

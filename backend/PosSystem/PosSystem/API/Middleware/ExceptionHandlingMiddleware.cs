@@ -44,6 +44,7 @@ public class ExceptionHandlingMiddleware
         {
             ArgumentException => (int)HttpStatusCode.BadRequest,
             InvalidOperationException => (int)HttpStatusCode.BadRequest,
+            PosSystem.Core.IdempotencyKeyConflictException => (int)HttpStatusCode.Conflict,
             _ => (int)HttpStatusCode.InternalServerError
         };
 

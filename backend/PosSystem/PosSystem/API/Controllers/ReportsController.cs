@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PosSystem.Core.Interfaces;
 using PosSystem.Core.Models;
+using PosSystem.Core.Time;
 
 namespace PosSystem.API.Controllers;
 
@@ -22,7 +23,9 @@ public class ReportsController : ControllerBase
     [HttpGet("daily")]
     public async Task<ActionResult<object>> GetDailyReport()
     {
-        var today = DateTime.UtcNow.Date;
+        // "Today" is a Philippine business day, not the UTC instant's date — a 07:00
+        // PHT dashboard load must not reach back into yesterday (roadmap item 2, OT-01).
+        var today = PhilippineTime.Today;
         var report = await _reportingService.GetDailyReportAsync(today);
         return Ok(report);
     }
@@ -30,6 +33,12 @@ public class ReportsController : ControllerBase
     [HttpGet("daily/{date:datetime}")]
     public async Task<ActionResult<object>> GetDailyReportByDate(DateTime date)
     {
+        // Route-only dates: the query is a bare calendar day; on a datetime URL with
+        // no Kind it binds as Unspecified. Treat every reported day as a PH wall date.
+        if (date.Kind == DateTimeKind.Utc)
+        {
+            date = PhilippineTime.ToWall(date);
+        }
         var report = await _reportingService.GetDailyReportAsync(date);
         return Ok(report);
     }
@@ -154,12 +163,23 @@ public class ReportsController : ControllerBase
     }
 
     /// <summary>
-    /// Normalizes date range to full UTC day boundaries.
-    /// Frontend sends local-time ISO strings which shift when parsed as UTC.
-    /// This ensures all repositories query consistent date ranges.
+    /// Converts the requested PH business-day range into the canonical UTC half-open
+    /// window <c>[startUtc, endUtcExclusive)</c> that covers exactly those calendar
+    /// days (roadmap item 2, OT-01).
+    ///
+    /// The frontend sends the picked wall dates as tz-naive datetimes; they are
+    /// Philippine wall dates by definition (the store operates in Manila). The old
+    /// normalization treated them as UTC days and left the +8h sales/morning
+    /// mis-bucketing everywhere downstream. A caller posting full UTC instants keeps
+    /// its exact semantics: the wall-date extraction uses the PH-local reading of
+    /// the instant, which for UTC instants equals the instant + 8h.
     /// </summary>
     private static (DateTime start, DateTime end) NormalizeDateRange(DateTime startDate, DateTime endDate)
     {
-        return (startDate.Date, endDate.Date.AddDays(1).AddTicks(-1));
+        var startWall = PhilippineTime.ToWall(startDate).Date;
+        var endWall = PhilippineTime.ToWall(endDate).Date;
+
+        // Cover every wall date through endWall, inclusive, in UTC bounds.
+        return (PhilippineTime.ToUtc(startWall), PhilippineTime.ToUtc(endWall.AddDays(1)));
     }
 }

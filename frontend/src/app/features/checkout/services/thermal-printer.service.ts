@@ -1157,14 +1157,15 @@ export class ThermalPrinterService {
         commands.push(`${nameLine}\n`);
         commands.push(ESC + '!' + '\x00');
 
-        // Add-on lines (matches .addon-item under .item-addons)
+        // Add-on lines (matches .addon-item under .item-addons). As MODIFIERS WITHOUT
+        // their own money figure (roadmap item 2, OT-14): the item total below is
+        // add-on inclusive, so printing the add-on's money here made the printed Σ
+        // item lines exceed the TOTAL the customer paid. Only the count prefix (2x)
+        // and the name go on the paper.
         addOns.forEach((addOn: any) => {
           const addonQty = addOn.quantity || 1;
           const qtyPrefix = addonQty > 1 ? `${addonQty}x ` : '';
-          const addOnTotal = (addOn.price || 0) * addonQty * (item.quantity || 0);
-          const left = `  + ${qtyPrefix}${addOn.name || ''}`;
-          const right = this.formatPrice(addOnTotal);
-          commands.push(this.formatJustifiedLine(left, right));
+          commands.push(`  + ${qtyPrefix}${addOn.name || ''}\n`);
         });
 
         // Meta line + item total (matches .item-meta + .item-total flex row)

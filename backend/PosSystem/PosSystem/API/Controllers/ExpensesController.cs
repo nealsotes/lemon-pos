@@ -4,6 +4,8 @@ using PosSystem.Core.Interfaces;
 using PosSystem.Core.Models;
 using System.Security.Claims;
 
+using PosSystem.Core.Time;
+
 namespace PosSystem.API.Controllers;
 
 [ApiController]
@@ -63,8 +65,14 @@ public class ExpensesController : ControllerBase
             return BadRequest($"Invalid format '{format}'. Allowed: csv, xlsx.");
         }
 
-        var start = (startDate ?? DateTime.UtcNow.Date.AddDays(-30)).Date;
-        var end = (endDate ?? DateTime.UtcNow.Date).Date.AddDays(1).AddTicks(-1);
+        // Defaults are Philippine business days (roadmap item 2, OT-01): the expense
+        // list is wall-date data and "the last 30 days" includes PHT today.
+        var start = (startDate.HasValue
+            ? PhilippineTime.ToWall(startDate.Value).Date
+            : PhilippineTime.Today.AddDays(-30));
+        var end = (endDate.HasValue
+            ? PhilippineTime.ToWall(endDate.Value).Date
+            : PhilippineTime.Today).AddDays(1).AddTicks(-1);
 
         var result = await _exportService.ExportExpenseListAsync(parsedFormat, start, end, categoryId);
         return File(result.Content, result.ContentType, result.FileName);
@@ -78,8 +86,12 @@ public class ExpensesController : ControllerBase
     {
         try
         {
-            var start = startDate ?? DateTime.UtcNow.Date.AddDays(-30);
-            var end = endDate ?? DateTime.UtcNow.Date.AddDays(1).AddTicks(-1);
+            var start = startDate.HasValue
+                ? PhilippineTime.ToWall(startDate.Value).Date
+                : PhilippineTime.Today.AddDays(-30);
+            var end = (endDate.HasValue
+                ? PhilippineTime.ToWall(endDate.Value).Date
+                : PhilippineTime.Today).AddDays(1).AddTicks(-1);
 
             var expenses = await _expenseService.GetExpensesAsync(start, end, categoryId);
             return Ok(expenses);

@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CartItem } from '../../models/cart-item.model';
 import { CartService } from '../../services/cart.service';
-import { TransactionService } from '../../services/transaction.service';
+import { TransactionService, newIdempotencyKey } from '../../services/transaction.service';
 import { ReceiptNumberService } from '../../services/receipt-number.service';
 import { CustomerInfo } from '../../models/transaction.model';
 import { ReceiptSidebarComponent } from '../receipt/receipt-sidebar.component';
@@ -492,6 +492,14 @@ export class CheckoutSidebarComponent implements OnInit {
 
   // UI states
   isProcessing = false;
+
+  // Stable per-sale idempotency key: the backend replays the stored sale on a repeat
+  // key instead of ringing a second charge, so retries after a lost response (the
+  // 30s "try again" prompt, a double click, an offline queue drain) must keep this
+  // key. Regenerated when cart or payment details change; retired on success.
+  saleIdempotencyKey = '';
+  saleIdempotencyKeySnapshot = '';
+
   message = '';
   messageTitle = '';
   messageType: 'success' | 'error' = 'success';
@@ -845,6 +853,24 @@ export class CheckoutSidebarComponent implements OnInit {
       ? this.mobileProvider
       : this.paymentMethod;
 
+    // Retry safety: hold one idempotency key across re-clicks of the SAME sale, and
+    // regenerate it only when the order itself changed (so a retry aliases the stored
+    // sale, but a genuinely different order never does).
+    const checkoutAttemptDetails = JSON.stringify([
+      effectivePaymentMethod,
+      this.serviceType,
+      this.serviceFee,
+      this.amountReceived,
+      this.change,
+      this.customerInfo,
+      this.notes,
+      this.cartItems
+    ]);
+    if (!this.saleIdempotencyKey || checkoutAttemptDetails !== this.saleIdempotencyKeySnapshot) {
+      this.saleIdempotencyKey = newIdempotencyKey();
+      this.saleIdempotencyKeySnapshot = checkoutAttemptDetails;
+    }
+
     this.transactionService.createTransaction(
       this.cartItems,
       effectivePaymentMethod,
@@ -852,13 +878,18 @@ export class CheckoutSidebarComponent implements OnInit {
       this.serviceType,
       this.serviceFee,
       this.amountReceived,
-      this.change
+      this.change,
+      this.saleIdempotencyKey
     ).subscribe({
       next: (result) => {
         clearTimeout(timeoutId);
         this.isProcessing = false;
         this.cartService.completeOpenOrder();
         this.cartService.clearCart();
+
+        // Sale confirmed server-side: retire the key so the next order gets its own.
+        this.saleIdempotencyKey = '';
+        this.saleIdempotencyKeySnapshot = '';
 
         // Capture form values BEFORE clearing the form
         // Use the effective payment method so the receipt shows the picked mobile provider.
@@ -886,7 +917,11 @@ export class CheckoutSidebarComponent implements OnInit {
           backendItems = savedCartItems;
         }
 
-        // Preserve add-ons from saved cart items since backend doesn't store them
+        // Add-ons/temperature: the backend persists them per line since roadmap
+        // item 2 — the response is authoritative. The cart overlay below is only a
+        // fallback for legacy responses that omit them. Matching must not prefer the
+        // FIRST same-product cart line blindly: two lattes, one with shots and one
+        // plain, must each render their own add-ons (OT-14 chip truth).
         // Normalize backend item properties (PascalCase to camelCase)
         const itemsWithAddOns = backendItems.map((backendItem: any) => {
           // Normalize property names from backend (PascalCase to camelCase)
@@ -911,7 +946,9 @@ export class CheckoutSidebarComponent implements OnInit {
           });
 
           // Convert temperature to string if it's a number (enum from backend)
-          let temperature = cartItem?.temperature || backendItem.temperature || backendItem.Temperature || undefined;
+          // Temperature: backend value is authoritative; cart item is only a
+          // fallback for legacy responses.
+          let temperature = backendItem.temperature ?? backendItem.Temperature ?? cartItem?.temperature ?? undefined;
 
           if (typeof temperature === 'number') {
             // Backend enum: 0=None, 1=Hot, 2=Cold
@@ -933,8 +970,18 @@ export class CheckoutSidebarComponent implements OnInit {
             price: price,
             basePrice: basePrice,
             quantity: quantity,
-            // Preserve add-ons from cart if they exist
-            addOns: cartItem?.addOns && cartItem.addOns.length > 0 ? [...cartItem.addOns] : (backendItem.addOns || backendItem.AddOns || undefined),
+            // Add-ons (OT-14): the response is authoritative per line. An EMPTY
+            // array means "this line has no add-ons" and must be trusted — only a
+            // response that omits the field entirely (legacy backend) falls back to
+            // the matched cart line. Otherwise a plain second latte inherits the
+            // first latte's 2× shot and prints a chip it never had.
+            addOns: (() => {
+              const backendRawAddOns = 'addOns' in backendItem ? backendItem.addOns : ('AddOns' in backendItem ? backendItem.AddOns : undefined);
+              if (Array.isArray(backendRawAddOns)) {
+                return backendRawAddOns.length > 0 ? [...backendRawAddOns] : undefined;
+              }
+              return cartItem?.addOns && cartItem.addOns.length > 0 ? [...cartItem.addOns] : undefined;
+            })(),
             // Preserve temperature from cart if it exists (normalized to string)
             temperature: temperature,
             // Preserve discount from cart to ensure custom percentages are respected

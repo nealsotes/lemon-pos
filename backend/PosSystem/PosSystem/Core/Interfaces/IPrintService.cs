@@ -43,6 +43,13 @@ public class ReceiptAddOn
 {
     public string Name { get; set; } = string.Empty;
     public decimal Price { get; set; }
+
+    /// <summary>
+    /// Units of this one add-on per item line (roadmap item 2, OT-14). Receipts now
+    /// print add-ons WITHOUT their own money figure — the line's amount is already
+    /// add-on-inclusive — but a "2x Shot" prefix must still show the count.
+    /// </summary>
+    public int Quantity { get; set; } = 1;
 }
 
 

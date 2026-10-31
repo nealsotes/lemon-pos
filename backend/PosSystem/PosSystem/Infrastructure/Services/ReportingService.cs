@@ -1,5 +1,6 @@
 using PosSystem.Core.Interfaces;
 using PosSystem.Core.Models;
+using PosSystem.Core.Time;
 
 namespace PosSystem.Infrastructure.Services;
 
@@ -31,12 +32,17 @@ public class ReportingService : IReportingService
         _expenseService = expenseService;
     }
 
+    /// <summary>
+    /// One PH business day's report. `date` is a Philippine wall date; the window is
+    /// that calendar day in the exact UTC form the transaction repository now takes
+    /// (roadmap item 2, OT-01: bucketing by UTC instant-days used to file PH-morning
+    /// sales into the previous day's report).
+    /// </summary>
     public async Task<object> GetDailyReportAsync(DateTime date)
     {
-        var startOfDay = date.Date;
-        var endOfDay = startOfDay.AddDays(1).AddSeconds(-1);
+        var (startOfWindow, endOfWindowExclusive) = PhilippineTime.DayUtc(date);
 
-        var allTransactions = await _transactionRepository.GetByDateRangeAsync(startOfDay, endOfDay);
+        var allTransactions = await _transactionRepository.GetByDateRangeAsync(startOfWindow, endOfWindowExclusive);
         var transactions = allTransactions.ToList();
 
         var totalSales = transactions.Sum(t => t.Total);
@@ -59,6 +65,7 @@ public class ReportingService : IReportingService
             .Take(5)
             .ToList();
 
+        // The wall date the requester asked for, echoed back for display.
         return new
         {
             Date = date.Date,
@@ -69,13 +76,20 @@ public class ReportingService : IReportingService
         };
     }
 
+    /// <summary>
+    /// Sales by PH business day. (startDate, endDate) is the controller's normalized
+    /// exact UTC half-open window covering the requested PH wall dates. Each sale is
+    /// bucketed onto its Philippine calendar date — the pre-fix bucket on the UTC
+    /// instant's date sent 00:00–07:59 PH sales into the previous bucket (roadmap
+    /// item 2, OT-01).
+    /// </summary>
     public async Task<object> GetSalesReportAsync(DateTime startDate, DateTime endDate)
     {
         var allTransactions = await _transactionRepository.GetByDateRangeAsync(startDate, endDate);
         var transactions = allTransactions.ToList();
 
         var dailySales = transactions
-            .GroupBy(t => t.Timestamp.Date)
+            .GroupBy(t => PhilippineTime.ToWall(t.Timestamp).Date)
             .Select(g => new
             {
                 Date = g.Key,
@@ -85,10 +99,15 @@ public class ReportingService : IReportingService
             .OrderBy(x => x.Date)
             .ToList();
 
+        // Echo the requested PH wall dates so the reports page labels the range the
+        // way the owner picked it, not the UTC storage bounds.
+        var wallStart = PhilippineTime.ToWall(startDate).Date;
+        var wallEnd = PhilippineTime.ToWall(endDate).AddTicks(-1).Date;
+
         return new
         {
-            StartDate = startDate.Date,
-            EndDate = endDate.Date,
+            StartDate = wallStart,
+            EndDate = wallEnd,
             TotalSales = transactions.Sum(t => t.Total),
             TotalTransactions = transactions.Count,
             DailySales = dailySales
@@ -220,12 +239,20 @@ public class ReportingService : IReportingService
             );
     }
 
-    private async Task<decimal> CalculateTotalCogsFromMovementsAsync(DateTime startDate, DateTime endDate)
+    private async Task<decimal> CalculateTotalCogsFromMovementsAsync(DateTime startUtc, DateTime endUtcExclusive)
     {
-        var movements = await _stockMovementRepository.GetByDateRangeAsync(startDate, endDate);
+        // Movement repository windows are inclusive in their end; the reporting
+        // windows are half-open. Subtracting the closing tick keeps the statement and
+        // every breakdown row as exact partitions of the same movement set.
+        var movements = await _stockMovementRepository.GetByDateRangeAsync(startUtc, endUtcExclusive.AddTicks(-1));
+        // Line-level rounding (roadmap item 2, DP-01): each movement's money is
+        // rounded to the peso scale before it is summed, so a 18,4-scale movement
+        // quantity can never leave fractional-pesos tails in an aggregate, and the
+        // statement and the breakdown rows (which partition these movements) add up
+        // to truly identical decimals instead of differing in the 4th decimal.
         return movements
             .Where(m => m.MovementType == MovementType.Sale)
-            .Sum(m => Math.Abs(m.Quantity) * (m.UnitCost ?? 0));
+            .Sum(m => Math.Round(Math.Abs(m.Quantity) * (m.UnitCost ?? 0), 2, MidpointRounding.AwayFromZero));
     }
 
     private decimal CalculateCogsForItems(
@@ -235,7 +262,7 @@ public class ReportingService : IReportingService
         return items.Sum(item =>
         {
             cogsByProduct.TryGetValue(item.ProductId, out var costPerUnit);
-            return costPerUnit * item.Quantity;
+            return Math.Round(costPerUnit * item.Quantity, 2, MidpointRounding.AwayFromZero);
         });
     }
 
@@ -278,105 +305,66 @@ public class ReportingService : IReportingService
         }
 
         var grossProfit = netRevenue - totalCogs;
-        var marginPercent = netRevenue > 0 ? (grossProfit / netRevenue) * 100 : 0;
+        var marginPercent = netRevenue > 0 ? Math.Round((grossProfit / netRevenue) * 100, 2, MidpointRounding.AwayFromZero) : 0;
 
-        // Expenses integration
-        var totalExpenses = await _expenseService.GetTotalExpensesForPeriodAsync(startDate, endDate);
-        var expensesByCategory = await _expenseService.GetExpensesByCategoryAsync(startDate, endDate);
+        // Expenses integration. The expense repositories compare with an inclusive
+        // end, so the statement window gets the same [.., closing-tick] coverage the
+        // breakdown rows tile below — the two sides remain exact partitions of one
+        // expense set (roadmap item 2: C2 statement/breakdown reconciliation).
+        var expenseWindowEnd = endDate.AddTicks(-1);
+        var totalExpenses = await _expenseService.GetTotalExpensesForPeriodAsync(startDate, expenseWindowEnd);
+        var expensesByCategory = await _expenseService.GetExpensesByCategoryAsync(startDate, expenseWindowEnd);
         var netProfit = grossProfit - totalExpenses;
-        var netMarginPercent = netRevenue > 0 ? (netProfit / netRevenue) * 100 : 0;
+        var netMarginPercent = netRevenue > 0 ? Math.Round((netProfit / netRevenue) * 100, 2, MidpointRounding.AwayFromZero) : 0;
 
         // All sale movements for period breakdown (Fix 2: use movements for breakdown too)
-        var allMovements = (await _stockMovementRepository.GetByDateRangeAsync(startDate, endDate))
+        var allMovements = (await _stockMovementRepository.GetByDateRangeAsync(startDate, expenseWindowEnd))
             .Where(m => m.MovementType == MovementType.Sale)
             .ToList();
 
-        // Group by day for breakdown
-        var daySpan = (endDate - startDate).TotalDays;
-        List<ProfitLossPeriodDto> breakdown;
+        // ── Period breakdown ──
+        // The rows are an EXACT partition of the statement window [startDate,
+        // endDate): every transaction, expense and movement instant falls into
+        // exactly one row, so Σ breakdown rows == the statement figures for every
+        // range shape — with or without sales on the day (the shop-closed-Monday
+        // case). The window is sliced in day steps from its start; when the window
+        // is the controller's normalized PH-day pair (PhilippineTime, OT-01), each
+        // slice IS one Philippine calendar day and a 23:00-UTC sale lands in its
+        // own morning's day; when a caller hands the service a raw instant window
+        // that is not PH-day aligned (e.g. midnight-to-midnight UTC), the slices
+        // remain exact pieces of the stated window instead of stretching into full
+        // wall days, which would double- or under-count against the statement.
+        var breakdown = new List<ProfitLossPeriodDto>();
 
-        if (daySpan > 60)
+        if (endDate > startDate)
         {
-            // Weekly grouping
-            var weekGroups = transactions
-                .GroupBy(t =>
-                {
-                    var diff = (t.Timestamp.Date - startDate.Date).Days;
-                    var weekNum = diff / 7;
-                    return startDate.Date.AddDays(weekNum * 7);
-                })
-                .OrderBy(g => g.Key)
-                .ToList();
+            var stepDays = (endDate - startDate).TotalDays > 60 ? 7 : 1;
+            var windowTicks = (endDate - startDate).Ticks;
+            var stepTicks = TimeSpan.TicksPerDay * stepDays;
+            var pieceCount = (windowTicks + stepTicks - 1) / stepTicks;
 
-            breakdown = new List<ProfitLossPeriodDto>();
-            foreach (var g in weekGroups)
+            for (var piece = 0; piece < pieceCount; piece++)
             {
-                var periodStart = g.Key;
-                var periodEnd = g.Key.AddDays(6);
-                if (periodEnd > endDate) periodEnd = endDate;
+                var pieceStart = startDate + TimeSpan.FromTicks(stepTicks * piece);
+                var pieceEndExclusive = piece == pieceCount - 1
+                    ? endDate
+                    : pieceStart + TimeSpan.FromTicks(stepTicks);
 
-                var rev = g.Sum(t => t.Total);
-                var periodCogs = allMovements
-                    .Where(m => m.CreatedAt >= periodStart && m.CreatedAt <= periodEnd.AddDays(1).AddTicks(-1))
-                    .Sum(m => Math.Abs(m.Quantity) * (m.UnitCost ?? 0));
-                if (periodCogs == 0 && rev > 0)
-                {
-                    var items = g.SelectMany(t => t.Items).ToList();
-                    periodCogs = CalculateCogsForItems(items, cogsByProduct);
-                }
-                var profit = rev - periodCogs;
-                var expenses = await _expenseService.GetProratedExpensesForPeriodAsync(periodStart, periodEnd, startDate, endDate);
-                var periodNetProfit = profit - expenses;
-                breakdown.Add(new ProfitLossPeriodDto
-                {
-                    Period = $"{periodStart:MMM dd} – {periodEnd:MMM dd}",
-                    Revenue = rev,
-                    Cogs = periodCogs,
-                    GrossProfit = profit,
-                    MarginPercent = rev > 0 ? (profit / rev) * 100 : 0,
-                    Expenses = expenses,
-                    NetProfit = periodNetProfit,
-                    NetMarginPercent = rev > 0 ? (periodNetProfit / rev) * 100 : 0
-                });
-            }
-        }
-        else
-        {
-            // Daily grouping
-            var dayGroups = transactions
-                .GroupBy(t => t.Timestamp.Date)
-                .OrderBy(g => g.Key)
-                .ToList();
+                var label = stepDays == 7
+                    ? $"{PhilippineTime.ToWall(pieceStart):MMM dd} – {PhilippineTime.ToWall(pieceEndExclusive).AddTicks(-1):MMM dd}"
+                    : PhilippineTime.ToWall(pieceStart).Date.ToString("MMM dd");
 
-            breakdown = new List<ProfitLossPeriodDto>();
-            foreach (var g in dayGroups)
-            {
-                var dayStart = g.Key;
-                var dayEnd = g.Key.AddDays(1).AddTicks(-1);
-
-                var rev = g.Sum(t => t.Total);
-                var periodCogs = allMovements
-                    .Where(m => m.CreatedAt >= dayStart && m.CreatedAt <= dayEnd)
-                    .Sum(m => Math.Abs(m.Quantity) * (m.UnitCost ?? 0));
-                if (periodCogs == 0 && rev > 0)
-                {
-                    var items = g.SelectMany(t => t.Items).ToList();
-                    periodCogs = CalculateCogsForItems(items, cogsByProduct);
-                }
-                var profit = rev - periodCogs;
-                var expenses = await _expenseService.GetProratedExpensesForPeriodAsync(dayStart, dayEnd, startDate, endDate);
-                var periodNetProfit = profit - expenses;
-                breakdown.Add(new ProfitLossPeriodDto
-                {
-                    Period = dayStart.ToString("MMM dd"),
-                    Revenue = rev,
-                    Cogs = periodCogs,
-                    GrossProfit = profit,
-                    MarginPercent = rev > 0 ? (profit / rev) * 100 : 0,
-                    Expenses = expenses,
-                    NetProfit = periodNetProfit,
-                    NetMarginPercent = rev > 0 ? (periodNetProfit / rev) * 100 : 0
-                });
+                breakdown.Add(await BuildPeriodRow(
+                    txns: transactions
+                        .Where(t => t.Timestamp >= pieceStart && t.Timestamp < pieceEndExclusive)
+                        .ToList(),
+                    movementStartUtc: pieceStart,
+                    movementEndInclusiveUtc: pieceEndExclusive.AddTicks(-1),
+                    expenseStartUtc: pieceStart,
+                    expenseEndInclusiveUtc: pieceEndExclusive.AddTicks(-1),
+                    allMovements: allMovements,
+                    cogsByProduct: cogsByProduct,
+                    label: label));
             }
         }
 
@@ -397,6 +385,51 @@ public class ReportingService : IReportingService
         };
     }
 
+    /// <summary>
+    /// One P&amp;L breakdown row (a PH day, or a 7-day block of them). COGS comes
+    /// from the window's sale movements — rounded per movement, never mid-aggregate
+    /// (DP-01) — with the same recipe fallback the statement uses for the legacy
+    /// gap of a sale whose movement records are missing. Expenses come from the
+    /// same cash-basis generation the statement side uses, over exactly this
+    /// window. Windows arrive pre-converted to each repository's convention.
+    /// </summary>
+    private async Task<ProfitLossPeriodDto> BuildPeriodRow(
+        List<Transaction> txns,
+        DateTime movementStartUtc,
+        DateTime movementEndInclusiveUtc,
+        DateTime expenseStartUtc,
+        DateTime expenseEndInclusiveUtc,
+        List<StockMovement> allMovements,
+        Dictionary<string, decimal> cogsByProduct,
+        string label)
+    {
+        var rev = txns.Sum(t => t.Total);
+        var periodCogs = allMovements
+            .Where(m => m.CreatedAt >= movementStartUtc && m.CreatedAt <= movementEndInclusiveUtc)
+            .Sum(m => Math.Round(Math.Abs(m.Quantity) * (m.UnitCost ?? 0), 2, MidpointRounding.AwayFromZero));
+        if (periodCogs == 0 && rev > 0)
+        {
+            // Movement records missing (legacy sales predate per-sale movements):
+            // fall back to the recipe cost map, the same basis the statement uses.
+            periodCogs = CalculateCogsForItems(txns.SelectMany(t => t.Items), cogsByProduct);
+        }
+        var profit = rev - periodCogs;
+        var expenses = await _expenseService.GetProratedExpensesForPeriodAsync(
+            expenseStartUtc, expenseEndInclusiveUtc, movementStartUtc, movementEndInclusiveUtc);
+        var netProfit = profit - expenses;
+        return new ProfitLossPeriodDto
+        {
+            Period = label,
+            Revenue = rev,
+            Cogs = periodCogs,
+            GrossProfit = profit,
+            MarginPercent = rev > 0 ? Math.Round((profit / rev) * 100, 2, MidpointRounding.AwayFromZero) : 0,
+            Expenses = expenses,
+            NetProfit = netProfit,
+            NetMarginPercent = rev > 0 ? Math.Round((netProfit / rev) * 100, 2, MidpointRounding.AwayFromZero) : 0
+        };
+    }
+
     // ── Inventory Valuation ──
 
     public async Task<InventoryValuationReportDto> GetInventoryValuationReportAsync(DateTime startDate, DateTime endDate)
@@ -407,12 +440,13 @@ public class ReportingService : IReportingService
         var lowStockCount = ingredients.Count(i => i.Quantity <= i.LowStockThreshold);
 
         // Stock movements in period
-        var movements = (await _stockMovementRepository.GetByDateRangeAsync(startDate, endDate)).ToList();
+        var movements = (await _stockMovementRepository.GetByDateRangeAsync(startDate, endDate.AddTicks(-1))).ToList();
 
-        // Period change: purchases/returns add value, sales/waste/adjustments subtract
+        // Period change: purchases/returns add value, sales/waste/adjustments subtract.
+        // Line-level rounding (DP-01): money is rounded per movement before summing.
         var periodChange = movements.Sum(m =>
         {
-            var cost = Math.Abs(m.Quantity) * (m.UnitCost ?? 0);
+            var cost = Math.Round(Math.Abs(m.Quantity) * (m.UnitCost ?? 0), 2, MidpointRounding.AwayFromZero);
             return m.MovementType switch
             {
                 MovementType.Purchase or MovementType.Return => cost,
@@ -425,7 +459,7 @@ public class ReportingService : IReportingService
         var wasteAndShrinkage = movements
             .Where(m => m.MovementType == MovementType.Waste ||
                         (m.MovementType == MovementType.Adjustment && m.Quantity < 0))
-            .Sum(m => Math.Abs(m.Quantity) * (m.UnitCost ?? 0));
+            .Sum(m => Math.Round(Math.Abs(m.Quantity) * (m.UnitCost ?? 0), 2, MidpointRounding.AwayFromZero));
 
         // Top ingredients by value
         var topIngredients = ingredients
@@ -451,7 +485,7 @@ public class ReportingService : IReportingService
             {
                 Type = g.Key.ToString(),
                 Count = g.Count(),
-                TotalCost = g.Sum(m => Math.Abs(m.Quantity) * (m.UnitCost ?? 0))
+                TotalCost = g.Sum(m => Math.Round(Math.Abs(m.Quantity) * (m.UnitCost ?? 0), 2, MidpointRounding.AwayFromZero))
             })
             .OrderByDescending(m => m.TotalCost)
             .ToList();
@@ -489,11 +523,14 @@ public class ReportingService : IReportingService
         var transactionCount = transactions.Count;
         var averageTicket = transactionCount > 0 ? netRevenue / transactionCount : 0;
 
-        // Expenses integration
-        var totalExpenses = await _expenseService.GetTotalExpensesForPeriodAsync(startDate, endDate);
-        var expensesByCategory = await _expenseService.GetExpensesByCategoryAsync(startDate, endDate);
+        // Expense/movement repositories take an inclusive closing instant; the
+        // reporting window is half-open, so subtract the boundary tick (roadmap
+        // item 2 DP-01: one boundary convention, stated once at the boundary).
+        var windowEndInclusive = endDate.AddTicks(-1);
+        var totalExpenses = await _expenseService.GetTotalExpensesForPeriodAsync(startDate, windowEndInclusive);
+        var expensesByCategory = await _expenseService.GetExpensesByCategoryAsync(startDate, windowEndInclusive);
         var netProfit = grossProfit - totalExpenses;
-        var netMarginPercent = netRevenue > 0 ? (netProfit / netRevenue) * 100 : 0;
+        var netMarginPercent = netRevenue > 0 ? Math.Round((netProfit / netRevenue) * 100, 2, MidpointRounding.AwayFromZero) : 0;
 
         // Payment method breakdown
         var paymentBreakdown = transactions
@@ -528,16 +565,16 @@ public class ReportingService : IReportingService
         var ingredients = (await _ingredientRepository.GetAllAsync()).ToList();
         var currentInventoryValue = ingredients.Sum(i => (i.UnitCost ?? 0) * i.Quantity);
 
-        var movements = (await _stockMovementRepository.GetByDateRangeAsync(startDate, endDate)).ToList();
+        var movements = (await _stockMovementRepository.GetByDateRangeAsync(startDate, windowEndInclusive)).ToList();
 
         var ingredientsConsumed = movements
             .Where(m => m.MovementType == MovementType.Sale)
-            .Sum(m => Math.Abs(m.Quantity) * (m.UnitCost ?? 0));
+            .Sum(m => Math.Round(Math.Abs(m.Quantity) * (m.UnitCost ?? 0), 2, MidpointRounding.AwayFromZero));
 
         var wasteAndShrinkage = movements
             .Where(m => m.MovementType == MovementType.Waste ||
                         (m.MovementType == MovementType.Adjustment && m.Quantity < 0))
-            .Sum(m => Math.Abs(m.Quantity) * (m.UnitCost ?? 0));
+            .Sum(m => Math.Round(Math.Abs(m.Quantity) * (m.UnitCost ?? 0), 2, MidpointRounding.AwayFromZero));
 
         return new AccountantSummaryDto
         {
@@ -548,7 +585,7 @@ public class ReportingService : IReportingService
             NetRevenue = netRevenue,
             Cogs = totalCogs,
             GrossProfit = grossProfit,
-            GrossMarginPercent = netRevenue > 0 ? (grossProfit / netRevenue) * 100 : 0,
+            GrossMarginPercent = netRevenue > 0 ? Math.Round((grossProfit / netRevenue) * 100, 2, MidpointRounding.AwayFromZero) : 0,
             TotalExpenses = totalExpenses,
             NetProfit = netProfit,
             NetMarginPercent = netMarginPercent,
@@ -565,7 +602,7 @@ public class ReportingService : IReportingService
 
     public async Task<SupplierBreakdownReportDto> GetSupplierBreakdownAsync(DateTime startDate, DateTime endDate)
     {
-        var lots = (await _ingredientLotRepository.GetByDateRangeAsync(startDate, endDate)).ToList();
+        var lots = (await _ingredientLotRepository.GetByDateRangeAsync(startDate, endDate.AddTicks(-1))).ToList();
 
         var ingredients = (await _ingredientRepository.GetAllAsync())
             .ToDictionary(i => i.Id, i => i.Name);
@@ -578,13 +615,13 @@ public class ReportingService : IReportingService
             {
                 Supplier = g.Key,
                 PurchaseCount = g.Count(),
-                TotalSpent = g.Sum(l => l.InitialQuantity * l.UnitCost),
+                TotalSpent = g.Sum(l => Math.Round(l.InitialQuantity * l.UnitCost, 2, MidpointRounding.AwayFromZero)),
                 Ingredients = g
                     .Select(l => ingredients.GetValueOrDefault(l.IngredientId, "Unknown"))
                     .Distinct()
                     .ToList(),
                 AvgCostPerPurchase = g.Count() > 0
-                    ? g.Sum(l => l.InitialQuantity * l.UnitCost) / g.Count()
+                    ? Math.Round(g.Sum(l => Math.Round(l.InitialQuantity * l.UnitCost, 2, MidpointRounding.AwayFromZero)) / g.Count(), 2, MidpointRounding.AwayFromZero)
                     : 0
             })
             .OrderByDescending(s => s.TotalSpent)
@@ -621,7 +658,7 @@ public class ReportingService : IReportingService
 
     public async Task<ConsumptionReportDto> GetConsumptionReportAsync(DateTime startDate, DateTime endDate)
     {
-        var allMovements = await _stockMovementRepository.GetByDateRangeAsync(startDate, endDate);
+        var allMovements = await _stockMovementRepository.GetByDateRangeAsync(startDate, endDate.AddTicks(-1));
         var saleMovements = allMovements
             .Where(m => m.MovementType == MovementType.Sale)
             .ToList();
@@ -636,7 +673,7 @@ public class ReportingService : IReportingService
             .Select(g =>
             {
                 var qtyUsed = g.Sum(m => Math.Abs(m.Quantity));
-                var costConsumed = g.Sum(m => Math.Abs(m.Quantity) * (m.UnitCost ?? 0));
+                var costConsumed = g.Sum(m => Math.Round(Math.Abs(m.Quantity) * (m.UnitCost ?? 0), 2, MidpointRounding.AwayFromZero));
                 var info = ingredients.GetValueOrDefault(g.Key);
                 return new ConsumptionItemDto
                 {
@@ -667,9 +704,12 @@ public class ReportingService : IReportingService
 
     public async Task<PeriodComparisonDto> GetPeriodComparisonAsync(DateTime startDate, DateTime endDate)
     {
+        // Windows are half-open [start, end): the previous block is the immediately
+        // preceding window of the same length — [start - duration, start) — with no
+        // 1-second shift between the blocks.
         var duration = endDate - startDate;
-        var prevEnd = startDate.AddSeconds(-1);
-        var prevStart = prevEnd - duration;
+        var prevEnd = startDate;
+        var prevStart = startDate - duration;
 
         var currentAll = await _transactionRepository.GetByDateRangeAsync(startDate, endDate);
         var currentTxns = currentAll.Where(t => t.Status == "completed").ToList();

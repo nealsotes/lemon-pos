@@ -8,6 +8,20 @@ import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
 import { catchError, finalize, map, switchMap, tap, timeout } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment.prod';
 
+/**
+ * A stable, unique key for one sale. The backend dedupes POST /api/transactions on
+ * this key: a retry (double-click, 30s timeout, offline replay) with the same key
+ * gets the stored sale back instead of ringing another charge. It must therefore be
+ * generated once per sale and reused until the sale is confirmed with the server.
+ */
+export const newIdempotencyKey = (): string => {
+  const base =
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return `sale-${base}`;
+};
+
 @Injectable({
   providedIn: 'root'
 })
@@ -44,13 +58,18 @@ export class TransactionService {
     serviceType: 'dineIn' | 'takeOut' = 'dineIn',
     serviceFee: number = 0,
     amountReceived: number = 0,
-    change: number = 0
+    change: number = 0,
+    idempotencyKey?: string
   ): Observable<Transaction> {
     // Calculate total (tax is already included in product prices)
     const subtotal = items.reduce((sum, item) => sum + item.total, 0);
     const total = subtotal + serviceFee;
 
     const transactionData = {
+      // Identifies THIS sale across retries: the backend replays it instead of
+      // double-charging. Callers hold one key for the life of a checkout attempt;
+      // a fresh key means it is a different order, not a retry.
+      idempotencyKey: idempotencyKey || newIdempotencyKey(),
       timestamp: new Date().toISOString(),
       items: items.map(item => ({
         productId: item.productId,
@@ -133,6 +152,7 @@ export class TransactionService {
   private createOfflineTransaction(transactionData: any): Observable<Transaction> {
     const transaction: Transaction = {
       id: Date.now(),
+      idempotencyKey: transactionData.idempotencyKey,
       timestamp: new Date().toISOString(),
       items: transactionData.items,
       total: transactionData.total,
@@ -178,11 +198,15 @@ export class TransactionService {
           // Confirmed by the server: only now is it safe to drop from the queue.
           this.removePendingTransaction(transaction);
 
-          // Update the transaction status in the local list
+          // Update the transaction status in the local list. The sale's own timestamp
+          // is kept from the queue: the sale is the fact "what was paid when the
+          // customer rang it up", and the sync response's stamp (server receipt time)
+          // must not move a cross-midnight offline sale off its own day (offline spec
+          // §7.1 — sale time and sync time are different facts).
           const currentTransactions = this.transactionsSubject.value;
           const index = currentTransactions.findIndex(t => t.id === transaction.id);
           if (index !== -1) {
-            currentTransactions[index] = syncedTransaction;
+            currentTransactions[index] = { ...syncedTransaction, timestamp: transaction.timestamp };
             this.transactionsSubject.next([...currentTransactions]);
             this.saveToLocalStorage('transactions', currentTransactions);
           }
@@ -208,6 +232,14 @@ export class TransactionService {
    */
   private buildSyncPayload(transaction: Transaction): any {
     return {
+      // Same key as the original attempt: if that POST reached the server without us
+      // hearing back, this replay gets the stored sale instead of ringing a second.
+      idempotencyKey: transaction.idempotencyKey,
+      // The moment the sale was actually rung up (offline spec §7.1). The backend
+      // books the sale AT this instant instead of stamping its own clock — without
+      // it, an outage spanning midnight recorded every cross-midnight sale on the
+      // wrong day, corrupting that day's sales report and both days' P&L.
+      occurredAt: transaction.timestamp,
       items: transaction.items,
       total: transaction.total,
       paymentMethod: transaction.paymentMethod,

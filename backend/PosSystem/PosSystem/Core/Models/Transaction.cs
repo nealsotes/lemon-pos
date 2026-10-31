@@ -27,6 +27,19 @@ public class Transaction
     public string? Notes { get; set; }
     public decimal AmountReceived { get; set; }
     public decimal Change { get; set; }
+
+    // Deduplication key supplied by the caller (e.g. POST /api/transactions with an
+    // Idempotency-Key header, or the idempotencyKey JSON field). A retry with the same
+    // key returns the original transaction instead of ringing the sale a second time.
+    // NULL means the client did not opt in; the sale is processed exactly as before.
+    public string? IdempotencyKey { get; set; }
+
+    /// <summary>
+    /// When this row reached the server. Equal to <see cref="Timestamp"/> for online
+    /// sales; later than it for an offline sale replayed after a sync (offline spec
+    /// §7.1: the sale time and the sync time are different facts and must both exist).
+    /// </summary>
+    public DateTime? SyncedAt { get; set; }
 }
 
 public class TransactionItem

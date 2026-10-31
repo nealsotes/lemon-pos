@@ -401,7 +401,30 @@ using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<PosSystemDbContext>();
     await context.Database.EnsureCreatedAsync();
-    
+
+    // Transactions.IdempotencyKey (retry-sale dedupe): EnsureCreatedAsync applies the
+    // full model only to fresh databases, so existing ones (Railway, local dev)
+    // self-heal here, matching the pattern used for the Ingredients/StockMovements
+    // columns below.
+    try
+    {
+        await context.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE `Transactions` ADD COLUMN `IdempotencyKey` VARCHAR(100) NULL");
+    }
+    catch
+    {
+        // Column already exists - expected, ignore
+    }
+    try
+    {
+        await context.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX `IX_Transactions_IdempotencyKey` ON `Transactions` (`IdempotencyKey`)");
+    }
+    catch
+    {
+        // Index already exists - expected, ignore
+    }
+
     // Ensure Ingredients table exists (for existing databases)
     // EnsureCreatedAsync only creates tables if database is new, so we need to create Ingredients table manually if it doesn't exist
     try

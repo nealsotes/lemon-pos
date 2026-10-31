@@ -128,4 +128,29 @@ describe('TransactionService total composition', () => {
     expect(result.status).toBe('pending');
     expect(result.total).toBe(180); // 160 + 20 service fee, preserved offline
   });
+
+  it('posts the caller-supplied idempotency key so a retried sale replays instead of double-charging', () => {
+    service.createTransaction([makeItem()], 'cash', customer, 'dineIn', 0, 100, 100, 'sale-checkout-key-1').subscribe();
+
+    const body = capturePostedBody();
+    expect(body.idempotencyKey).toBe('sale-checkout-key-1');
+  });
+
+  it('mints an idempotency key when the caller does not supply one', () => {
+    service.createTransaction([makeItem()], 'cash', customer, 'dineIn', 0, 100, 100).subscribe();
+
+    const body = capturePostedBody();
+    expect(body.idempotencyKey).toBeTruthy();
+    expect(body.idempotencyKey.startsWith('sale-')).toBe(true);
+  });
+
+  it('queues an offline sale carrying its idempotency key so the replay dedupes at the backend', () => {
+    let result: any;
+    service.createTransaction([makeItem({ quantity: 2, total: 160 })], 'cash', customer, 'dineIn', 20, 500, 320, 'sale-queue-key-1').subscribe(t => (result = t));
+
+    httpMock.expectOne('/api/transactions').error(new ProgressEvent('error'), { status: 0 });
+
+    // Offline fallback stores the sale with the same key it was first posted under.
+    expect(result.idempotencyKey).toBe('sale-queue-key-1');
+  });
 });

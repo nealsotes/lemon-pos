@@ -145,6 +145,40 @@ describe('TransactionService offline sync', () => {
       expect(body.customerInfo.discountType).toBe('senior');
       expect(body.customerInfo.discountId).toBe('SC-1234');
     });
+
+    it('replays the same idempotency key the sale was first posted under', () => {
+      // If the first attempt reached the server without the response coming back,
+      // this drain is a RETRY: with the key the backend replays the stored sale
+      // instead of ringing a second charge - without it, re-posting is a double sale.
+      bootWithQueuedSale(queuedSale({ idempotencyKey: 'sale-offline-key-1' }));
+
+      isOnline$.next(true);
+
+      const body = httpMock.expectOne('/api/transactions').request.body;
+      expect(body.idempotencyKey).toBe('sale-offline-key-1');
+    });
+
+    it('sells legacy queued sales (no idempotency key) exactly as before', () => {
+      bootWithQueuedSale(queuedSale()); // pre-dates the idempotency-key feature
+
+      isOnline$.next(true);
+
+      const body = httpMock.expectOne('/api/transactions').request.body;
+      expect(body.idempotencyKey).toBeUndefined();
+    });
+
+    it('posts the original rung-up time as occurredAt so the sale books its own day', () => {
+      // Rung up at 23:40 PHT on 16 October (15:40Z), synced at 10:15 PHT the next
+      // morning. Without occurredAt the backend stamps its own receive time and the
+      // sale lands on 17 October's books; with it, the sale books 16 October — the
+      // day the money changed hands (offline spec §7.1).
+      bootWithQueuedSale(queuedSale({ timestamp: '2026-10-16T15:40:00.000Z' }));
+
+      isOnline$.next(true);
+
+      const body = httpMock.expectOne('/api/transactions').request.body;
+      expect(body.occurredAt).toBe('2026-10-16T15:40:00.000Z');
+    });
   });
 
   describe('when the queue is allowed to drain', () => {
@@ -277,20 +311,18 @@ describe('TransactionService offline sync', () => {
   });
 
   /**
-   * DELIBERATE RED TEST — D3, pinned and not fixed in this branch.
+   * D3 — FIXED. A sale rung up at 14:00 during an outage and synced at 18:00 used to be
+   * recorded at 18:00: the create contract had no field for a client-supplied sale time,
+   * so an outage spanning midnight landed the sale on the wrong calendar day and
+   * corrupted that day's sales report and both days' P&L.
    *
-   * A sale rung up at 14:00 during an outage and synced at 18:00 is recorded at 18:00:
-   * TransactionService.cs sets `transaction.Timestamp = DateTime.UtcNow` unconditionally
-   * on create, and the create contract has no field for a client-supplied sale time. When
-   * the outage spans midnight the sale lands on the wrong calendar day, which corrupts
-   * that day's sales report and both days' P&L.
-   *
-   * Fixing it means changing the transaction-create contract to accept the sale time,
-   * which is a design decision that belongs in the offline spec rather than in a bug fix
-   * branch. This test is expected to FAIL until that decision is made. Do not delete it
-   * and do not weaken it to green — it is the only record that the defect is known.
+   * The create contract now accepts occurredAt (CreateTransactionDto.OccurredAt): the
+   * sync payload posts the queued sale's original rung-up time and the backend books
+   * the sale AT that instant; the local record keeps the sale's own time rather than
+   * adopting the server's receive stamp. This spec pins that behavior (offline §7.1:
+   * sale time and sync time are different facts and must both exist).
    */
-  describe('DELIBERATE RED TEST: D3 synced offline sales get the wrong timestamp', () => {
+  describe('D3 fixed: synced offline sales keep their original sale time', () => {
     it('keeps the original sale time when a sale queued before midnight syncs the next day', () => {
       // Rung up at 23:40 on 16 October, during the outage.
       const saleTime = '2026-10-16T15:40:00.000Z';

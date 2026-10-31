@@ -41,6 +41,9 @@ export interface Transaction {
   notes?: string;
   amountReceived?: number;
   change?: number;
+  /** Stable per-sale key. The backend replays the stored sale on a repeat key instead
+   * of ringing a second charge; queued (offline) sales keep theirs until confirmed. */
+  idempotencyKey?: string;
 }
 
 

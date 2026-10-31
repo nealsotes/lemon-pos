@@ -83,8 +83,13 @@ import { ThermalPrinterService } from '../../services/thermal-printer.service';
                         </span>
                       </div>
                       <div class="item-addons" *ngIf="hasAddOns(item)">
+                        <!-- Add-ons as MODIFIERS WITHOUT their own money figure (roadmap item
+                             2, OT-14): the line amount is add-on inclusive (the cart bakes the
+                             add-on money into item.price), so printing a price under each
+                             add-on made the printed Σ item lines exceed the TOTAL. With the
+                             money removed, Σ item-total == Subtotal and the receipt reconciles. -->
                         <span *ngFor="let addOn of getAddOns(item)" class="addon-item">
-                          <span *ngIf="addOn.quantity && addOn.quantity > 1">{{ addOn.quantity | number:'1.0-0' }}× </span>+ {{ addOn.name }} <span class="addon-price">{{ formatPrice(addOn.price * (addOn.quantity || 1)) }}</span>
+                          <span *ngIf="addOn.quantity && addOn.quantity > 1">{{ addOn.quantity | number:'1.0-0' }}× </span>+ {{ addOn.name }}
                         </span>
                       </div>
                       <span class="item-meta">{{ formatPrice(getItemBasePrice(item)) }} × {{ (item.quantity || item.Quantity || 0) | number:'1.0-0' }}</span>

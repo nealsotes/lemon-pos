@@ -171,6 +171,23 @@ public class ExpenseService : IExpenseService
             .ToList();
     }
 
+    /// <summary>
+    /// Expenses attributed to ONE breakdown sub-period (one day, or one week of the
+    /// weekly grouping).
+    ///
+    /// Board-adopted basis (roadmap item 2 / reports spec C2·R20·Q8): CASH BASIS.
+    /// An expense contributes on the dates its actual occurrences (or overrides) fall,
+    /// in the sub-period's window; when no occurrence of a recurring template falls
+    /// in the sub-period it contributes NOTHING. The previous implementation also
+    /// amortised a share of the template amount into every sub-period without an
+    /// occurrence — the P&L statement (cash-basis
+    /// <see cref="GetTotalExpensesForPeriodAsync"/>) and this breakdown path then
+    /// reported two different expense figures for the same page, and the share's
+    /// fractional tail (a divide by the period length computed in floating point)
+    /// leaked 4th-decimal pesos onto the report. The window passed here is
+    /// <c>[periodStart, periodEnd]</c> inclusive in the caller's instant domain
+    /// (ReportingService subtracts the closing tick before calling).
+    /// </summary>
     public async Task<decimal> GetProratedExpensesForPeriodAsync(DateTime periodStart, DateTime periodEnd, DateTime rangeStart, DateTime rangeEnd)
     {
         decimal total = 0;
@@ -179,7 +196,7 @@ public class ExpenseService : IExpenseService
         var oneTimeExpenses = await _expenseRepository.GetByDateRangeAsync(periodStart, periodEnd);
         total += oneTimeExpenses.Sum(e => e.Amount);
 
-        // 2. Recurring expenses prorated to this period
+        // 2. Recurring expenses: only occurrences (or overrides) dated in this period
         var templates = await _expenseRepository.GetRecurringTemplatesAsync();
         foreach (var template in templates)
         {
@@ -187,31 +204,22 @@ public class ExpenseService : IExpenseService
             if (template.RecurrenceEndDate.HasValue && template.RecurrenceEndDate.Value < periodStart) continue;
 
             var instances = GenerateRecurringInstances(template, periodStart, periodEnd);
-            var instanceCount = instances.Count;
-
-            if (instanceCount > 0)
+            if (instances.Count == 0)
             {
-                // Check for overrides
-                var overrides = await _expenseRepository.GetOverridesForParentAsync(template.Id, periodStart, periodEnd);
-                var overrideDates = overrides.Select(o => o.Date.Date).ToHashSet();
-
-                foreach (var instanceDate in instances)
-                {
-                    if (overrideDates.Contains(instanceDate.Date))
-                    {
-                        var overrideExpense = overrides.First(o => o.Date.Date == instanceDate.Date);
-                        total += overrideExpense.Amount;
-                    }
-                    else
-                    {
-                        total += template.Amount;
-                    }
-                }
+                // No occurrence in this sub-period: the template contributes nothing.
+                // This is what keeps Σ breakdown rows == statement total by construction
+                // (the pinned ProfitLossConsistency suite turns green here).
+                continue;
             }
-            else
+
+            var overrides = await _expenseRepository.GetOverridesForParentAsync(template.Id, periodStart, periodEnd);
+            var overrideDates = overrides.Select(o => o.Date.Date).ToHashSet();
+
+            foreach (var instanceDate in instances)
             {
-                // Prorate: if recurring monthly and period is a sub-month range
-                total += ProrateRecurringExpense(template, periodStart, periodEnd);
+                total += overrideDates.Contains(instanceDate.Date)
+                    ? overrides.First(o => o.Date.Date == instanceDate.Date).Amount
+                    : template.Amount;
             }
         }
 
@@ -322,21 +330,6 @@ public class ExpenseService : IExpenseService
         }
 
         return instances;
-    }
-
-    private static decimal ProrateRecurringExpense(Expense template, DateTime periodStart, DateTime periodEnd)
-    {
-        // For recurring expenses where no full instance falls in the period,
-        // prorate based on the fraction of the recurrence period covered
-        var periodDays = (periodEnd - periodStart).TotalDays + 1;
-
-        return template.RecurrenceType switch
-        {
-            "weekly" => template.Amount * (decimal)(periodDays / 7.0),
-            "monthly" => template.Amount * (decimal)(periodDays / DateTime.DaysInMonth(periodStart.Year, periodStart.Month)),
-            "yearly" => template.Amount * (decimal)(periodDays / 365.0),
-            _ => template.Amount * (decimal)(periodDays / 30.0)
-        };
     }
 
     private static ExpenseResponseDto MapToResponseDto(Expense expense, bool isVirtual)
