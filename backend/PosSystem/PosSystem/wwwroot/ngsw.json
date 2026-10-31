@@ -1,6 +1,6 @@
 {
   "configVersion": 1,
-  "timestamp": 1770534592384,
+  "timestamp": 1793413337528,
   "index": "/index.html",
   "assetGroups": [
     {
@@ -12,11 +12,11 @@
       },
       "urls": [
         "/index.html",
-        "/main.4a5d7806439a82bd.js",
+        "/main.94d16f6d3df82d74.js",
         "/manifest.json",
-        "/polyfills.7e185adfc400113c.js",
+        "/polyfills.21643de38cedd75a.js",
         "/runtime.b0e5cef92ae4ef8a.js",
-        "/styles.dae8651b9933606e.css"
+        "/styles.4765ab9344a04726.css"
       ],
       "patterns": []
     },
@@ -90,23 +90,23 @@
     }
   ],
   "hashTable": {
-    "/assets/icons/icon-128x128.svg": "149cd2164caf7ee5c5042d12d5b3c7aba04aa40b",
-    "/assets/icons/icon-144x144.svg": "f5bb76c3ba967cab6e63f998c49c36a9342adc79",
-    "/assets/icons/icon-152x152.svg": "8ed31f9a75ae69010fde9bb3dff9f65c590ba49b",
-    "/assets/icons/icon-192x192.svg": "d707199dc8ef46158699b8e225703347000644c6",
-    "/assets/icons/icon-384x384.svg": "9a37b68af65ec5e0256ced50a264ebf08db0da6f",
-    "/assets/icons/icon-512x512.svg": "a9b72ed8a7013d39079f23996b1731b713654a41",
-    "/assets/icons/icon-72x72.svg": "4235a88cae6c68edb0317238dc93c58937d52cec",
-    "/assets/icons/icon-96x96.svg": "6c8f769f2c87fbe85e5c1d719f23659c1a005bed",
+    "/assets/icons/icon-128x128.svg": "ee4c77b9e8bd2cbb5f86b152169a916a6c8e767d",
+    "/assets/icons/icon-144x144.svg": "01d35bf89f16823f72b83d7ffb88d22df57f8291",
+    "/assets/icons/icon-152x152.svg": "10ab97c7e9a83738df2a0eceb2b7a05bdb6e5b50",
+    "/assets/icons/icon-192x192.svg": "c0ef250df73555184c6dd4f1bdb70cdaf07e590a",
+    "/assets/icons/icon-384x384.svg": "2d4d4da3dabfa1a3e779e4b50621b7741ac4a052",
+    "/assets/icons/icon-512x512.svg": "ed297e80f977545677be931b5db1f33d96dbdf82",
+    "/assets/icons/icon-72x72.svg": "93f21a50bca232789539c8ce686e172bcc4f6c51",
+    "/assets/icons/icon-96x96.svg": "6d0f0afec5cf7a92a293c32d5d301b4ed393e5ab",
     "/assets/images/finn-bites-logo.png": "11fc99aef23ab327be92ffdd408ebc9a82b3bd4e",
     "/assets/screenshots/desktop-1.svg": "9fc806b5890b5d8eb3242f290873d68a47d7774c",
     "/assets/screenshots/mobile-1.svg": "5ace8f29b026cca553a7cae3c414b41d2a17a26f",
-    "/index.html": "7aeee7b118b5247fed41432cd9aca61f3e113572",
-    "/main.4a5d7806439a82bd.js": "06da2d5defa63ff887e3818034ad43065de73613",
-    "/manifest.json": "9818d6d0742345d691ac63d75e3ea52c29e38e27",
-    "/polyfills.7e185adfc400113c.js": "c6b568522a98f15d77f9dbefe416d638f9958f89",
+    "/index.html": "8365e93e6eb93de51fe2ef36ca42ef3cd497dc93",
+    "/main.94d16f6d3df82d74.js": "8c768ed63c995623fe9ee8b2f323f9f631ed3027",
+    "/manifest.json": "af1fb20bea4248dfebead4df07dc9f8195fc9201",
+    "/polyfills.21643de38cedd75a.js": "ef824f3756dcf9043327e34bc05729d1f96fc046",
     "/runtime.b0e5cef92ae4ef8a.js": "4d7074f68ef69f3245cf266de2cdbe71480aec5d",
-    "/styles.dae8651b9933606e.css": "43d7b5b5d3c8b35abdbef16660538fbb9070c879"
+    "/styles.4765ab9344a04726.css": "90a75150ffa18d8c8616d34ba2cff2c9034a5ce4"
   },
   "navigationUrls": [
     {
