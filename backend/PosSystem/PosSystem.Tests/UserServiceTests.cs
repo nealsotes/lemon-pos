@@ -188,4 +188,70 @@ public class UserServiceTests
 
         Assert.Equal("Manager", result.Username);
     }
+
+    // ---- RC-04: Owner > Admin — the Admin role must not reset or deactivate Owner accounts.
+
+    private void StubTarget(User user)
+    {
+        _userRepository.Setup(r => r.GetByIdAsync(user.Id)).ReturnsAsync(user);
+        _userRepository.Setup(r => r.UpdateAsync(It.IsAny<User>())).ReturnsAsync((User u) => u);
+    }
+
+    [Fact]
+    public async Task SetPasswordAsync_AdminAgainstOwner_ThrowsUnauthorized()
+    {
+        StubTarget(new User { Id = "owner-1", Username = "owner", Role = UserRole.Owner });
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => _service.SetPasswordAsync("owner-1", "newpass123", callerRole: "Admin"));
+
+        _userRepository.Verify(r => r.UpdateAsync(It.IsAny<User>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SetActiveStatusAsync_AdminDeactivatingOwner_ThrowsUnauthorized()
+    {
+        StubTarget(new User { Id = "owner-1", Username = "owner", Role = UserRole.Owner });
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => _service.SetActiveStatusAsync("owner-1", isActive: false, callerRole: "Admin"));
+
+        _userRepository.Verify(r => r.UpdateAsync(It.IsAny<User>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SetPasswordAsync_AdminAgainstEmployee_SucceedsAndHashesInNewFormat()
+    {
+        StubTarget(new User { Id = "emp-1", Username = "worker", Role = UserRole.Employee });
+
+        await _service.SetPasswordAsync("emp-1", "newpass123", callerRole: "Admin");
+
+        _userRepository.Verify(r => r.UpdateAsync(It.Is<User>(u =>
+            u.Id == "emp-1" && u.PasswordHash.StartsWith(AuthService.HashFormatPrefix))), Times.Once);
+    }
+
+    [Fact]
+    public async Task SetPasswordAsync_OwnerAgainstOwner_Succeeds()
+    {
+        // Owner manages all accounts — including other Owner accounts (the
+        // self-deactivation guard still protects an operator from themselves).
+        StubTarget(new User { Id = "owner-2", Username = "co-owner", Role = UserRole.Owner });
+
+        await _service.SetPasswordAsync("owner-2", "newpass123", callerRole: "Owner");
+
+        _userRepository.Verify(r => r.UpdateAsync(It.IsAny<User>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SetPasswordAsync_EmployeeRole_ThrowsUnauthorized()
+    {
+        // Employees can never reach these endpoints (class-level [Authorize(Roles="Admin,Owner")]);
+        // the service refuses any manage role it does not recognize.
+        StubTarget(new User { Id = "emp-2", Username = "worker", Role = UserRole.Employee });
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => _service.SetPasswordAsync("emp-2", "newpass123", callerRole: "Employee"));
+
+        _userRepository.Verify(r => r.UpdateAsync(It.IsAny<User>()), Times.Never);
+    }
 }

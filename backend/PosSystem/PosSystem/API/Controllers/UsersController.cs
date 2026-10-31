@@ -66,12 +66,19 @@ public class UsersController : ControllerBase
     {
         try
         {
-            await _userService.SetPasswordAsync(id, request.Password);
+            // RC-04: thread the caller's role down (mirrors CreateUser/GetAllUsers) so
+            // the service can enforce Owner > Admin.
+            var callerRole = User?.FindFirst(ClaimTypes.Role)?.Value;
+            await _userService.SetPasswordAsync(id, request.Password, callerRole);
             return NoContent();
         }
         catch (ArgumentException ex)
         {
             return NotFound(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { message = ex.Message });
         }
         catch (InvalidOperationException ex)
         {
@@ -88,13 +95,19 @@ public class UsersController : ControllerBase
     {
         try
         {
-            // Identity.Name is the username claim placed on the token by AuthService
-            await _userService.SetActiveStatusAsync(id, request.IsActive, User?.Identity?.Name);
+            // Identity.Name is the username claim placed on the token by AuthService;
+            // the role claim (RC-04) enforces Owner > Admin inside the service.
+            var callerRole = User?.FindFirst(ClaimTypes.Role)?.Value;
+            await _userService.SetActiveStatusAsync(id, request.IsActive, User?.Identity?.Name, callerRole);
             return NoContent();
         }
         catch (ArgumentException ex)
         {
             return NotFound(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { message = ex.Message });
         }
         catch (InvalidOperationException ex)
         {

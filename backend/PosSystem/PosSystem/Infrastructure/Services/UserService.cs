@@ -61,21 +61,25 @@ public class UserService : IUserService
         return ToDto(created);
     }
 
-    public async Task SetPasswordAsync(string userId, string password)
+    public async Task SetPasswordAsync(string userId, string password, string? callerRole = null)
     {
         ValidatePassword(password);
 
         var user = await _userRepository.GetByIdAsync(userId)
             ?? throw new ArgumentException("User not found");
 
+        RequireCallerMayManage(callerRole, user);
+
         user.PasswordHash = AuthService.HashPassword(password);
         await _userRepository.UpdateAsync(user);
     }
 
-    public async Task SetActiveStatusAsync(string userId, bool isActive, string? currentUsername = null)
+    public async Task SetActiveStatusAsync(string userId, bool isActive, string? currentUsername = null, string? callerRole = null)
     {
         var user = await _userRepository.GetByIdAsync(userId)
             ?? throw new ArgumentException("User not found");
+
+        RequireCallerMayManage(callerRole, user);
 
         if (!isActive &&
             string.Equals(user.Username, currentUsername, StringComparison.OrdinalIgnoreCase))
@@ -85,6 +89,38 @@ public class UserService : IUserService
 
         user.IsActive = isActive;
         await _userRepository.UpdateAsync(user);
+    }
+
+    /// <summary>
+    /// RC-04: Owner &gt; Admin. The Admin (manager) role must not reset or deactivate
+    /// an Owner account; an Owner manages every account. Unknown/employee roles are
+    /// refused too, while an empty callerRole keeps the legacy lenient behavior for
+    /// non-HTTP callers, mirroring ValidateCreatorRole.
+    /// </summary>
+    private static void RequireCallerMayManage(string? callerRole, User target)
+    {
+        if (string.IsNullOrEmpty(callerRole))
+        {
+            return;
+        }
+
+        if (string.Equals(callerRole, nameof(UserRole.Owner), StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (string.Equals(callerRole, nameof(UserRole.Admin), StringComparison.OrdinalIgnoreCase))
+        {
+            if (target.Role == UserRole.Owner)
+            {
+                throw new UnauthorizedAccessException(
+                    "An Admin account cannot reset or deactivate the Owner account.");
+            }
+
+            return;
+        }
+
+        throw new UnauthorizedAccessException($"Role '{callerRole}' is not allowed to manage accounts.");
     }
 
     /// <summary>
