@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, of } from 'rxjs';
-import { catchError, tap } from 'rxjs/operators';
+import { catchError, concatMap, tap } from 'rxjs/operators';
 import { Product } from '../models/product.model';
 import { OfflineService } from '../../../core/services/offline.service';
 
@@ -57,10 +57,33 @@ export class ProductService {
     return this.categoriesSubject.asObservable();
   }
 
+  // H2: the catalog fetch was capped at the first 100 products (every call site
+  // requested `pageSize=100` and only page 1), so anything past 100 was invisible
+  // to the POS. GET /api/products pages without exposing a total, so the catalog
+  // is fetched as a paginate-accumulate loop: each next page is concatenated until
+  // a short page (or the 50-page safety cap = 5,000 products) ends the loop.
+  private static readonly CATALOG_PAGE_SIZE = 100;
+  private static readonly CATALOG_MAX_PAGES = 50;
+
+  private fetchAllProducts(extraQuery: string = ''): Observable<Product[]> {
+    const pageSize = ProductService.CATALOG_PAGE_SIZE;
+    const fetchPage = (page: number, accumulated: Product[]): Observable<Product[]> =>
+      this.http
+        .get<Product[]>(`${this.apiUrl}/products?page=${page}&pageSize=${pageSize}${extraQuery}`)
+        .pipe(
+          concatMap(products => {
+            const merged = [...accumulated, ...(products || [])];
+            const morePages = (products || []).length >= pageSize && page < ProductService.CATALOG_MAX_PAGES;
+            return morePages ? fetchPage(page + 1, merged) : of(merged);
+          })
+        );
+    return fetchPage(1, []);
+  }
+
   private loadProducts(): void {
     if (this.offlineService.isOnline$.value) {
       this.productsLoadingSubject.next(true);
-      this.http.get<Product[]>(`${this.apiUrl}/products?page=1&pageSize=100`).pipe(
+      this.fetchAllProducts().pipe(
         tap(products => {
           const updatedProducts = products || [];
           this.productsSubject.next(updatedProducts);
@@ -103,8 +126,8 @@ export class ProductService {
   // POS grid and public menu (which read getProducts()) never receive inactive
   // products. activeOnly=true → active products; activeOnly=false → inactive only.
   getProductsForAdmin(activeOnly: boolean): Observable<Product[]> {
-    return this.http
-      .get<Product[]>(`${this.apiUrl}/products?page=1&pageSize=100&isActive=${activeOnly}`)
+    return this
+      .fetchAllProducts(`&isActive=${activeOnly}`)
       // Active view keeps the offline/error cache fallback (the cache only holds
       // active products); the inactive view has no cache, so it returns empty.
       .pipe(catchError(() => activeOnly ? this.loadFromLocalStorage('products') : of([])));
@@ -295,7 +318,7 @@ export class ProductService {
 
     if (this.offlineService.isOnline$.value) {
       this.productsLoadingSubject.next(true);
-      return this.http.get<Product[]>(`${this.apiUrl}/products?page=1&pageSize=100`).pipe(
+      return this.fetchAllProducts().pipe(
         tap(products => {
           const updatedProducts = products || [];
           this.productsSubject.next(updatedProducts);

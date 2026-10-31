@@ -108,7 +108,6 @@ public class IngredientService : IIngredientService
         }
 
         var oldQuantity = existingIngredient.Quantity;
-        var oldUnitCost = existingIngredient.UnitCost;
 
         existingIngredient.Name = ingredientDto.Name;
         existingIngredient.Quantity = ingredientDto.Quantity;
@@ -121,11 +120,19 @@ public class IngredientService : IIngredientService
         existingIngredient.LastPurchaseCost = ingredientDto.LastPurchaseCost;
         existingIngredient.UpdatedAt = DateTime.UtcNow;
 
+        // TA-02: a cost-only change no longer attempts a StockMovement — the old
+        // zero-quantity movement (Quantity = 0) was rejected by StockMovementService
+        // ("Quantity cannot be zero") AFTER the ingredient row had
+        // already been committed, so every cost-only PUT failed on a half-applied
+        // update. The new cost is recorded on the ingredient row itself; combined
+        // updates additionally ride the new UnitCost on the quantity movement below.
+        // The only call after the save is now infallible by construction (Quantity
+        // = |adjustment| != 0 whenever it runs, MovementType always defined), so
+        // this path can no longer 400 after a partial write.
         var updatedIngredient = await _ingredientRepository.UpdateAsync(existingIngredient);
 
-        // Create stock movement for quantity or unit cost changes
+        // Create stock movement for quantity changes
         var quantityChanged = oldQuantity != ingredientDto.Quantity;
-        var unitCostChanged = oldUnitCost != ingredientDto.UnitCost;
 
         if (quantityChanged)
         {
@@ -138,20 +145,6 @@ public class IngredientService : IIngredientService
                 UnitCost = ingredientDto.UnitCost,
                 Reason = adjustment > 0 ? "Quantity Increase" : "Quantity Decrease",
                 Notes = $"Updated from {oldQuantity} to {ingredientDto.Quantity}"
-            };
-            await _stockMovementService.CreateMovementAsync(stockMovement);
-        }
-
-        if (unitCostChanged)
-        {
-            var stockMovement = new StockMovement
-            {
-                IngredientId = id,
-                MovementType = MovementType.Adjustment,
-                Quantity = 0,
-                UnitCost = ingredientDto.UnitCost,
-                Reason = "Unit Cost Update",
-                Notes = $"Unit cost changed from {oldUnitCost:F2} to {ingredientDto.UnitCost:F2}"
             };
             await _stockMovementService.CreateMovementAsync(stockMovement);
         }
