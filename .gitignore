@@ -721,3 +721,7 @@ $RECYCLE.BIN/
 
 # JetBrains Rider
 *.sln.iml 
+# dotnet-coverage (dotnet-coverage collect) output — QA harness artifact
+backend/PosSystem/PosSystem.Tests/*.cobertura.xml
+backend/PosSystem/*.cobertura.xml
+backend/PosSystem/PosSystem/*.cobertura.xml
