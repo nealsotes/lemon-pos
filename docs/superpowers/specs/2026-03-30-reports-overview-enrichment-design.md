@@ -58,7 +58,7 @@ A section below the sales trend chart showing revenue split by product category 
 
 **Layout:** Horizontal rows with category name, revenue amount, percentage, and a progress bar.
 
-**Data source:** `GET /api/reports/category?startDate=X&endDate=Y` — already exists. Returns category name, total, and percent.
+**Data source:** `GET /api/reports/category?startDate=X&endDate=Y` — already exists. Returns per-row `{category, quantity, revenue}`; the share percent is computed client-side (row revenue ÷ Σ row revenue).
 
 **Frontend:** Load category data alongside overview. Render as a simple card with rows. Sorted by revenue descending.
 

@@ -4,7 +4,7 @@ Running log of defects and improvement items the team lead tracks outside the cu
 
 ## LB-001 — Reports "Revenue by Category" renders ₱0.00 / blank share % (display-field mismatch)
 
-**Logged:** 2026-10-31 · **Status:** ROUTED → lp-dev (quick win) · **Severity:** display-only (API data is correct; no money at risk, but user-facing wrong figures on a money screen) · **Origin:** discovered live during the roadmap item 2 acceptance gate, step 4 (t_fa5f2c6a); explicitly declared outside the authorized gate scope by the consolidator t_7ce1ca44 — the item-2 gate verdict remains PASS at HEAD 8363cb6.
+**Logged:** 2026-10-31 · **Status:** FIXED 2026-10-31 — contract-preserving UI rebind landed (see git log `fix(reports)`); card re-verified in the running app against `GET /api/reports/category` (drinks ₱910.00/91.0%, bakery ₱90.00/9.0%) · **Severity:** display-only (API data is correct; no money at risk, but user-facing wrong figures on a money screen) · **Origin:** discovered live during the roadmap item 2 acceptance gate, step 4 (t_fa5f2c6a); explicitly declared outside the authorized gate scope by the consolidator t_7ce1ca44 — the item-2 gate verdict remains PASS at HEAD 8363cb6.
 
 ### Symptom
 

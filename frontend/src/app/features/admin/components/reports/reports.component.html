@@ -297,12 +297,12 @@
                 <div class="row-main">
                   <span class="row-name">{{ cat.category }}</span>
                   <div class="cat-bar-track">
-                    <div class="cat-bar-fill" [style.width.%]="cat.percent"></div>
+                    <div class="cat-bar-fill" [style.width.%]="getCategoryShare(cat)"></div>
                   </div>
                 </div>
                 <div class="row-stats">
-                  <span class="row-value">{{ formatCurrency(cat.total) }}</span>
-                  <span class="row-meta">{{ cat.percent | number:'1.1-1' }}%</span>
+                  <span class="row-value">{{ formatCurrency(cat.revenue) }}</span>
+                  <span class="row-meta">{{ getCategoryShare(cat) | number:'1.1-1' }}%</span>
                 </div>
               </div>
             </div>

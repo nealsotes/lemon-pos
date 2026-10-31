@@ -890,6 +890,13 @@ export class ReportsComponent implements OnInit, OnDestroy {
     return total > 0 ? (amount / total) * 100 : 0;
   }
 
+  // Revenue-share of a category, computed client-side from the raw
+  // {category, quantity, revenue} rows of GET /api/reports/category.
+  getCategoryShare(cat: { revenue?: number }): number {
+    const totalRevenue = this.categoryBreakdown.reduce((sum, c) => sum + (Number(c.revenue) || 0), 0);
+    return totalRevenue > 0 ? ((Number(cat.revenue) || 0) / totalRevenue) * 100 : 0;
+  }
+
   private createEmptyReport(): any {
     return {
       Date: new Date(),
