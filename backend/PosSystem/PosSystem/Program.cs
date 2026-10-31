@@ -757,7 +757,20 @@ using (var scope = app.Services.CreateScope())
     }
     
     await SeedData.InitializeAsync(context); // Seed full product list
-    await SeedData.InitializeUsersAsync(context); // Seed default users
+
+    // RC-02: default users seed ONLY when explicitly opted in via Seed:DefaultUsers
+    // (default OFF — absent/false seeds nothing). Deleted default accounts stay
+    // deleted; SeedData records a per-username marker the first time it accounts for
+    // each default. Railway/local opt-in: export Seed__DefaultUsers=true.
+    if (SeedData.ShouldSeedDefaultUsers(builder.Configuration))
+    {
+        app.Logger.LogInformation("Seed:DefaultUsers=true — seeding default users that are missing (fresh databases / local dev).");
+        await SeedData.InitializeUsersAsync(context);
+    }
+    else
+    {
+        app.Logger.LogInformation("Seed:DefaultUsers is false — skipping default-user seeding (use Seed__DefaultUsers=true on a fresh database).");
+    }
 
     // Add AmountReceived and Change columns to Transactions table (Manual migration for Railway)
     try

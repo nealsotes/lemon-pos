@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using PosSystem.Core.Models;
 using PosSystem.Infrastructure.Services;
 
@@ -114,57 +115,76 @@ public static class SeedData
         await context.SaveChangesAsync();
     }
 
+    // RC-02: default accounts are seeded ONLY when Program.cs opts in via the
+    // Seed:DefaultUsers gate (default OFF). While the gate stays on, a per-username
+    // "accounted for" marker in ApplicationSettings makes any deletion of a default
+    // account stick: once marked, the username is never re-inserted.
+    internal static readonly (string Username, string Password, UserRole Role)[] DefaultUsers =
+    {
+        ("owner", "admin123", UserRole.Owner),
+        ("employee", "emp123", UserRole.Employee),
+        ("admin", "admin123", UserRole.Admin)
+    };
+
+    /// <summary>
+    /// RC-02 opt-in gate: default-user seeding happens only when Seed:DefaultUsers is
+    /// explicitly true — absent/false (the default) seeds nothing, so production
+    /// databases never receive the well-known starter credentials and deleted default
+    /// accounts stay deleted.
+    /// </summary>
+    public static bool ShouldSeedDefaultUsers(IConfiguration configuration)
+    {
+        return configuration.GetValue<bool>("Seed:DefaultUsers");
+    }
+
+    internal static string SeededMarkerKey(string username) => $"seed:defaultuser:{username}";
+
     public static async Task InitializeUsersAsync(PosSystemDbContext context)
     {
         var usersToAdd = new List<User>();
 
-        // Check and create owner user if it doesn't exist
-        if (!await context.Users.AnyAsync(u => u.Username == "owner"))
+        foreach (var (username, password, role) in DefaultUsers)
         {
-            usersToAdd.Add(new User
+            var markerKey = SeededMarkerKey(username);
+
+            // Marker present: this default was accounted for on a previous boot — never
+            // touch it again, so an operator-deleted default account stays deleted.
+            if (await context.ApplicationSettings.AnyAsync(s => s.Key == markerKey))
+            {
+                continue;
+            }
+
+            if (!await context.Users.AnyAsync(u => u.Username == username))
+            {
+                usersToAdd.Add(new User
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Username = username,
+                    PasswordHash = AuthService.HashPassword(password),
+                    Role = role,
+                    CreatedAt = DateTime.UtcNow,
+                    IsActive = true
+                });
+            }
+
+            // Whether we created the account just now or found it already present (a
+            // database seeded before this gate existed — leave its credentials alone),
+            // record that the default is accounted for from here on.
+            context.ApplicationSettings.Add(new ApplicationSettings
             {
                 Id = Guid.NewGuid().ToString(),
-                Username = "owner",
-                PasswordHash = AuthService.HashPassword("admin123"),
-                Role = UserRole.Owner,
-                CreatedAt = DateTime.UtcNow,
-                IsActive = true
+                Key = markerKey,
+                Value = "seeded",
+                UpdatedAt = DateTime.UtcNow,
+                UpdatedBy = "SeedData"
             });
         }
 
-        // Check and create employee user if it doesn't exist
-        if (!await context.Users.AnyAsync(u => u.Username == "employee"))
-        {
-            usersToAdd.Add(new User
-            {
-                Id = Guid.NewGuid().ToString(),
-                Username = "employee",
-                PasswordHash = AuthService.HashPassword("emp123"),
-                Role = UserRole.Employee,
-                CreatedAt = DateTime.UtcNow,
-                IsActive = true
-            });
-        }
-
-        // Check and create admin user if it doesn't exist
-        if (!await context.Users.AnyAsync(u => u.Username == "admin"))
-        {
-            usersToAdd.Add(new User
-            {
-                Id = Guid.NewGuid().ToString(),
-                Username = "admin",
-                PasswordHash = AuthService.HashPassword("admin123"),
-                Role = UserRole.Admin,
-                CreatedAt = DateTime.UtcNow,
-                IsActive = true
-            });
-        }
-
-        // Add any missing users
         if (usersToAdd.Any())
         {
             await context.Users.AddRangeAsync(usersToAdd);
-            await context.SaveChangesAsync();
         }
+
+        await context.SaveChangesAsync();
     }
 }
