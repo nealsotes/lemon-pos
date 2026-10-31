@@ -107,7 +107,15 @@ public class AuthService : IAuthService
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var jwtToken = tokenHandler.ReadJwtToken(token);
-            var username = jwtToken.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
+
+            // LB-002: the tokens this service mints carry the short JWT claim keys — the
+            // handler's outbound claim map rewrites the minted long ClaimTypes.* URIs to
+            // "unique_name" / "nameid" / "role" on the wire, and ReadJwtToken surfaces the
+            // raw payload keys unmodified. An external IdP's tokens, by contrast, can carry
+            // the literal long URIs. The read side must resolve both forms, or legitimate
+            // self-minted tokens can never resolve a user via POST /api/auth/validate.
+            var username = jwtToken.Claims.FirstOrDefault(
+                c => c.Type == "unique_name" || c.Type == ClaimTypes.Name)?.Value;
 
             if (string.IsNullOrEmpty(username))
             {

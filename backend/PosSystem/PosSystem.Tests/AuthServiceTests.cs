@@ -231,25 +231,42 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task GetUserFromTokenAsync_ServiceMintedToken_ReturnsNull_ClaimTypeLookupNeverMatches()
+    public async Task GetUserFromTokenAsync_ServiceMintedToken_ResolvesUserFromShortClaimKey()
     {
-        // Pinned defect LB-002: the service mints ClaimTypes.Name, but JwtPayload's
-        // outbound claim map writes it to the short "unique_name" form; this method
-        // then parses the raw JWT and looks up c.Type == ClaimTypes.Name (the long
-        // WS-Fed URI), which never matches on tokens this very service issued. So
-        // POST /api/auth/validate can never resolve the user for a legit token. The
-        // SPA's validateToken() has no callers today (dormant path), which is why the
-        // defect has stayed invisible; see docs/LEAD_BACKLOG.md LB-002.
+        // LB-002, fix side: a token this service mints carries the username under the
+        // short "unique_name" key (the outbound claim map rewrote ClaimTypes.Name at
+        // mint time — the long WS-Fed URI never survives to the wire of a self-minted
+        // token). The read side resolves that short form today; previously it looked
+        // only for the long URI, so every legit token failed POST /api/auth/validate
+        // with {valid:false}; see docs/LEAD_BACKLOG.md LB-002.
         StubUser(ActiveUser());
         var result = await _service.LoginAsync("owner", "s3cret!");
 
         var user = await _service.GetUserFromTokenAsync(result!.Token);
 
+        Assert.NotNull(user);
+        Assert.Equal("owner", user!.Username);
+        Assert.Equal(UserRole.Owner, user.Role);
+
+        // The lookup now runs end to end: LoginAsync (once) and GetUserFromTokenAsync
+        // (via the short claim key, now) both consult the repository — previously the
+        // read side bailed out at the claim lookup and never reached it.
+        _userRepository.Verify(r => r.GetByUsernameAsync("owner"), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task GetUserFromTokenAsync_TokenWithOnlyAnIdentifierClaim_ReturnsNull()
+    {
+        // The wire family the mint writes is the short unique_name/nameid/role, but only
+        // the username claim (in either form) resolves a user: the identifier claim names
+        // the user by ID, not username, so it must never stand in for one. Emitted through
+        // the handler, ClaimTypes.NameIdentifier lands on the wire as "nameid".
+        var token = MintToken(claims: new[] { new Claim(ClaimTypes.NameIdentifier, "u-1") });
+
+        var user = await _service.GetUserFromTokenAsync(token);
+
         Assert.Null(user);
-        // Only LoginAsync itself ever consulted the repository (exactly once);
-        // GetUserFromTokenAsync bailed out at the claim lookup before any repository
-        // call — that is the defect being pinned here.
-        _userRepository.Verify(r => r.GetByUsernameAsync(It.IsAny<string>()), Times.Once);
+        _userRepository.Verify(r => r.GetByUsernameAsync(It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
