@@ -4,7 +4,7 @@ Running log of defects and improvement items the team lead tracks outside the cu
 
 **Project concluded 2026-11-03** — completion-gate motion `t_df200982` unanimously ADOPTED: every adopted roadmap item landed with cited commits (item 1 offline/idempotency `t_2961a346`; item 2 reporting math `t_13913d80`/`t_83c4f349`; item 3 security RC-01..RC-05, phase-2 fan-in `t_308c3403`; item 4 coverage growth 56→171 via `430879c`/`t_08a7942f`), LB-001..004 below are all FIXED with gate IDs, and fresh runs at HEAD `07307d5` give backend 238/238 + frontend 56/56 (combined 294/294) green. The two deliberately deferred remainders below — DR-001 (roadmap item 5) and DR-002 (rider H1) — were never voted into task scope (phase-2 gate `t_15c91c93` deferred item 5 as an "owner-level decision" and sequenced H1 after RC-05), so they are recorded here as future **owner-decision** work, explicitly NOT open defects, per action item 2 of `t_df200982`.
 
-**Post-conclusion import-defects pass 2026-11-03 (kanban `t_b887d52a`, leader-verified brief)** — the lp-qa E2E verdict surfaced three import defects (D1 threshold-0 → 10 sentinel, D2 intra-file duplicate row lost, D3 Unit Cost mislabel), all FIXED: D1 `a21d801`, D2+D3 `d92143f`. HEAD at entry time: full backend suite 243/243 (238 prior + 5 new), 0 failed. LB-005 below is a NEW defect logged while generating D1's migration; disposition open.
+**Post-conclusion import-defects pass 2026-11-03 (kanban `t_b887d52a`, leader-verified brief)** — the lp-qa E2E verdict surfaced three import defects (D1 threshold-0 → 10 sentinel, D2 intra-file duplicate row lost, D3 Unit Cost mislabel), all FIXED: D1 `a21d801`, D2+D3 `d92143f`. HEAD at entry time: full backend suite 243/243 (238 prior + 5 new), 0 failed. LB-005 below is a NEW defect logged while generating D1's migration — **since FIXED** (commit `d7655cf`, motion `t_43e545b5`, QA gate `t_72e948c8` PASS; see LB-005). The same gate pass surfaced the pre-existing fresh-chain migration disorder, recorded below as **LB-006** (independent of LB-005).
 
 ## D1 — Products.LowQuantityThreshold: EF database default (10) silently stores a deliberate threshold of 0 as 10
 
@@ -35,7 +35,7 @@ Pin `ImportAsync_IngredientsInvalidUnitCost_ErrorNamesUnitCost` asserts the repo
 
 ## LB-005 — Transaction.SyncedAt is in the EF model (and in every sale INSERT) but in NO migration and NO self-heal ALTER: model↔migration-schema drift
 
-**Logged:** 2026-11-03 during the D1 fix pass (`t_b887d52a`) — the migration generation surfaced the unsynced snapshot, whose shipped `AddColumn SyncedAt` artifact was stripped out of D1's `Up()` · **Status:** OPEN — needs leader disposition (not fixed in the D1 pass; D1 only stopped the recurring trap by recording SyncedAt in the ModelSnapshot) · **Severity:** latent-high · **Origin:** stale `PosSystemDbContextModelSnapshot` discovered via `dotnet ef migrations add` at HEAD `42453ba`.
+**Logged:** 2026-11-03 during the D1 fix pass (`t_b887d52a`) — the migration generation surfaced the unsynced snapshot, whose shipped `AddColumn SyncedAt` artifact was stripped out of D1's `Up()` · **Status:** FIXED 2026-11-03 — commit `d7655cf` (hand-built migration `20261103101204_AddTransactionSyncedAt`), QA gate `t_72e948c8` PASS · **Severity:** latent-high · **Origin:** stale `PosSystemDbContextModelSnapshot` discovered via `dotnet ef migrations add` at HEAD `42453ba`.
 
 ### Verified facts
 - `SyncedAt` entered the model with `6195f4f` ("Sales carry SyncedAt (receipt time) apart from Timestamp") but that commit shipped no migration for the column, and Program.cs's self-healing ALTER list carries no `ADD COLUMN SyncedAt`.
@@ -43,7 +43,26 @@ Pin `ImportAsync_IngredientsInvalidUnitCost_ErrorNamesUnitCost` asserts the repo
 - Runtime schema path: startup `EnsureCreatedAsync` + ad-hoc self-heal ALTERs — `Database.Migrate()` is never called. Fresh EnsureCreated databases get the column from the model, so live deploys have not fired this; but a database built ONLY from migrations (a standard EF practice, or any future Migrate switch) never receives the column, and `TransactionRepository.AddAsync` sets+inserts `SyncedAt` on EVERY sale → `Unknown column 'SyncedAt' in 'field list'` on each insert.
 
 ### Disposition
-Either commit a proper `AddTransactionSyncedAt` migration + a matching self-heal `ADD COLUMN SyncedAt DATETIME(6) NULL` (mirroring the IdempotencyKey pattern at Program.cs:396), or formally document that EnsureCreated+self-heal is the only supported schema path (and why Migrate()-built DBs would break). Routing: leader (Neal).
+**Resolved 2026-11-03** (motion `t_43e545b5`, unanimous ADOPT: land the fix now rather than record it as owner-decision work): commit `d7655cf` hand-builds migration `20261103101204_AddTransactionSyncedAt` — nullable `datetime(6)`, no index, no default, mirroring the proven AddTransactionIdempotencyKey pattern minus the index; Designer copied from the newest migration's model with id/name swapped (its `BuildTargetModel` body is diff-identical to the current snapshot). QA gate `t_72e948c8` PASS at `d7655cf`: on a scratch pre-state DB (9-row `__EFMigrationsHistory`, no SyncedAt) the pre-control sale INSERT failed with the exact defect error (`ERROR 1054 Unknown column 'SyncedAt' in 'field list'`); `dotnet ef database update` applied exactly `20261103101204` (history 9→10; column `datetime(6) NULL`, no index; only PRIMARY + IX_Transactions_IdempotencyKey on Transactions); stamped and NULL sale INSERTs both persisted after; build 0 errors, `migrations has-pending-model-changes` clean, idempotent script carries the guarded ADD `SyncedAt` datetime(6) NULL; full backend suite 243/243 (238 baseline + 5 import/threshold tests), 0 failed, all 23 classes executed, only additive class delta.
+
+**Leader disposition on the residual self-heal (2026-11-03):** the migration-only scope stands per the adopted action items — the Program.cs self-heal `ADD COLUMN SyncedAt` line is deliberately NOT added: runtime schema is `EnsureCreatedAsync` + ad-hoc self-heal ALTERs and `Database.Migrate()` is never called, so every runtime-reached DB gets the column from the model, and live evidence shows no failing pre-`6195f4f` DB. Recorded residual: if a `Database.Migrate()`/migration-built path is ever adopted, make the schema-path decision together with LB-006 (below) and fold this self-heal line in at the same time. Routing: owner (Neal).
+
+## LB-006 — Pre-existing fresh-chain migration disorder: the three January migrations touch tables that InitialCreate creates later, so a fresh `Database.Migrate()` chain aborts ERROR 1146 (independent of LB-005)
+
+**Logged:** 2026-11-03 during the LB-005 close-out (motion `t_43e545b5` action item 3) · **Status:** OPEN — pre-existing, explicitly independent of LB-005 · **Severity:** latent (zero runtime impact on the shipped schema path) · **Origin:** surfaced in the LB-005 final-gate discussion — lp-qa reproduced `ERROR 1146` (table doesn't exist) applying the chain on a throwaway fresh MySQL DB; leader re-verified the ordering and migration bodies at source at `d7655cf`.
+
+### Verified facts
+
+- EF runs migrations in timestamp order, and the three January migrations all sort BEFORE `20260328055212_InitialCreate`:
+  - `20260126054221_AddCategoryToTransactionItems` — `AddColumn name:"Category" table:"TransactionItem"`, but `TransactionItem` is created by `InitialCreate` (InitialCreate.cs:204, `20260328055212`) → fresh chain aborts here with MySQL `ERROR 1146` (table doesn't exist).
+  - `20260126065503_AddPaymentDetailsToTransaction` — `AddColumn`s `AmountReceived`/`Change` on `Transactions`, created only later by `InitialCreate` (InitialCreate.cs:119) — same order-vs-creation disorder.
+  - `20260126064135_AddAddOnsToTransactionItems` — `CreateTable "AddOn"` (with an FK to `TransactionItem`), while `InitialCreate` (InitialCreate.cs:238) creates `AddOn` too — a double-create if the chain ever got past the first abort.
+- This predates the improvement project entirely (Jan/Mar 2026 artifacts) and is independent of LB-005: the LB-005 fix `20261103101204` appends at the chain's end and its gate-verified apply used a pre-seeded history DB, so it neither caused nor cures this.
+- No runtime impact: startup uses `EnsureCreatedAsync` + ad-hoc self-heal ALTERs and never `Database.Migrate()` (recorded under LB-005 Verified facts), so the broken fresh-chain order is never exercised in the running app.
+
+### Disposition / routing
+
+Not scheduled inside the concluded project: the fix is a schema-history rebuild (squash/re-scaffold a fresh InitialCreate superset, or re-order the January entries), which must not ride in a concluded state. Routing: owner decision (Neal) — bundle with the schema-path decision flagged in LB-005's leader disposition; only becomes urgent if a `Database.Migrate()`/migration-built DB path is ever switched on.
 
 ## DR-001 — Roadmap item 5: PWA/offline owner decision + code-quality sweep (DEFERRED)
 
