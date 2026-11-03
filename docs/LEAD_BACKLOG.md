@@ -2,9 +2,27 @@
 
 Running log of defects and improvement items the team lead tracks outside the currently active roadmap phases. Each entry carries evidence, a disposition, and its routing. Supersedes ad-hoc notes in task results.
 
+## LB-004 — A real standard products export (.xlsx/.csv) cannot be re-imported: header detection keys on grid[0], so every row errors "Name is required."
+
+**Logged:** 2026-11-03 · **Status:** OPEN · **Severity:** moderate (fail-safe — zero mutation — but it breaks the documented export → edit → import loop: the Product Management UI downloads `GET /api/products/export?format=xlsx` and the import dialog uploads the picked file raw to `POST /api/products/import`) · **Origin:** found 2026-11-03 during the LB-003 QA gate (t_2123c7cc) while empirically checking pre/post identity for hot/cold-less products on real export bytes.
+
+### Symptom
+
+Re-importing a downloaded standard products export reports Created=0 / Updated=0 with a `Name is required.` error for every non-blank row — .xlsx and .csv alike. Probe-verified at HEAD 8edc909 AND at the pre-LB-003 revision 31625fd: outcomes byte-identical at both revisions (csv: 9 errors, xlsx: 4 errors), so it is unrelated to the LB-003 fix. Even the real header row itself errors — its leading cell "Name" lands under the bogus title-keyed column.
+
+### Root cause
+
+- `ImportService.ImportAsync` hardcodes `grid[0]` as THE header row (`Infrastructure/Services/ImportService.cs:108`) and keys every data row off it.
+- `ExportService` writes a banner BEFORE the column header: `RenderCsv` emits a `products` title record, a `Generated: … UTC` line and a blank line before `PRODUCTS` + the real header (`ExportService.cs:480-499`); `RenderXlsx` writes the title + `Generated:` + blank into the sheet (`ExportService.cs:532-545`). `grid[0]` is therefore the 1-cell title, and every later record parses as data over a 1-column header where `GetValue(row,"name",…)` never matches → `Name is required.` per row.
+- Even with banner-skipping fixed, the products workbook also carries the `By Category` summary sheet (`ExportService.cs:119-132`), whose summary rows also land in the Products parse — needs the same total/summary-block exclusion as `IsBlankOrTotalRow`.
+
+### Disposition
+
+Header detection must locate the real column-header row (skip the export banner records/rows) instead of `grid[0]`, and must exclude the By-Category summary block, before "export → edit → import" round-trips end-to-end. LB-003's fix is verified unaffected (identity probe ran clean at both revisions). Left for lead arbitration (t_75c9c242) rather than auto-assigned a fix.
+
 ## LB-003 — Product import nulls Hot/Cold prices for rows without those columns
 
-**Logged:** 2026-10-31 · **Status:** OPEN (adjacent to rider OT-03, deliberately out of its scope) · **Severity:** low (only affects hand-built CSVs without Hot Price/Cold Price columns; the standard product export always includes them, and re-importing a real export round-trips) · **Origin:** noticed while fixing OT-03 (rider batch B, t_b8af3d46).
+**Logged:** 2026-10-31 · **Status:** FIXED 2026-11-03 — commit `86e467c` (hot/cold read branches on column presence: Hot/Cold columns ABSENT → the live row's HotPrice/ColdPrice carry over; column PRESENT → the value imports and a blank cell is an explicit clear, `HasHotCold` derived from the final values); round-trip pin test `ImportAsync_ProductsReimport_HotColdColumnsAbsentCarryOver_PresentColumnsWinAndBlankCellsClear` landed in commit `8edc909`; QA gate t_2123c7cc re-verified at HEAD `8edc909`: targeted pin 1/1, full backend suite 232/232, and a pre/post worktree probe (31625fd vs 8edc909) proved the standard-layout round-trip for hot/cold-less products byte-identical (UpdateProductAsync payload: HotPrice/ColdPrice null, HasHotCold=false, every other carried field intact) · **Severity:** low (only affects files without Hot Price/Cold Price columns, e.g. stale exports or hand-built CSVs — the standard product export always includes them; the separate fact that whole-file export bytes do not currently re-import is now tracked as LB-004 and was verified identical pre/post during this gate) · **Origin:** noticed while fixing OT-03 (rider batch B, t_b8af3d46).
 
 ### Root cause
 
@@ -12,7 +30,7 @@ Running log of defects and improvement items the team lead tracks outside the cu
 
 ### Disposition
 
-Mirror the threshold fallback for hot/cold when the columns are blank (and recompute HasHotCold against the existing values); alternatively recompute only when provided. Two-line change + one round-trip test.
+**Resolved** 2026-11-03 (commit `86e467c`): the import now distinguishes "column absent" from "column present" via `ContainsKey` over the normalized headers — `ToRow` stores an entry per populated header, same synonyms `GetValue` matches. Absent Hot/Cold columns carry `existingProduct?.HotPrice`/`.ColdPrice` over (mirroring the Low Stock Threshold fallback this entry proposed); present columns win — a value imports, a blank cell is an explicit clear — and the `HasHotCold = hotPrice.HasValue || coldPrice.HasValue` derivation (unchanged) keys off the final values. QA gate t_2123c7cc: pin test green at HEAD, full backend suite 232/232, pre/post identity probe byte-identical for hot/cold-less products (see also LB-004, the adjacent whole-file export-bytes finding logged during the same gate).
 
 ## LB-002 — AuthService.GetUserFromTokenAsync can never resolve a user: claim-type lookup contradicts the tokens the same service mints
 
