@@ -199,6 +199,55 @@ public class ImportServiceTests
         Assert.Contains("Name:Price", report.Errors[0].Message);
     }
 
+    // LB-003 round-trip pin: both Hot/Cold import semantics in one test.
+    // Fixture A — columns absent (an old/stale export): the live row's hot/cold
+    // pricing and HasHotCold must survive the import. Fixture B — the standard
+    // export layout, where Hot/Cold headers are always present and hot/cold-less
+    // products export blank cells: an imported value wins, and a present-but-blank
+    // cell is an explicit clear — both cells blanked yields HotPrice/ColdPrice
+    // null + HasHotCold=false, while a per-column blank clears only that variant
+    // (the mixed case keeps HasHotCold=true, matching the HasValue derivation).
+    [Fact]
+    public async Task ImportAsync_ProductsReimport_HotColdColumnsAbsentCarryOver_PresentColumnsWinAndBlankCellsClear()
+    {
+        var existing = new List<Product>
+        {
+            new() { Id = "p1", Name = "Matcha Latte", Category = "Drinks", Price = 100m, Stock = 8, HotPrice = 65m, ColdPrice = 60m, HasHotCold = true },
+            new() { Id = "p2", Name = "Espresso", Category = "Drinks", Price = 50m, Stock = 20, HotPrice = 55m, ColdPrice = 52m, HasHotCold = true },
+            new() { Id = "p3", Name = "Iced Tea", Category = "Drinks", Price = 30m, Stock = 15, HotPrice = 40m, ColdPrice = 38m, HasHotCold = true },
+            new() { Id = "p4", Name = "Milk Tea", Category = "Drinks", Price = 90m, Stock = 10, HotPrice = 60m, ColdPrice = 55m, HasHotCold = true }
+        };
+        _productService.Setup(s => s.GetAllProductsAsync()).ReturnsAsync(existing);
+
+        // Fixture A: no Hot/Cold columns — an old export must not silently drop
+        // the live product's hot/cold pricing (the pre-fix bug).
+        var staleExportCsv = "Name,Category,Price,Stock\nMatcha Latte,Drinks,95,12\n";
+        var reportA = await CreateService().ImportAsync(ImportKind.Products, "products.csv", ToStream(staleExportCsv), "system");
+
+        Assert.Equal(1, reportA.Updated);
+        Assert.Empty(reportA.Errors);
+        _productService.Verify(s => s.UpdateProductAsync("p1", It.Is<Product>(p =>
+            p.HotPrice == 65m && p.ColdPrice == 60m && p.HasHotCold)), Times.Once);
+
+        // Fixture B: standard export column layout (headers present; a hot/cold-less
+        // product writes blank cells under them).
+        var standardExportCsv =
+            "Name,Category,Price,Hot Price,Cold Price,Stock,Low Stock Threshold,Status\n" +
+            "Espresso,Drinks,50,75,70,20,5,Active\n" +   // imported values win
+            "Iced Tea,Drinks,30,,,15,5,Active\n" +       // both blank → explicit full clear
+            "Milk Tea,Drinks,90,80,,10,5,Active\n";      // mixed: hot set, cold blank → per-column clear
+        var reportB = await CreateService().ImportAsync(ImportKind.Products, "products.csv", ToStream(standardExportCsv), "system");
+
+        Assert.Equal(3, reportB.Updated);
+        Assert.Empty(reportB.Errors);
+        _productService.Verify(s => s.UpdateProductAsync("p2", It.Is<Product>(p =>
+            p.HotPrice == 75m && p.ColdPrice == 70m && p.HasHotCold)), Times.Once);
+        _productService.Verify(s => s.UpdateProductAsync("p3", It.Is<Product>(p =>
+            p.HotPrice == null && p.ColdPrice == null && !p.HasHotCold)), Times.Once);
+        _productService.Verify(s => s.UpdateProductAsync("p4", It.Is<Product>(p =>
+            p.HotPrice == 80m && p.ColdPrice == null && p.HasHotCold)), Times.Once);
+    }
+
     [Fact]
     public async Task ImportAsync_UnsupportedFileType_Throws()
     {
