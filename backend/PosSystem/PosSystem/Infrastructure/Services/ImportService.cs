@@ -21,6 +21,11 @@ namespace PosSystem.Infrastructure.Services;
 //   Ingredients — Name, Quantity, Unit, Unit Cost, Supplier, Low Stock Threshold, Expiration,
 //                 Last Purchase, Last Purchase Cost, Status
 //   Expenses    — Date, Category, Description, Amount, Recurring, Recurrence, Notes
+// Standard exports open with a banner (title row, "Generated: … UTC", a blank
+// spacer) BEFORE the column header and can carry summary sheets ("By Category")
+// behind the data, so the real header row is found by content — not assumed to be
+// grid[0] — and data rows stop at section markers (LB-004): downloaded export
+// files re-import as-is.
 // Headers are matched case-insensitively with punctuation stripped; unknown columns
 // (Total Value, Created, ...) are ignored. Products/ingredients upsert by name
 // (case-insensitive, never an exact-case lookup, so a re-import never creates
@@ -105,10 +110,27 @@ public class ImportService : IImportService
         if (grid.Count == 0)
             throw new ArgumentException("The file has no readable rows.");
 
-        var header = grid[0];
-        var dataRows = grid.Skip(1).Select(values => ToRow(values, header));
-        if (!dataRows.Any())
-            throw new ArgumentException("No data rows found below the header row. Keep the header row in place.");
+        // LB-004: the standard exports open with a banner BEFORE the real column
+        // header — a title row, a "Generated: … UTC" line and a blank spacer — and,
+        // flattened to CSV, the "By Category" summary sheet after the data rows.
+        // Treating grid[0] as THE header parsed every real export record under the
+        // title cell's one-column header, so a downloaded file re-imported as-is
+        // reported "Name is required." per row and imported zero products. Find the
+        // real header row by content instead; a banner-less hand-built file whose
+        // first row IS the header still matches (at index 0).
+        if (FindHeaderRowIndex(grid, kind) is not { } headerIndex)
+            throw new ArgumentException(
+                "Could not find a recognized column header row. Re-export the file from the app or use the import template.");
+
+        var header = grid[headerIndex];
+
+        // Data records run to the workbook's next section marker ("BY CATEGORY"), so
+        // CSV exports' appended summary sheets parse as neither records nor errors;
+        // a zero-row file (an export of an empty catalog) simply imports nothing.
+        var dataRows = grid.Skip(headerIndex + 1)
+            .TakeWhile(row => !IsSectionMarkerRow(row))
+            .Select(values => ToRow(values, header))
+            .ToList();
 
         var report = new ImportResultReport { Kind = kind.ToString() };
 
@@ -126,6 +148,107 @@ public class ImportService : IImportService
         }
 
         return report;
+    }
+
+    // ── Header detection + section markers (LB-004) ──
+    //
+    // Standard exports open with a banner BEFORE the real header (title row,
+    // "Generated: … UTC", a blank spacer), and CSV exports stamp the sheet name as a
+    // single-cell record between sheets while appending summary sheets ("By
+    // Category") behind the data. Detection keys on content, not position:
+    // a header row's leading cell is the kind's primary column ("Name"/"Date")
+    // followed by at least one more recognized column — or is a lone primary cell
+    // (a degenerate one-column file keeps importing) — while a marker row is a
+    // single cell naming one of the exporter's sheets, so the data records run only
+    // until the first marker and appended summary sheets parse as neither records
+    // nor errors.
+
+    private static int? FindHeaderRowIndex(List<List<string>> grid, ImportKind kind)
+    {
+        var (leadSynonyms, vocabulary) = kind switch
+        {
+            ImportKind.Products => (PrimaryColumnLeads.Products, KnownColumnNames.Products),
+            ImportKind.Ingredients => (PrimaryColumnLeads.Ingredients, KnownColumnNames.Ingredients),
+            ImportKind.Expenses => (PrimaryColumnLeads.Expenses, KnownColumnNames.Expenses),
+            _ => (new HashSet<string>(), new HashSet<string>())
+        };
+
+        for (var r = 0; r < grid.Count; r++)
+        {
+            if (IsHeaderRow(grid[r], leadSynonyms, vocabulary)) return r;
+        }
+
+        return null;
+    }
+
+    private static bool IsHeaderRow(List<string> cells, HashSet<string> leadSynonyms, HashSet<string> vocabulary)
+    {
+        var nonEmpty = cells.Where(v => !string.IsNullOrWhiteSpace(v)).ToList();
+        if (nonEmpty.Count == 0 || !leadSynonyms.Contains(NormalizeHeader(nonEmpty[0])))
+            return false;
+        if (nonEmpty.Count == 1)
+            return true;
+
+        // At least two recognized columns AND at least half the row recognizable:
+        // foreign sheets' headers (a full-report dump parsed against the wrong kind)
+        // may also open with "Name" but share too few columns with this kind to pass.
+        var recognized = nonEmpty.Count(v => vocabulary.Contains(NormalizeHeader(v)));
+        return recognized >= 2 && recognized * 2 >= nonEmpty.Count;
+    }
+
+    private static bool IsSectionMarkerRow(List<string> row)
+    {
+        var nonEmpty = row.Where(v => !string.IsNullOrWhiteSpace(v)).ToList();
+        return nonEmpty.Count == 1 && ExportSheetMarkerNames.Contains(NormalizeHeader(nonEmpty[0]));
+    }
+
+    // Every sheet name ExportService stamps between CSV sheets ("PRODUCTS", "BY
+    // CATEGORY", …), pre-normalized the way data headers are. A single-cell record
+    // naming a sheet ends the preceding sheet's data records; "Total" summary rows
+    // and blank spacers keep flowing through IsBlankOrTotalRow instead — only
+    // section breaks cut here.
+    private static readonly HashSet<string> ExportSheetMarkerNames = new(StringComparer.Ordinal)
+    {
+        "products", "bycategory", "ingredients", "lowstock", "expenses", "expensesbycategory",
+        "transactions", "lineitems", "topproducts", "salesbycategory", "plsummary",
+        "periodbreakdown", "valuation", "topingredients", "movements", "consumption",
+        "suppliers", "summary"
+    };
+
+    // Primary-column lead cells per kind, plus every header name the kind
+    // legitimately writes or reads, INCLUDING the informational columns imports
+    // skip (Created, Updated, Total Value) so real export header rows still match.
+    private static class PrimaryColumnLeads
+    {
+        public static readonly HashSet<string> Products = new(StringComparer.Ordinal) { "name", "productname", "product" };
+        public static readonly HashSet<string> Ingredients = new(StringComparer.Ordinal) { "name", "ingredientname", "ingredient" };
+        public static readonly HashSet<string> Expenses = new(StringComparer.Ordinal) { "date", "expensedate" };
+    }
+
+    private static class KnownColumnNames
+    {
+        public static readonly HashSet<string> Products = new(StringComparer.Ordinal)
+        {
+            "name", "productname", "product", "category", "price", "unitprice", "sellingprice",
+            "hotprice", "hot", "coldprice", "cold", "stock", "quantity", "qty", "onhand",
+            "lowstockthreshold", "lowquantitythreshold", "threshold", "status", "addons", "addon",
+            "created", "updated"
+        };
+
+        public static readonly HashSet<string> Ingredients = new(StringComparer.Ordinal)
+        {
+            "name", "ingredientname", "ingredient", "quantity", "stock", "qty", "onhand", "unit",
+            "unitcost", "totalvalue", "supplier", "lowstockthreshold", "lowstock", "threshold",
+            "expiration", "expirationdate", "expiry", "lastpurchase", "lastpurchasedate",
+            "lastpurchasecost", "status"
+        };
+
+        public static readonly HashSet<string> Expenses = new(StringComparer.Ordinal)
+        {
+            "date", "expensedate", "category", "categoryname", "description", "item", "amount",
+            "recurring", "isrecurring", "recurrence", "recurrencetype", "recurringtype", "notes",
+            "createdby"
+        };
     }
 
     // ── Grid parsing (xlsx via ClosedXML, RFC-4180-style CSV by hand) ──

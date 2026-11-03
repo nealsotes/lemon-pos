@@ -248,6 +248,104 @@ public class ImportServiceTests
             p.HotPrice == 80m && p.ColdPrice == null && p.HasHotCold)), Times.Once);
     }
 
+    // ── LB-004: a downloaded standard products export re-imports as-is ──
+
+    private static ExportService CreateExportService(IProductService productService) => new(
+        Mock.Of<IReportingService>(),
+        Mock.Of<ITransactionRepository>(),
+        Mock.Of<IExpenseService>(),
+        productService,
+        Mock.Of<IIngredientService>());
+
+    private static List<Product> RoundTripCatalog() => new()
+    {
+        new() { Id = "p1", Name = "Matcha Latte", Category = "Drinks", Price = 100m, Stock = 8, HotPrice = 65m, ColdPrice = 60m, HasHotCold = true },
+        new() { Id = "p2", Name = "Espresso", Category = "Drinks", Price = 50m, Stock = 20, HotPrice = 55m, ColdPrice = 52m, HasHotCold = true },
+        new() { Id = "p3", Name = "Milk Tea", Category = "Drinks", Price = 90m, Stock = 10, HotPrice = 80m, ColdPrice = null, HasHotCold = true },
+        new() { Id = "p4", Name = "Croissant", Category = "Baked Goods", Price = 85m, Stock = 24, HasHotCold = false }
+    };
+
+    // The loop the UI actually drives (download the standard products export →
+    // upload the picked file untouched), against the REAL ExportService bytes: the
+    // banner before the header and the "By Category" summary sheet behind the data
+    // (flattened into the CSV stream) must parse as neither records nor errors —
+    // pre-fix every row errored "Name is required." and zero products imported.
+    [Theory]
+    [InlineData(ExportFormat.Csv)]
+    [InlineData(ExportFormat.Xlsx)]
+    public async Task ImportAsync_RealProductsExportRoundTrip_ImportsEveryRowWithoutSpuriousErrors(ExportFormat format)
+    {
+        var catalog = RoundTripCatalog();
+        _productService.Setup(s => s.GetAllProductsAsync()).ReturnsAsync(catalog);
+
+        var export = await CreateExportService(_productService.Object).ExportProductsAsync(format);
+        var report = await CreateService().ImportAsync(ImportKind.Products, export.FileName, new MemoryStream(export.Content), "system");
+
+        Assert.Equal(0, report.Created);
+        Assert.Equal(catalog.Count, report.Updated);
+        Assert.Empty(report.Errors);
+
+        // Only the catalog rows upsert — the summary block's per-category rows
+        // (which pre-fix produced errors or even mutated a product) contribute nothing.
+        _productService.Verify(s => s.UpdateProductAsync(It.IsAny<string>(), It.IsAny<Product>()), Times.Exactly(catalog.Count));
+        _productService.Verify(s => s.CreateProductAsync(It.IsAny<Product>()), Times.Never);
+
+        // LB-003 semantics hold in the real export shape too: present columns win,
+        // a blank cell clears explicitly (values identical to the seeded catalog).
+        _productService.Verify(s => s.UpdateProductAsync("p1", It.Is<Product>(p => p.HotPrice == 65m && p.ColdPrice == 60m && p.HasHotCold)), Times.Once);
+        _productService.Verify(s => s.UpdateProductAsync("p3", It.Is<Product>(p => p.HotPrice == 80m && p.ColdPrice == null && p.HasHotCold)), Times.Once);
+        _productService.Verify(s => s.UpdateProductAsync("p4", It.Is<Product>(p => p.HotPrice == null && p.ColdPrice == null && !p.HasHotCold)), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(ExportFormat.Csv)]
+    [InlineData(ExportFormat.Xlsx)]
+    public async Task ImportAsync_RealProductsExportOfEmptyCatalog_ImportsCleanlyWithoutCrash(ExportFormat format)
+    {
+        _productService.Setup(s => s.GetAllProductsAsync()).ReturnsAsync(new List<Product>());
+
+        var export = await CreateExportService(_productService.Object).ExportProductsAsync(format);
+        var report = await CreateService().ImportAsync(ImportKind.Products, export.FileName, new MemoryStream(export.Content), "system");
+
+        Assert.Equal(0, report.Created);
+        Assert.Equal(0, report.Updated);
+        Assert.Empty(report.Errors);
+        _productService.Verify(s => s.UpdateProductAsync(It.IsAny<string>(), It.IsAny<Product>()), Times.Never);
+        _productService.Verify(s => s.CreateProductAsync(It.IsAny<Product>()), Times.Never);
+    }
+
+    // LB-004 no-regression: files without a banner — hand-built CSVs, the LB-003
+    // fixture shape — keep importing with the header in the FIRST row.
+    [Fact]
+    public async Task ImportAsync_BannerlessHeaderFirstCsv_StillImports()
+    {
+        _productService.Setup(s => s.GetAllProductsAsync())
+            .ReturnsAsync(new List<Product> { new() { Id = "p1", Name = "Milk", Category = "Drinks", Price = 10m, Stock = 5 } });
+
+        var csv = "Name,Category,Price,Stock\nMilk,Drinks,12,50\n";
+        var report = await CreateService().ImportAsync(ImportKind.Products, "products.csv", ToStream(csv), "system");
+
+        Assert.Equal(1, report.Updated);
+        Assert.Empty(report.Errors);
+        _productService.Verify(s => s.UpdateProductAsync("p1", It.Is<Product>(p => p.Price == 12m && p.Stock == 50)), Times.Once);
+    }
+
+    // A file with no recognizable header at all fails up front with one clear
+    // message and zero mutations instead of per-row "Name is required." noise.
+    [Fact]
+    public async Task ImportAsync_UnrecognizableHeader_ThrowsWithZeroMutations()
+    {
+        _productService.Setup(s => s.GetAllProductsAsync()).ReturnsAsync(new List<Product>());
+
+        var csv = "some,random,columns\nwith,junk,values\n";
+        var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
+            CreateService().ImportAsync(ImportKind.Products, "junk.csv", ToStream(csv), "system"));
+
+        Assert.Contains("header row", ex.Message);
+        _productService.Verify(s => s.UpdateProductAsync(It.IsAny<string>(), It.IsAny<Product>()), Times.Never);
+        _productService.Verify(s => s.CreateProductAsync(It.IsAny<Product>()), Times.Never);
+    }
+
     [Fact]
     public async Task ImportAsync_UnsupportedFileType_Throws()
     {
