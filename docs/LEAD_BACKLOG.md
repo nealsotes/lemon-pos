@@ -4,6 +4,47 @@ Running log of defects and improvement items the team lead tracks outside the cu
 
 **Project concluded 2026-11-03** — completion-gate motion `t_df200982` unanimously ADOPTED: every adopted roadmap item landed with cited commits (item 1 offline/idempotency `t_2961a346`; item 2 reporting math `t_13913d80`/`t_83c4f349`; item 3 security RC-01..RC-05, phase-2 fan-in `t_308c3403`; item 4 coverage growth 56→171 via `430879c`/`t_08a7942f`), LB-001..004 below are all FIXED with gate IDs, and fresh runs at HEAD `07307d5` give backend 238/238 + frontend 56/56 (combined 294/294) green. The two deliberately deferred remainders below — DR-001 (roadmap item 5) and DR-002 (rider H1) — were never voted into task scope (phase-2 gate `t_15c91c93` deferred item 5 as an "owner-level decision" and sequenced H1 after RC-05), so they are recorded here as future **owner-decision** work, explicitly NOT open defects, per action item 2 of `t_df200982`.
 
+**Post-conclusion import-defects pass 2026-11-03 (kanban `t_b887d52a`, leader-verified brief)** — the lp-qa E2E verdict surfaced three import defects (D1 threshold-0 → 10 sentinel, D2 intra-file duplicate row lost, D3 Unit Cost mislabel), all FIXED: D1 `a21d801`, D2+D3 `d92143f`. HEAD at entry time: full backend suite 243/243 (238 prior + 5 new), 0 failed. LB-005 below is a NEW defect logged while generating D1's migration; disposition open.
+
+## D1 — Products.LowQuantityThreshold: EF database default (10) silently stores a deliberate threshold of 0 as 10
+
+**Logged:** 2026-11-03 · **Status:** FIXED 2026-11-03 — commit `a21d801` (model: `HasDefaultValue(10)` removed from `Infrastructure/Data/PosSystemDbContext.cs`, `IsRequired` kept — the app-level `Product` initializer `= 10` keeps covering rows that never set the field; migration `20261103091005_RemoveLowQuantityThresholdDatabaseDefault` scoped to the default drop only; Program.cs startup self-heal additionally drops the baked-in `DEFAULT 10` on existing databases — the app boots on `EnsureCreatedAsync`, never `Database.Migrate`, so a migration alone touches nothing at runtime); **pending the lp-qa gate** (verify checklist item 3 re-runs a threshold-0 products import + SQL DB check) · **Severity:** medium (silent wrong value on every create path: import + create screen) · **Origin:** lp-qa E2E verdict (import-defects pass), root cause independently verified at source in the leader's brief.
+
+### Root cause
+EF treats a numeric property's CLR default (0) as the "unset" sentinel and omits the column from the INSERT, so the database default (10) applied.
+
+### Disposition / evidence
+Commit `a21d801` above. Sibling review on Product, recorded here: `HasHotCold`/`HasAddOns` (bool) and `AddOnsJson` ("[]") defaults have same-value sentinels (benign); the owned AddOn line-item `Quantity` default 1 is a business minimum (0 never valid — reviewed, kept, and excluded from the model guard in its comment). Tests in `a21d801`: `PosSystemDbContextThresholdTests.Product_LowQuantityThresholdZero_PersistsAsZeroNotDatabaseDefault` (SQLite in-memory; pre-fix stores-and-reads-back 10, red-verified via stash) and `Model_NoNumericDatabaseDefault_OnInventoryQuantityOrThresholdColumns` (relational `GetDefaultValue()` reads the CLR default 0 for unconfigured non-nullable numerics, so the discriminator is a configured default DIFFERING from the CLR default — pre-fix flags exactly `Product.LowQuantityThreshold`); `ImportServiceTests.ImportAsync_ProductsThresholdZeroRow_CreatesWithThresholdZero` pins the import payload.
+
+## D2 — Stocks import loses the second row of an intra-file duplicate name ("Ingredient with ID pending not found")
+
+**Logged:** 2026-11-03 · **Status:** FIXED 2026-11-03 — commit `d92143f` (`ImportService.ImportIngredientsAsync` now caches the entity `CreateIngredientAsync` RETURNS — the same instance handed to the repository, carrying its real client-side Guid — in place of the `{ Id = "pending" }` placeholder; the products branch above it is verified correct, `ProductService.CreateProductAsync` assigns the id on the passed entity before it is cached); **pending the lp-qa gate** (verify checklist item 2 re-runs the duplicate-row stocks UI pass) · **Severity:** medium-high (a silently lost update: report shows an error row and Updated=0) · **Origin:** lp-qa E2E verdict (import-defects pass).
+
+### Root cause
+After `CreateIngredientAsync(dto)` the byName cache stored `Id="pending"`, so the next duplicate row resolved to that sentinel id and `UpdateIngredientAsync("pending")` threw "Ingredient with ID pending not found" — caught into the report as a row error, row lost.
+
+### Disposition / evidence
+Commit `d92143f`. Pin `ImportAsync_IngredientsDuplicateNameRowsOfFile_LastRowUpdatesTheCreatedRow`: a 2-row duplicate-name stocks CSV yields 1 create + 1 update carrying the LAST row's quantity, `Errors` empty (pre-fix: row-2 error, Updated=0; red-verified via stash).
+
+## D3 — Unit Cost parse errors read the generic "… not a valid number for Value"
+
+**Logged:** 2026-11-03 · **Status:** FIXED 2026-11-03 — commit `d92143f` (`ParseOptionalDecimal` takes a caller-provided label defaulting to "Value"; the Unit Cost call site passes "Unit Cost") · **Severity:** minor (bad error message only — the row's error channel is correct) · **Origin:** lp-qa E2E verdict (import-defects pass).
+
+### Disposition / evidence
+Pin `ImportAsync_IngredientsInvalidUnitCost_ErrorNamesUnitCost` asserts the report names "Unit Cost". The Hot/Cold/Last-Purchase-Cost call sites keep the historical "Value" wording deliberately (regression criterion "wording unchanged" for prior cases).
+
+## LB-005 — Transaction.SyncedAt is in the EF model (and in every sale INSERT) but in NO migration and NO self-heal ALTER: model↔migration-schema drift
+
+**Logged:** 2026-11-03 during the D1 fix pass (`t_b887d52a`) — the migration generation surfaced the unsynced snapshot, whose shipped `AddColumn SyncedAt` artifact was stripped out of D1's `Up()` · **Status:** OPEN — needs leader disposition (not fixed in the D1 pass; D1 only stopped the recurring trap by recording SyncedAt in the ModelSnapshot) · **Severity:** latent-high · **Origin:** stale `PosSystemDbContextModelSnapshot` discovered via `dotnet ef migrations add` at HEAD `42453ba`.
+
+### Verified facts
+- `SyncedAt` entered the model with `6195f4f` ("Sales carry SyncedAt (receipt time) apart from Timestamp") but that commit shipped no migration for the column, and Program.cs's self-healing ALTER list carries no `ADD COLUMN SyncedAt`.
+- The checked-in `PosSystemDbContextModelSnapshot` did not record SyncedAt until the D1 pass — so every future `dotnet ef migrations add` would have silently regenerated a stray `AddColumn SyncedAt` artifact (exactly what D1's first generation produced).
+- Runtime schema path: startup `EnsureCreatedAsync` + ad-hoc self-heal ALTERs — `Database.Migrate()` is never called. Fresh EnsureCreated databases get the column from the model, so live deploys have not fired this; but a database built ONLY from migrations (a standard EF practice, or any future Migrate switch) never receives the column, and `TransactionRepository.AddAsync` sets+inserts `SyncedAt` on EVERY sale → `Unknown column 'SyncedAt' in 'field list'` on each insert.
+
+### Disposition
+Either commit a proper `AddTransactionSyncedAt` migration + a matching self-heal `ADD COLUMN SyncedAt DATETIME(6) NULL` (mirroring the IdempotencyKey pattern at Program.cs:396), or formally document that EnsureCreated+self-heal is the only supported schema path (and why Migrate()-built DBs would break). Routing: leader (Neal).
+
 ## DR-001 — Roadmap item 5: PWA/offline owner decision + code-quality sweep (DEFERRED)
 
 **Logged:** 2026-10-31 via roadmap motion `t_ae2cae3c` · **Status:** DEFERRED at the 2026-11-03 conclusion — never adopted into task scope (`t_15c91c93`: item 5 "needs an owner-level decision") · **Effort estimate:** ~2 dev-days (sweep qa-mechanical, decision owner) · **Origin:** item 5 "PWA/OFFLINE DECISION + CODE-QUALITY SWEEP (C3, H7-H10, H6/H11/H12)" in the adopted consolidation of frontend audit `t_32af13da` (103 findings).
