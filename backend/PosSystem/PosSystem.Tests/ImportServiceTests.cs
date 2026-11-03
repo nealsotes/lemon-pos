@@ -248,6 +248,24 @@ public class ImportServiceTests
             p.HotPrice == 80m && p.ColdPrice == null && p.HasHotCold)), Times.Once);
     }
 
+    // D1 import-side pin: a threshold-0 row must reach CreateProductAsync carrying 0.
+    // The coercion to 10 happened at the store (EF CLR-default sentinel + the model's
+    // HasDefaultValue(10), pinned in PosSystemDbContextThresholdTests); this guards
+    // the import row itself against ever substituting its own magic default for an
+    // explicit 0 (ParseOptionalInt("0") must stay 0, not the `?? 10` fallback).
+    [Fact]
+    public async Task ImportAsync_ProductsThresholdZeroRow_CreatesWithThresholdZero()
+    {
+        _productService.Setup(s => s.GetAllProductsAsync()).ReturnsAsync(new List<Product>());
+
+        var csv = "Name,Category,Price,Stock,Low Stock Threshold\nCoffee,Drinks,45,100,0\n";
+        var report = await CreateService().ImportAsync(ImportKind.Products, "products.csv", ToStream(csv), "system");
+
+        Assert.Equal(1, report.Created);
+        Assert.Empty(report.Errors);
+        _productService.Verify(s => s.CreateProductAsync(It.Is<Product>(p => p.LowQuantityThreshold == 0)), Times.Once);
+    }
+
     // ── LB-004: a downloaded standard products export re-imports as-is ──
 
     private static ExportService CreateExportService(IProductService productService) => new(
@@ -368,6 +386,51 @@ public class ImportServiceTests
         Assert.Equal(1, report.Updated);
         _ingredientService.Verify(s => s.UpdateIngredientAsync("i1", It.Is<IngredientDto>(d => d.Quantity == 10m && d.UnitCost == 45.5m)), Times.Once);
         _ingredientService.Verify(s => s.CreateIngredientAsync(It.Is<IngredientDto>(d => d.Name == "Flour" && d.Unit == "kg" && d.Supplier == null)), Times.Once);
+    }
+
+    // D2 pin: the second row of an intra-file duplicate name must UPDATE the row the
+    // first row just created. The old code cached a "pending" sentinel id for the
+    // file-created row, so the duplicate resolved to a nonexistent ingredient,
+    // UpdateIngredientAsync threw "Ingredient with ID pending not found", and the
+    // row was silently lost (reported as an error with Updated=0).
+    [Fact]
+    public async Task ImportAsync_IngredientsDuplicateNameRowsOfFile_LastRowUpdatesTheCreatedRow()
+    {
+        _ingredientService.Setup(s => s.GetAllIngredientsAsync()).ReturnsAsync(new List<Ingredient>());
+        _ingredientService.Setup(s => s.CreateIngredientAsync(It.IsAny<IngredientDto>()))
+            .ReturnsAsync((IngredientDto dto) => new Ingredient
+            {
+                Id = "i-new-1",
+                Name = dto.Name,
+                Quantity = dto.Quantity,
+                Unit = dto.Unit,
+                LowStockThreshold = dto.LowStockThreshold
+            });
+
+        var csv = "Name,Quantity,Unit,Unit Cost,Low Stock Threshold\nSugar,10,kg,45.5,2\nSugar,7,kg,45.5,2\n";
+        var report = await CreateService().ImportAsync(ImportKind.Ingredients, "ingredients.csv", ToStream(csv), "system");
+
+        Assert.Equal(1, report.Created);
+        Assert.Equal(1, report.Updated);
+        Assert.Empty(report.Errors);
+        _ingredientService.Verify(s => s.CreateIngredientAsync(It.Is<IngredientDto>(d => d.Quantity == 10m)), Times.Once);
+        _ingredientService.Verify(s => s.UpdateIngredientAsync("i-new-1", It.Is<IngredientDto>(d => d.Quantity == 7m)), Times.Once);
+    }
+
+    // D3 pin: an invalid unit-cost cell names the failing column, not the generic
+    // "Value" (the other optional-number columns keep that historical wording).
+    [Fact]
+    public async Task ImportAsync_IngredientsInvalidUnitCost_ErrorNamesUnitCost()
+    {
+        _ingredientService.Setup(s => s.GetAllIngredientsAsync()).ReturnsAsync(new List<Ingredient>());
+
+        var csv = "Name,Quantity,Unit,Unit Cost,Low Stock Threshold\nFlour,5,kg,cheap,2\n";
+        var report = await CreateService().ImportAsync(ImportKind.Ingredients, "ingredients.csv", ToStream(csv), "system");
+
+        Assert.Equal(0, report.Created);
+        Assert.Single(report.Errors);
+        Assert.Contains("Unit Cost", report.Errors[0].Message);
+        Assert.Contains("valid number", report.Errors[0].Message);
     }
 
     // ── Expenses ──

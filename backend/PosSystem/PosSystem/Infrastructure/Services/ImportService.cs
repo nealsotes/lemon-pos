@@ -492,7 +492,7 @@ public class ImportService : IImportService
                     Supplier = string.IsNullOrWhiteSpace(GetValue(row, "supplier")) ? null : GetValue(row, "supplier"),
                     ExpirationDate = ParseOptionalDate(GetValue(row, "expirationdate", "expiration", "expiry")),
                     LowStockThreshold = ParseDecimal(GetValue(row, "lowstockthreshold", "lowstock", "threshold"), "Low Stock Threshold", canBeZero: true),
-                    UnitCost = ParseOptionalDecimal(GetValue(row, "unitcost", "cost")),
+                    UnitCost = ParseOptionalDecimal(GetValue(row, "unitcost", "cost"), "Unit Cost"),
                     LastPurchaseDate = ParseOptionalDate(GetValue(row, "lastpurchasedate", "lastpurchase")),
                     LastPurchaseCost = ParseOptionalDecimal(GetValue(row, "lastpurchasecost")),
                     IsActive = ParseStatus(GetValue(row, "status"), existingIngredient?.IsActive ?? true)
@@ -505,9 +505,16 @@ public class ImportService : IImportService
                 }
                 else
                 {
-                    await _ingredientService.CreateIngredientAsync(dto);
-                    // Second occurrence in the same file should still update, not duplicate.
-                    byName[dto.Name] = new Ingredient { Id = "pending", Name = dto.Name };
+                    // D2: cache the entity CreateIngredientAsync RETURNED — it is the
+                    // same instance handed to the repository, carrying the real
+                    // client-side Guid. The placeholder id cached here previously
+                    // ("pending") made the NEXT row of an intra-file duplicate name
+                    // resolve to a nonexistent ingredient, so UpdateIngredientAsync
+                    // threw "Ingredient with ID pending not found" and that row was
+                    // silently lost (reported as failed). Same shape as the products
+                    // branch above, where the id is assigned on the cached entity.
+                    var created = await _ingredientService.CreateIngredientAsync(dto);
+                    byName[dto.Name] = created;
                     report.Created++;
                 }
             }
@@ -632,8 +639,11 @@ public class ImportService : IImportService
         return value;
     }
 
-    private static decimal? ParseOptionalDecimal(string raw) =>
-        string.IsNullOrWhiteSpace(raw) ? null : ParseDecimal(raw, "Value", canBeZero: true);
+    // D3: the label is passed by the caller so a parse failure names the actual
+    // column ("'abc' is not a valid number for Unit Cost") instead of the generic
+    // "Value"; call sites that don't care keep the historical wording.
+    private static decimal? ParseOptionalDecimal(string raw, string label = "Value") =>
+        string.IsNullOrWhiteSpace(raw) ? null : ParseDecimal(raw, label, canBeZero: true);
 
     // Optional Products "Add-ons" column (OT-03): entries are "Name:Price" pairs
     // separated by ';' (e.g. "Boba:15; Syrup:5"). Returns null when the column is
