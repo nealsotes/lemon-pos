@@ -736,6 +736,24 @@ using (var scope = app.Services.CreateScope())
         // Column already exists - expected, ignore
     }
 
+    // D1: drop the legacy database default (10) on Products.LowQuantityThreshold.
+    // The model no longer carries a default (the EF default made the column be
+    // omitted from INSERTs whose value is the CLR-default sentinel 0, silently
+    // storing a deliberately imported/created threshold of 0 as 10 on every
+    // database the existing default applies to). Fresh EnsureCreatedAsync
+    // databases never get one (the model carries none); existing databases
+    // self-heal here — MODIFY without DEFAULT drops it, definition otherwise
+    // unchanged (same shape as the Image widen above, idempotent per boot).
+    try
+    {
+        await context.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE `Products` MODIFY COLUMN `LowQuantityThreshold` INT NOT NULL");
+    }
+    catch
+    {
+        // Default already dropped / best-effort self-heal - expected, ignore
+    }
+
     // Add Stock column (older databases track quantity via low-stock thresholds only)
     try
     {

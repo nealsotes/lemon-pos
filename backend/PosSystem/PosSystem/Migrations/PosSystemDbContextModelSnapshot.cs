@@ -288,9 +288,7 @@ namespace PosSystem.Migrations
                         .HasColumnType("tinyint(1)");
 
                     b.Property<int>("LowQuantityThreshold")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(10);
+                        .HasColumnType("int");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -423,6 +421,9 @@ namespace PosSystem.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("varchar(20)");
+
+                    b.Property<DateTime?>("SyncedAt")
+                        .HasColumnType("datetime(6)");
 
                     b.Property<DateTime>("Timestamp")
                         .HasColumnType("datetime(6)");

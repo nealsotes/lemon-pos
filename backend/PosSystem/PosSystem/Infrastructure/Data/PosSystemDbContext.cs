@@ -34,7 +34,12 @@ public class PosSystemDbContext : DbContext
             entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
             entity.Property(e => e.Category).IsRequired().HasMaxLength(50);
             entity.Property(e => e.Image).HasColumnType("mediumtext");
-            entity.Property(e => e.LowQuantityThreshold).IsRequired().HasDefaultValue(10);
+            // D1: no database default on CLR-default 0 numerics. EF treats the CLR
+            // default (0) as the "unset" sentinel and omits the column from the
+            // INSERT, so HasDefaultValue(10) silently stored a threshold of 0 as 10
+            // (every create path — import and create screen). The app-level
+            // Product initializer (= 10) already covers rows that never set the field.
+            entity.Property(e => e.LowQuantityThreshold).IsRequired();
             entity.Property(e => e.HasHotCold).HasDefaultValue(false);
             entity.Property(e => e.HasAddOns).HasDefaultValue(false);
             entity.Property(e => e.AddOnsJson).HasColumnType("longtext").HasDefaultValue("[]");
