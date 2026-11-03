@@ -9,6 +9,12 @@ namespace PosSystem.Infrastructure.Services;
 // Bulk import from CSV/XLSX. Columns mirror the matching ExportService sheets, so
 // an export can be edited and re-imported round-trip:
 //   Products    — Name, Category, Price, Hot Price, Cold Price, Stock, Low Stock Threshold, Status
+//                 (Hot/Cold columns: when a column is absent the updated product
+//                  keeps its existing price — a re-import of a stale export must
+//                  not silently drop hot/cold pricing, LB-003; when a column is
+//                  present it wins — a value imports and a blank cell is an
+//                  explicit clear, matching what the export writes for
+//                  hot/cold-less products)
 //                 (+ optional non-standard "Add-ons" column: "Name:Price" pairs separated by ';';
 //                  when the column is absent, an updated product keeps its existing add-on
 //                  configuration — a re-import of a stale export must not wipe it, OT-03)
@@ -250,8 +256,23 @@ public class ImportService : IImportService
                 if (stock < 0)
                     throw new ArgumentException("Stock cannot be negative.");
 
-                var hotPrice = ParseOptionalDecimal(GetValue(row, "hotprice", "hot"));
-                var coldPrice = ParseOptionalDecimal(GetValue(row, "coldprice", "cold"));
+                // LB-003: distinguish "column absent" from "column present". A CSV
+                // without Hot/Cold headers (e.g. an old export) must carry the live
+                // row's hot/cold pricing over — UpdateProductAsync assigns
+                // HotPrice/ColdPrice/HasHotCold unconditionally, so a fresh valueless
+                // row used to silently blank them. A PRESENT column wins: an
+                // imported value imports, and a blank cell is an explicit clear
+                // (HotPrice null), matching the plain ParseOptionalDecimal read.
+                // ToRow stores an entry per populated header, so ContainsKey is the
+                // presence check, same synonyms GetValue matches.
+                var hasHotColumn = row.ContainsKey("hotprice") || row.ContainsKey("hot");
+                var hasColdColumn = row.ContainsKey("coldprice") || row.ContainsKey("cold");
+                var hotPrice = hasHotColumn
+                    ? ParseOptionalDecimal(GetValue(row, "hotprice", "hot"))
+                    : existingProduct?.HotPrice;
+                var coldPrice = hasColdColumn
+                    ? ParseOptionalDecimal(GetValue(row, "coldprice", "cold"))
+                    : existingProduct?.ColdPrice;
 
                 // OT-03: add-ons are not part of the standard export columns. A
                 // re-import of a stale export must carry the live row's add-on
