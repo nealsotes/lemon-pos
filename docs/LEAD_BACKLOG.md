@@ -2,6 +2,47 @@
 
 Running log of defects and improvement items the team lead tracks outside the currently active roadmap phases. Each entry carries evidence, a disposition, and its routing. Supersedes ad-hoc notes in task results.
 
+**Project concluded 2026-11-03** — completion-gate motion `t_df200982` unanimously ADOPTED: every adopted roadmap item landed with cited commits (item 1 offline/idempotency `t_2961a346`; item 2 reporting math `t_13913d80`/`t_83c4f349`; item 3 security RC-01..RC-05, phase-2 fan-in `t_308c3403`; item 4 coverage growth 56→171 via `430879c`/`t_08a7942f`), LB-001..004 below are all FIXED with gate IDs, and fresh runs at HEAD `07307d5` give backend 238/238 + frontend 56/56 (combined 294/294) green. The two deliberately deferred remainders below — DR-001 (roadmap item 5) and DR-002 (rider H1) — were never voted into task scope (phase-2 gate `t_15c91c93` deferred item 5 as an "owner-level decision" and sequenced H1 after RC-05), so they are recorded here as future **owner-decision** work, explicitly NOT open defects, per action item 2 of `t_df200982`.
+
+## DR-001 — Roadmap item 5: PWA/offline owner decision + code-quality sweep (DEFERRED)
+
+**Logged:** 2026-10-31 via roadmap motion `t_ae2cae3c` · **Status:** DEFERRED at the 2026-11-03 conclusion — never adopted into task scope (`t_15c91c93`: item 5 "needs an owner-level decision") · **Effort estimate:** ~2 dev-days (sweep qa-mechanical, decision owner) · **Origin:** item 5 "PWA/OFFLINE DECISION + CODE-QUALITY SWEEP (C3, H7-H10, H6/H11/H12)" in the adopted consolidation of frontend audit `t_32af13da` (103 findings).
+
+Two halves from the adopted text, decision comes first:
+
+1. **PWA/offline owner decision.** Re-enable the production-disabled service worker with a cache strategy, or formally descope the offline-PWA promise. Verified at source at HEAD `07307d5`: `frontend/src/main.ts:32` reads `enabled: false, // Temporarily disabled: !isDevMode()` while the PWA machinery itself is fully wired — `frontend/ngsw-config.json` + `angular.json:38` `ngswConfigPath` and `pwa.service.ts:149` registering `/ngsw-worker.js` — so the offline-shell config exists but never activates (frontend audit critical C3: "PWA service worker disabled in production so no offline shell exists"). This is a reversal-or-descope of a shipped product decision rather than a defect: "item 5's PWA re-enable-vs-descope fork is genuinely an owner call (it reverses a shipped product decision, not a defect)" (`t_df200982` discussion).
+2. **Mechanical code-quality sweep (follows the decision).** destroy$/ngOnDestroy/OnPush sweep across flagged components (~20 findings, incl. the checkout money component — 1,331 LOC in the adopted roadmap text, **now 1,378** at `features/checkout/components/checkout/checkout-sidebar.component.ts`), plus one error channel with honest failure states ("kill the fake print success, the false P6/H6 'All clear' insight, silent catch sites"). Audit IDs C3, H7-H10, H6/H11/H12 from `t_32af13da`.
+
+### Why it survives the conclusion
+
+The gate's QA verdict pinned the gap as known-and-deferred: "the frontend suite (56 specs) is a thin net relative to 18 services/26 components — a coverage gap that is precisely roadmap item 5, i.e. deliberately deferred, not an open adopted item" (`t_df200982` discussion). Nothing in this entry blocks the concluded HEAD `07307d5`.
+
+### Routing
+
+Owner decision first (Neal): re-enable PWA vs formal descope. If scheduled: lp-dev + lp-qa mechanical sweep, ~2 dev-days per the adopted estimate, scoped per this entry and the frontend audit artifact on `t_32af13da`.
+
+## DR-002 — Rider H1: anonymous public-menu endpoint to unblock the QR menu (DEFERRED)
+
+**Logged:** 2026-10-31 via the quick-wins rider in motion `t_ae2cae3c` · **Status:** DEFERRED at the 2026-11-03 conclusion — the only rider item not landed (H2+TA-02 `7016ba9`, OT-02+OT-03 `07486bc`, gitignore `8363cb6` all landed) · **Effort estimate:** ~0.5 dev-day-half.
+
+### Defect today (verified at HEAD `07307d5`)
+
+The QR menu is served unauthenticated but its data endpoints are role-protected, so an anonymous scan dead-ends on 401:
+
+- `app-routing.module.ts:20` mounts it unauthenticated: `{ path: 'menu', component: PublicMenuComponent }` ("Public menu - no auth required").
+- The component loads through the POS catalog service (`features/pos/components/public-menu/public-menu.component.ts:39-58` → `GET /api/products`, `GET /api/products/categories`).
+- Backend `ProductsController.cs:11` is class-scoped `[Authorize(Roles = "Owner,Employee,Admin")]` with no `[AllowAnonymous]` on the list/categories actions (`:44`, `:371`) → 401 for an anonymous menu visitor (frontend audit L4: "public menu calls role-protected endpoint (401, anonymous menu dead)").
+- The consumer ships already: the checkout QR generator codes `${origin}/menu` by default (`features/checkout/components/qr-code-generator/qr-code-generator.component.ts:32-39`).
+- The only anonymous API surface today is the RC-05-confined image route (`ProductsController.cs:286-287`; confined to uploads by `e384a44`) and the settings read (`SettingsController.cs:22`) — nothing menu-shaped exists yet.
+
+### Sequencing constraint recorded in the adoption vote
+
+lp-dev (`t_ae2cae3c`): "the public menu endpoint should land AFTER item 3's path-traversal fix (RC-05) or at minimum ship as a read-only whitelisted DTO that doesn't touch the image path, so we don't add a second anonymous endpoint while the first anonymous hole is still open." **Precondition satisfied:** RC-05 landed (`e384a44`) and gate-verified (`t_308c3403`) — H1 is sequencing-unblocked; only the owner's go is missing.
+
+### Routing
+
+Owner decision (Neal): schedule or keep parked. On go: shape = read-only, GET-only, whitelisted DTO (no image-path exposure, only fields the owner wants public); lp-dev implements, lp-qa gates with an anonymous browser walkthrough of `/menu` plus both suites green.
+
 ## LB-004 — A real standard products export (.xlsx/.csv) cannot be re-imported: header detection keys on grid[0], so every row errors "Name is required."
 
 **Logged:** 2026-11-03 · **Status:** FIXED 2026-11-03 — commit `f964906` (header detection locates the real column-header row by content — kind-aware lead column ("Name"/"Date") + recognized-vocabulary match with ≥2 recognized columns and half the row recognizable, so foreign-sheet headers don't qualify — and data records stop at the workbook's next section marker ("PRODUCTS"/"BY CATEGORY"/… sheet stamps), so the By-Category summary block parses as neither records nor errors; a banner-less hand-built file whose first row IS the header still matches at grid[0], a zero-products export imports cleanly, and a no-recognizable-header file fails up front with one clear message and zero mutation); 6 new ImportServiceTests — incl. real `ExportService.ExportProductsAsync` byte round-trips in both .csv and .xlsx — landed in the same commit; QA gate t_5fe48ff9 re-verified at HEAD `f964906`: targeted ImportServiceTests 24/24, full backend suite 238/238 (232 prior + 6 new), 0 failed · **Severity:** moderate (fail-safe — zero mutation — but it breaks the documented export → edit → import loop: the Product Management UI downloads `GET /api/products/export?format=xlsx` and the import dialog uploads the picked file raw to `POST /api/products/import`) · **Origin:** found 2026-11-03 during the LB-003 QA gate (t_2123c7cc) while empirically checking pre/post identity for hot/cold-less products on real export bytes.
