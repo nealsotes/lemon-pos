@@ -875,8 +875,9 @@
       </div>
     </div>
     <div class="modal-footer">
+      <p *ngIf="printMessage" role="status" aria-live="polite">{{ printMessage }}</p>
       <button type="button" class="btn btn-secondary btn-sm" (click)="closeTransactionModal()">Close</button>
-      <button type="button" class="btn btn-primary btn-sm" (click)="printReceipt()">
+      <button type="button" class="btn btn-primary btn-sm" (click)="printReceipt()" [disabled]="isPrintingReceipt">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 9V2h12v7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 14h12v8H6z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         Print
       </button>

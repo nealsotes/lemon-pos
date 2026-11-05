@@ -156,6 +156,7 @@ import { ThermalPrinterService } from '../../services/thermal-printer.service';
 
         <!-- Action Buttons -->
         <footer class="receipt-actions">
+          <p *ngIf="printMessage" role="status" aria-live="polite">{{ printMessage }}</p>
           <button class="ed-btn ed-btn--primary ed-btn--block ed-btn--arrow new-sale-btn" (click)="startNewSale()">
             <span>Start new sale</span>
             <svg class="ed-btn__icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -340,13 +341,17 @@ export class ReceiptSidebarComponent implements OnInit, OnChanges {
     this.newSale.emit();
   }
 
+  printMessage: string | null = null;
+
   async printReceipt(): Promise<void> {
-    // Use thermal printer instead of browser print dialog
+    if (!this.transaction || this.isPrinting || this.isOpeningDrawer) return;
     this.isPrinting = true;
+    this.printMessage = null;
     try {
-      await this.thermalPrinter.printReceipt(this.transaction, true);
+      const result = await this.thermalPrinter.printReceipt(this.transaction, false);
+      this.printMessage = result.message;
     } catch (error: any) {
-      alert(error.message || 'Failed to print receipt. Please check printer configuration.');
+      this.printMessage = error.message || 'Submission failed. Check Printer Settings and the queue before retrying.';
     } finally {
       this.isPrinting = false;
       this.cdr.markForCheck();
@@ -354,11 +359,14 @@ export class ReceiptSidebarComponent implements OnInit, OnChanges {
   }
 
   async openCashDrawer(): Promise<void> {
+    if (this.isPrinting || this.isOpeningDrawer) return;
     this.isOpeningDrawer = true;
+    this.printMessage = null;
     try {
-      await this.thermalPrinter.openCashDrawer();
+      const result = await this.thermalPrinter.openCashDrawer();
+      this.printMessage = result.message;
     } catch (error: any) {
-      alert(error.message || 'Failed to open cash drawer. Please check printer configuration.');
+      this.printMessage = error.message || 'Drawer submission failed. Check the queue before retrying.';
     } finally {
       this.isOpeningDrawer = false;
       this.cdr.markForCheck();

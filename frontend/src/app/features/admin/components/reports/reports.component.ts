@@ -1502,14 +1502,21 @@ export class ReportsComponent implements OnInit, OnDestroy {
     window.print();
   }
 
-  async printReceipt(): Promise<void> {
-    if (!this.selectedTransaction) return;
+  isPrintingReceipt = false;
+  printMessage: string | null = null;
 
+  async printReceipt(): Promise<void> {
+    if (!this.selectedTransaction || this.isPrintingReceipt) return;
+    this.isPrintingReceipt = true;
+    this.printMessage = null;
     try {
-      // Use the shared thermal printer service to ensure consistent format with the sidebar
-      await this.thermalPrinter.printReceipt(this.selectedTransaction, true);
+      const result = await this.thermalPrinter.printReceipt(this.selectedTransaction, false);
+      this.printMessage = result.message;
     } catch (error: any) {
-      this.toast.error(error.message || 'Failed to print receipt');
+      this.printMessage = error.message || 'Submission failed. Check Printer Settings and the queue before retrying.';
+      this.toast.error(this.printMessage!);
+    } finally {
+      this.isPrintingReceipt = false;
     }
   }
 

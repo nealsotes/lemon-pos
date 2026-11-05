@@ -186,6 +186,35 @@ describe('ReportsComponent "Today" KPIs', () => {
     });
   });
 
+  describe('receipt reprinting safety', () => {
+    it('only submits the selected existing receipt without a drawer kick or sale mutation', async () => {
+      settleTransactionSubject([]);
+      const printer = TestBed.inject(ThermalPrinterService) as jasmine.SpyObj<ThermalPrinterService>;
+      const message = 'RawBT handoff requested. Printing is unconfirmed.';
+      printer.printReceipt.and.returnValue(Promise.resolve({ status: 'handoff-unconfirmed', transport: 'rawbt', message }) as any);
+      component.selectedTransaction = buildTodaysTransactions()[0];
+      const before = JSON.stringify(component.selectedTransaction);
+      await component.printReceipt();
+      expect(printer.printReceipt).toHaveBeenCalledOnceWith(component.selectedTransaction, false);
+      expect(JSON.stringify(component.selectedTransaction)).toBe(before);
+      httpMock.expectNone(request => request.method === 'POST');
+      expect((component as any).printMessage).toBe(message);
+    });
+
+    it('does not submit a second reprint while the first is pending', async () => {
+      settleTransactionSubject([]);
+      const printer = TestBed.inject(ThermalPrinterService) as jasmine.SpyObj<ThermalPrinterService>;
+      let finish!: (value: any) => void;
+      printer.printReceipt.and.returnValue(new Promise(resolve => finish = resolve) as any);
+      component.selectedTransaction = buildTodaysTransactions()[0];
+      const pending = component.printReceipt();
+      const duplicate = component.printReceipt();
+      expect(printer.printReceipt).toHaveBeenCalledTimes(1);
+      finish({ message: 'Submitted; physical printing unconfirmed.' });
+      await Promise.all([pending, duplicate]);
+    });
+  });
+
   describe('when the backend sales report request fails', () => {
     it('reports zero rather than a partial sum of the capped array', async () => {
       settleTransactionSubject(buildTodaysTransactions());

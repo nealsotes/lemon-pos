@@ -138,6 +138,18 @@
   color: var(--text-secondary);
 }
 
+.transport-select {
+  display: block;
+  width: 100%;
+  margin: 8px 0 12px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
 /* Section Card */
 .section-card {
   background: var(--bg-surface);
