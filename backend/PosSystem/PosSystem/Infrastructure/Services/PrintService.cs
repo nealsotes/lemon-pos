@@ -48,7 +48,7 @@ public class PrintService : IPrintService
         }
     }
 
-    public async Task<bool> PrintReceiptAsync(ReceiptData receiptData, bool openDrawer = true)
+    public async Task<bool> PrintReceiptAsync(ReceiptData receiptData, bool openDrawer = false)
     {
         try
         {
@@ -550,7 +550,7 @@ public class PrintService : IPrintService
         return null;
     }
 
-    private async Task<bool> PrintRawWindowsAsync(string printerName, byte[] data)
+    internal virtual async Task<bool> PrintRawWindowsAsync(string printerName, byte[] data)
     {
         try
         {
@@ -719,7 +719,7 @@ public class PrintService : IPrintService
         return bytes;
     }
 
-    private async Task<bool> PrintRawLinuxAsync(string printerName, byte[] data)
+    internal virtual async Task<bool> PrintRawLinuxAsync(string printerName, byte[] data)
     {
         try
         {
@@ -753,7 +753,7 @@ public class PrintService : IPrintService
         }
     }
 
-    private async Task<bool> PrintRawMacAsync(string printerName, byte[] data)
+    internal virtual async Task<bool> PrintRawMacAsync(string printerName, byte[] data)
     {
         try
         {

@@ -4,7 +4,7 @@ namespace PosSystem.Core.Interfaces;
 
 public interface IPrintService
 {
-    Task<bool> PrintReceiptAsync(ReceiptData receiptData, bool openDrawer = true);
+    Task<bool> PrintReceiptAsync(ReceiptData receiptData, bool openDrawer = false);
     Task<bool> OpenCashDrawerAsync(string? printerName = null);
     Task<List<string>> GetAvailablePrintersAsync();
     Task<bool> TestPrintAsync(string? printerName = null);

@@ -19,7 +19,7 @@ public class PrintController : ControllerBase
     }
 
     [HttpPost("receipt")]
-    public async Task<IActionResult> PrintReceipt([FromBody] ReceiptData receiptData, [FromQuery] bool openDrawer = true)
+    public async Task<IActionResult> PrintReceipt([FromBody] ReceiptData receiptData, [FromQuery] bool openDrawer = false)
     {
         try
         {
@@ -27,7 +27,7 @@ public class PrintController : ControllerBase
             
             if (success)
             {
-                return Ok(new { success = true, message = "Receipt printed successfully" });
+                return Ok(new { success = true, message = "Receipt submitted to printer" });
             }
             else
             {
@@ -50,7 +50,7 @@ public class PrintController : ControllerBase
             
             if (success)
             {
-                return Ok(new { success = true, message = "Cash drawer opened" });
+                return Ok(new { success = true, message = "Cash drawer command submitted to printer" });
             }
             else
             {
@@ -113,7 +113,7 @@ public class PrintController : ControllerBase
             
             if (success)
             {
-                return Ok(new { success = true, message = $"Test receipt printed successfully to {printerName}" });
+                return Ok(new { success = true, message = $"Test receipt submitted to printer: {printerName}" });
             }
             else
             {
