@@ -49,6 +49,12 @@ const MORE_ITEMS: TabItem[] = [
     roles: [UserRole.Owner, UserRole.Admin]
   },
   {
+    icon: '<path d="M6 9V2h12v7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M6 14h12v8H6z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
+    label: 'Printer',
+    route: '/printer-settings',
+    roles: [UserRole.Owner, UserRole.Admin]
+  },
+  {
     icon: '<path d="M12 12a4 4 0 100-8 4 4 0 000 8zM2 21c0-3.3 4.5-5 10-5s10 1.7 10 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
     label: 'Users',
     route: '/users',
