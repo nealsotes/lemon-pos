@@ -433,6 +433,39 @@ public class ImportServiceTests
         Assert.Contains("valid number", report.Errors[0].Message);
     }
 
+    // TA-02 import-context pin (regression for the qa-flagged unit-cost edge): a
+    // duplicate-name row that changes ONLY the unit cost must be reported as
+    // Updated, with the new cost handed to UpdateIngredientAsync. Before 7016ba9
+    // the update path emitted a zero-quantity "Unit Cost Update" StockMovement
+    // that StockMovementService rejected AFTER the row had been persisted, so the
+    // operator saw "row failed" while the change had landed. With TA-02 in place
+    // the store keeps its movement-free cost-only semantics (movement absence is
+    // pinned in IngredientServiceUpdateTests), and the import report tells the
+    // truth.
+    [Fact]
+    public async Task ImportAsync_IngredientsDupNameRow_CostOnlyChange_ReportsUpdated()
+    {
+        _ingredientService.Setup(s => s.GetAllIngredientsAsync()).ReturnsAsync(new List<Ingredient>());
+        _ingredientService.Setup(s => s.CreateIngredientAsync(It.IsAny<IngredientDto>()))
+            .ReturnsAsync((IngredientDto dto) => new Ingredient
+            {
+                Id = "i-new-1",
+                Name = dto.Name,
+                Quantity = dto.Quantity,
+                Unit = dto.Unit,
+                LowStockThreshold = dto.LowStockThreshold
+            });
+
+        var csv = "Name,Quantity,Unit,Unit Cost,Low Stock Threshold\nSugar,10,kg,15.00,2\nSugar,10,kg,16.50,2\n";
+        var report = await CreateService().ImportAsync(ImportKind.Ingredients, "ingredients.csv", ToStream(csv), "system");
+
+        Assert.Equal(1, report.Created);
+        Assert.Equal(1, report.Updated);
+        Assert.Empty(report.Errors);
+        _ingredientService.Verify(s => s.CreateIngredientAsync(It.Is<IngredientDto>(d => d.Quantity == 10m)), Times.Once);
+        _ingredientService.Verify(s => s.UpdateIngredientAsync("i-new-1", It.Is<IngredientDto>(d => d.Quantity == 10m && d.UnitCost == 16.50m)), Times.Once);
+    }
+
     // ── Expenses ──
 
     [Fact]
