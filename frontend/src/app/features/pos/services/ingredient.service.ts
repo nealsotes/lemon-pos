@@ -43,6 +43,14 @@ export class IngredientService {
     );
   }
 
+  // Bulk soft-delete. Online-only: unlike the products service this ingredient
+  // service has no offline queue support.
+  bulkDeleteIngredients(ids: string[]): Observable<{ deleted: number }> {
+    return this.http.request<{ deleted: number }>('delete', `${this.apiUrl}/bulk`, { body: { ids } }).pipe(
+      catchError(this.handleError)
+    );
+  }
+
   getLowStockIngredients(): Observable<Ingredient[]> {
     return this.http.get<Ingredient[]>(`${this.apiUrl}/low-stock`).pipe(
       catchError(this.handleError)
