@@ -157,6 +157,11 @@ public class IngredientService : IIngredientService
         await _ingredientRepository.DeleteAsync(id);
     }
 
+    public async Task<int> DeleteIngredientsBulkAsync(IEnumerable<string> ids)
+    {
+        return await _ingredientRepository.DeleteBulkAsync(ids);
+    }
+
     public async Task<IEnumerable<Ingredient>> GetLowStockIngredientsAsync()
     {
         return await _ingredientRepository.GetLowStockAsync();

@@ -58,6 +58,32 @@ public class IngredientRepository : IIngredientRepository
         }
     }
 
+    // Soft-delete only ACTIVE ingredients that exist; already-inactive and
+    // unknown ids neither count nor change their rows. One SaveChanges for the batch.
+    public async Task<int> DeleteBulkAsync(IEnumerable<string> ids)
+    {
+        var requested = ids?.Distinct().ToList() ?? new List<string>();
+        if (requested.Count == 0)
+        {
+            return 0;
+        }
+
+        var targets = await _context.Ingredients
+            .Where(i => i.IsActive && requested.Contains(i.Id))
+            .ToListAsync();
+        var utcNow = DateTime.UtcNow;
+        foreach (var ingredient in targets)
+        {
+            ingredient.IsActive = false;
+            ingredient.UpdatedAt = utcNow;
+        }
+        if (targets.Count > 0)
+        {
+            await _context.SaveChangesAsync();
+        }
+        return targets.Count;
+    }
+
     // Each ingredient carries its own LowStockThreshold, so low-stock is a per-item comparison.
     public async Task<IEnumerable<Ingredient>> GetLowStockAsync()
     {

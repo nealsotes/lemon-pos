@@ -162,6 +162,27 @@ public class IngredientsController : ControllerBase
         }
     }
 
+    // Bulk soft-delete of stock items. No route-level override: it inherits the
+    // controller's [Authorize(Roles = \"Owner,Admin\")] exactly like the single delete.
+    [HttpDelete("bulk")]
+    public async Task<IActionResult> DeleteIngredientsBulk([FromBody] BulkDeleteDto dto)
+    {
+        if (dto.Ids == null || dto.Ids.Count == 0)
+        {
+            return BadRequest("No ingredient IDs provided.");
+        }
+
+        try
+        {
+            var deleted = await _ingredientService.DeleteIngredientsBulkAsync(dto.Ids);
+            return Ok(new { deleted });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error deleting ingredients: {ex.Message}");
+        }
+    }
+
     [HttpGet("low-stock")]
     public async Task<ActionResult<IEnumerable<Ingredient>>> GetLowStockIngredients()
     {
