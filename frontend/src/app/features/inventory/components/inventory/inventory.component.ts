@@ -53,6 +53,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
 
   activeTab: 'ingredients' | 'recipes' = 'ingredients';
   searchTerm: string = '';
+  selectedIngredients: Ingredient[] = [];
 
   tableColumns: TableColumn[] = [
     { key: 'name', label: 'Ingredient', cellTemplate: 'ingredient', sortable: true },
@@ -86,6 +87,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
 
   loadIngredients(): void {
     this.isLoading = true;
+    this.clearSelection();
     this.ingredientService.getAllIngredients().pipe(takeUntil(this.destroy$)).subscribe({
       next: (ingredients) => {
         this.ingredients = ingredients;
@@ -99,6 +101,14 @@ export class InventoryComponent implements OnInit, OnDestroy {
     });
   }
 
+  onSelectionChange(selected: Ingredient[]): void {
+    this.selectedIngredients = selected;
+  }
+
+  clearSelection(): void {
+    this.selectedIngredients = [];
+  }
+
   onIngredientsImported(report: ImportResultReport): void {
     const ok = report.created + report.updated;
     this.toast.success(
@@ -108,6 +118,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
   }
 
   applyFilter(): void {
+    this.clearSelection();
     const search = this.searchTerm.toLowerCase().trim();
     let filtered = this.ingredients.filter(ingredient =>
       ingredient.name.toLowerCase().includes(search) ||
@@ -141,6 +152,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
   onSort(event: { key: string; direction: 'asc' | 'desc' }): void {
     this.sortKey = event.key;
     this.sortDirection = event.direction;
+    this.clearSelection();
     this.applyFilter();
   }
 
@@ -243,6 +255,35 @@ export class InventoryComponent implements OnInit, OnDestroy {
         }
       });
     }
+  }
+
+  async deleteSelectedIngredients(): Promise<void> {
+    const selectedIds = this.selectedIngredients.map(ingredient => ingredient.id);
+    const selectedCount = selectedIds.length;
+    if (selectedCount === 0) return;
+
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Delete Stock Items',
+      message: `Are you sure you want to delete ${selectedCount} stock item(s)? This action cannot be undone.`,
+      confirmLabel: `Delete ${selectedCount} item(s)`,
+      cancelLabel: 'Cancel',
+      variant: 'danger'
+    });
+
+    if (!confirmed) return;
+
+    this.clearSelection();
+    this.ingredientService.bulkDeleteIngredients(selectedIds).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (result) => {
+        // Report the honest count the backend actually soft-deleted.
+        this.toast.success(`${result.deleted} item(s) deleted successfully`);
+        this.loadIngredients();
+      },
+      error: (error) => {
+        this.toast.error('Error deleting stock items: ' + (error?.message || 'Unknown error'));
+        this.loadIngredients();
+      }
+    });
   }
 
   isLowStock(ingredient: Ingredient): boolean {
