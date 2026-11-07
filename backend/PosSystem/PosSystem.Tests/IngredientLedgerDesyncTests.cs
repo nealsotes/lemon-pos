@@ -52,12 +52,14 @@ public class IngredientLedgerDesyncTests : IDisposable
         return ingredient;
     }
 
-    private async Task SeedLotAsync(string ingredientId, decimal remaining) =>
-        _lotRepo.AddAsync(new IngredientLot
+    private async Task SeedLotAsync(string ingredientId, decimal remaining)
+    {
+        await _lotRepo.AddAsync(new IngredientLot
         {
             IngredientId = ingredientId, UnitCost = 10m, InitialQuantity = remaining,
             RemainingQuantity = remaining, ReceivedAt = DateTime.UtcNow, IsActive = true
         });
+    }
 
     [Fact]
     public async Task GetLedgerDesyncsAsync_ReportsRowLedgerMismatchOnly()

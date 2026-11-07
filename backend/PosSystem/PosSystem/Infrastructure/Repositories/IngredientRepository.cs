@@ -120,7 +120,10 @@ public class IngredientRepository : IIngredientRepository
         foreach (var ingredient in ingredients)
         {
             lotTotals.TryGetValue(ingredient.Id, out var lotTotal);
-            if (ingredient.Quantity != lotTotal)
+            // Scale-normalize before comparing: the row carries scale (18,2) while
+            // lots carry (18,4), so a blind decimal != false-flags 3.00 vs 3.0000
+            // (qa-nit LPOS-SL-01). Four decimals is the finest scale in the model.
+            if (Math.Round(ingredient.Quantity, 4) != Math.Round(lotTotal, 4))
             {
                 desyncs.Add(new IngredientLedgerDesync
                 {
