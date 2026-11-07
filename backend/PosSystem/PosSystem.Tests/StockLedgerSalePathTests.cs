@@ -346,4 +346,43 @@ public class StockLedgerSalePathTests : IDisposable
         var lots = await _lotRepo.GetActiveByIngredientIdAsync("ing-1");
         Assert.Empty(lots.Where(l => l.RemainingQuantity > 0m));
     }
+
+    /// <summary>
+    /// LPOS-SL-01 invariant (leader-mandated): EVERY successful quantity edit lands
+    /// row.Quantity == activeLotTotal == the requested target - on an increase and a
+    /// decrease alike. This is the anti-drift pin: if a future change ever lets the
+    /// row and the ledger disagree after a successful edit, it fails here the way the
+    /// TA-02 pin guards the import report.
+    /// </summary>
+    [Theory]
+    [InlineData(5.0, 3.0)]   // decrease on a synced row
+    [InlineData(5.0, 12.0)]  // increase on a synced row
+    [InlineData(2.0, 5.0)]   // legacy desync, row < lots
+    [InlineData(10.0, 9.0)]  // legacy desync, row > lots
+    public async Task UpdateAsync_Invariant_AnyQuantityEdit_LandsRowEqualsLotsEqualsTarget(
+        double seedRow, double target)
+    {
+        var seeded = await SeedIngredientAsync(_context, "Red Horse Can 330ml x 24", (decimal)seedRow);
+        var lotTotalAtSeed = Math.Min((decimal)seedRow, 5m);
+        if (lotTotalAtSeed > 0m)
+        {
+            await _lotRepo.AddAsync(new IngredientLot
+            {
+                IngredientId = seeded.Id, UnitCost = 10m, InitialQuantity = lotTotalAtSeed,
+                RemainingQuantity = lotTotalAtSeed, ReceivedAt = DateTime.UtcNow, IsActive = true
+            });
+        }
+
+        var result = await _ingredientService.UpdateIngredientAsync("ing-1", Edit(quantity: (decimal)target));
+
+        var ledgerTotal = (await _lotRepo.GetActiveByIngredientIdAsync("ing-1"))
+            .Where(l => l.RemainingQuantity > 0m)
+            .Sum(l => l.RemainingQuantity);
+        var row = (await _ingredientRepo.GetByIdAsync("ing-1"))!;
+        Assert.Equal((decimal)target, row.Quantity);
+        Assert.Equal((decimal)target, ledgerTotal);
+        Assert.Equal(row.Quantity, result.Quantity);
+        // The result carries the committed row, and no desync is left behind.
+        Assert.Equal(0m, row.Quantity - ledgerTotal);
+    }
 }
