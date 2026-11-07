@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { Ingredient } from '../../../pos/models/ingredient.model';
+import { isWholeNumberUnit, stockQuantityDigits } from '../../../../shared/models/unit.utils';
 import { MovementType } from '../../models/stock-movement.model';
 
 export interface StockAdjustmentDialogData {
@@ -48,7 +49,7 @@ interface MovementTypeOption {
           </div>
           <div class="header-text">
             <h2>Stock Adjustment</h2>
-            <span class="header-sub">{{ ingredient.name }} · {{ ingredient.quantity | number:(isPiece ? '1.0-0' : '1.2-2') }} {{ ingredient.unit }} on hand</span>
+            <span class="header-sub">{{ ingredient.name }} · {{ ingredient.quantity | number:quantityDigits(ingredient?.unit ?? '') }} {{ ingredient.unit }} on hand</span>
           </div>
         </div>
         <button class="dialog-close-btn" (click)="dialogRef.close()">
@@ -89,11 +90,11 @@ interface MovementTypeOption {
             </button>
           </div>
           <div class="qty-preview" *ngIf="quantity > 0">
-            <span *ngIf="isOutgoing">{{ ingredient.quantity | number:(isPiece ? '1.0-0' : '1.2-2') }} - {{ quantity | number:(isPiece ? '1.0-0' : '1.2-2') }} = <strong>{{ (ingredient.quantity - quantity) | number:(isPiece ? '1.0-0' : '1.2-2') }}</strong> {{ ingredient.unit }}</span>
-            <span *ngIf="!isOutgoing">{{ ingredient.quantity | number:(isPiece ? '1.0-0' : '1.2-2') }} + {{ quantity | number:(isPiece ? '1.0-0' : '1.2-2') }} = <strong>{{ (ingredient.quantity + quantity) | number:(isPiece ? '1.0-0' : '1.2-2') }}</strong> {{ ingredient.unit }}</span>
+            <span *ngIf="isOutgoing">{{ ingredient.quantity | number:quantityDigits(ingredient?.unit ?? '') }} - {{ quantity | number:quantityDigits(ingredient?.unit ?? '') }} = <strong>{{ (ingredient.quantity - quantity) | number:quantityDigits(ingredient?.unit ?? '') }}</strong> {{ ingredient.unit }}</span>
+            <span *ngIf="!isOutgoing">{{ ingredient.quantity | number:quantityDigits(ingredient?.unit ?? '') }} + {{ quantity | number:quantityDigits(ingredient?.unit ?? '') }} = <strong>{{ (ingredient.quantity + quantity) | number:quantityDigits(ingredient?.unit ?? '') }}</strong> {{ ingredient.unit }}</span>
           </div>
           <div class="error-msg" *ngIf="isOutgoing && quantity > ingredient.quantity">
-            Cannot exceed current stock ({{ ingredient.quantity | number:(isPiece ? '1.0-0' : '1.2-2') }} {{ ingredient.unit }})
+            Cannot exceed current stock ({{ ingredient.quantity | number:quantityDigits(ingredient?.unit ?? '') }} {{ ingredient.unit }})
           </div>
         </div>
 
@@ -131,7 +132,7 @@ interface MovementTypeOption {
       <div class="dialog-footer">
         <button type="button" class="btn btn-secondary" (click)="dialogRef.close()">Cancel</button>
         <button type="button" class="btn btn-primary" (click)="submit()" [disabled]="!isValid">
-          {{ isOutgoing ? 'Remove' : 'Add' }} {{ quantity | number:(isPiece ? '1.0-0' : '1.2-2') }} {{ ingredient.unit }}
+          {{ isOutgoing ? 'Remove' : 'Add' }} {{ quantity | number:quantityDigits(ingredient?.unit ?? '') }} {{ ingredient.unit }}
         </button>
       </div>
     </div>
@@ -475,9 +476,10 @@ export class StockAdjustmentDialogComponent {
     }
   }
 
+  readonly quantityDigits = stockQuantityDigits;
+
   get isPiece(): boolean {
-    const u = this.ingredient.unit;
-    return u === 'pcs' || u === 'piece' || u === 'pieces';
+    return isWholeNumberUnit(this.ingredient?.unit ?? '');
   }
 
   get currentOption(): MovementTypeOption {

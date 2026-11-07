@@ -126,8 +126,7 @@
               <div class="quantity-cell-content">
                 <div class="quantity-info">
                   <span class="quantity-num">
-                    {{ (row.unit === 'pcs' || row.unit === 'piece' || row.unit === 'pieces') ?
-                    (row.quantity | number:'1.0-0') : (row.quantity | number:'1.2-2') }}
+                    {{ row.quantity | number:quantityDigits(row.unit) }}
                     <span class="unit-text">{{ row.unit }}</span>
                   </span>
                   <div class="stock-level-bar">

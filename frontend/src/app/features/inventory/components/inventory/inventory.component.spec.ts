@@ -50,6 +50,16 @@ describe('InventoryComponent bulk delete', () => {
 
   afterEach(() => httpMock.verify());
 
+  it('serializes partial case quantity and threshold without integer truncation', () => {
+    const existing = { ...component.filteredIngredients[0], unit: 'case', quantity: 2.75, lowStockThreshold: 0.5 };
+    (component as any).saveIngredient({ ...existing, name: 'Metadata edit', quantity: '2.75', lowStockThreshold: '0.5' }, existing);
+    const request = httpMock.expectOne(r => r.method === 'PUT');
+    expect(request.request.body.quantity).toBe(2.75);
+    expect(request.request.body.lowStockThreshold).toBe(0.5);
+    request.flush(existing);
+    httpMock.expectOne(r => r.url === '/api/ingredients' && r.method === 'GET').flush([existing]);
+  });
+
   it('keeps per-row delete intact and exposes selection state', () => {
     component.onSelectionChange([component.filteredIngredients[0], component.filteredIngredients[1]]);
     expect(component.selectedIngredients.map(i => i.id)).toEqual(['a-1', 'b-2']);

@@ -107,7 +107,7 @@ public class IngredientService : IIngredientService
         }
 
         // Validate that quantity is a whole number for pieces
-        if ((ingredientDto.Unit.ToLower() == "pcs" || ingredientDto.Unit.ToLower() == "piece" || ingredientDto.Unit.ToLower() == "pieces")
+        if (IsWholeNumberUnit(ingredientDto.Unit)
             && ingredientDto.Quantity % 1 != 0)
         {
             throw new ArgumentException("Quantity must be a whole number for pieces");
@@ -120,7 +120,7 @@ public class IngredientService : IIngredientService
         }
 
         // Validate that low stock threshold is a whole number for pieces
-        if ((ingredientDto.Unit.ToLower() == "pcs" || ingredientDto.Unit.ToLower() == "piece" || ingredientDto.Unit.ToLower() == "pieces")
+        if (IsWholeNumberUnit(ingredientDto.Unit)
             && ingredientDto.LowStockThreshold % 1 != 0)
         {
             throw new ArgumentException("Low stock threshold must be a whole number for pieces");
@@ -273,6 +273,14 @@ public class IngredientService : IIngredientService
             .Where(i => i.Quantity <= i.LowStockThreshold)
             .OrderBy(i => i.Quantity / i.LowStockThreshold) // Sort by how low they are
             .ToList();
+    }
+
+    // Preserve the legacy update-only piece rule. Case is a fractional-capable
+    // label, just like kg/L; it never implies a packaging conversion.
+    private static bool IsWholeNumberUnit(string unit)
+    {
+        var u = (unit ?? string.Empty).ToLowerInvariant();
+        return u == "pcs" || u == "piece" || u == "pieces";
     }
 
     public async Task<InventoryValueReport> GetInventoryValueAsync()

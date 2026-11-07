@@ -33,7 +33,7 @@ const IMPORT_META: Record<ImportKind, { title: string; endpoint: string; templat
     title: 'Import Ingredients',
     endpoint: `${environment.apiUrl}/ingredients/import`,
     templateEndpoint: `${environment.apiUrl}/ingredients/import-template`,
-    hint: 'Columns match the Ingredients export: Name, Quantity, Unit, Unit Cost, Supplier, Low Stock Threshold, Expiration (YYYY-MM-DD), Status. Existing items are matched by name and updated; new names are added.'
+    hint: 'Columns match the Ingredients export: Name, Quantity, Unit, Unit Cost, Supplier, Low Stock Threshold, Expiration (YYYY-MM-DD), Status. Existing items are matched by name and updated; new names are added. Unit is free text (e.g. kg, L, pcs, case). Partial cases and fractional case thresholds are accepted.'
   },
   expenses: {
     title: 'Import Expenses',

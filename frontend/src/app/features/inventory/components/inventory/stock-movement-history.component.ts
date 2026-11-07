@@ -5,6 +5,7 @@ import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/materia
 import { StockMovement, MovementType, MovementTypeLabels } from '../../models/stock-movement.model';
 import { IngredientLot } from '../../models/ingredient-lot.model';
 import { Ingredient } from '../../../pos/models/ingredient.model';
+import { isWholeNumberUnit, stockQuantityDigits } from '../../../../shared/models/unit.utils';
 import { StockMovementService } from '../../services/stock-movement.service';
 import { IngredientLotService } from '../../services/ingredient-lot.service';
 import { ToastService } from '../../../../shared/ui/toast/toast.service';
@@ -40,7 +41,7 @@ interface MovementTypeFilter {
           <div class="header-text">
             <h2>{{ ingredient?.name }}</h2>
             <span class="header-sub">
-              {{ ingredient?.quantity | number:(isPiece ? '1.0-0' : '1.2-2') }} {{ ingredient?.unit }} on hand
+              {{ ingredient?.quantity | number:quantityDigits(ingredient?.unit ?? '') }} {{ ingredient?.unit }} on hand
               <span class="header-dot">·</span>
               {{ movements.length | number:'1.0-0' }} movement{{ movements.length !== 1 ? 's' : '' }}
             </span>
@@ -112,7 +113,7 @@ interface MovementTypeFilter {
                 </span>
               </div>
               <div class="movement-qty" *ngIf="m.quantity !== 0" [class.incoming]="isIncoming(m.movementType)" [class.outgoing]="!isIncoming(m.movementType)">
-                {{ isIncoming(m.movementType) ? '+' : '-' }}{{ (m.quantity < 0 ? -m.quantity : m.quantity) | number:(isPiece ? '1.0-0' : '1.2-2') }}
+                {{ isIncoming(m.movementType) ? '+' : '-' }}{{ (m.quantity < 0 ? -m.quantity : m.quantity) | number:quantityDigits(ingredient?.unit ?? '') }}
                 <span class="qty-unit">{{ ingredient?.unit }}</span>
               </div>
               <div class="movement-qty muted" *ngIf="m.quantity === 0">--</div>
@@ -138,10 +139,10 @@ interface MovementTypeFilter {
       <!-- Footer -->
       <div class="dialog-footer">
         <div class="footer-summary" *ngIf="!isLoading && filteredMovements.length > 0">
-          <span class="summary-item incoming">+{{ totalIncoming | number:(isPiece ? '1.0-0' : '1.2-2') }} in</span>
-          <span class="summary-item outgoing">-{{ totalOutgoing | number:(isPiece ? '1.0-0' : '1.2-2') }} out</span>
+          <span class="summary-item incoming">+{{ totalIncoming | number:quantityDigits(ingredient?.unit ?? '') }} in</span>
+          <span class="summary-item outgoing">-{{ totalOutgoing | number:quantityDigits(ingredient?.unit ?? '') }} out</span>
           <span class="summary-item net" [class.incoming]="netChange >= 0" [class.outgoing]="netChange < 0">
-            {{ netChange >= 0 ? '+' : '' }}{{ netChange | number:(isPiece ? '1.0-0' : '1.2-2') }} net
+            {{ netChange >= 0 ? '+' : '' }}{{ netChange | number:quantityDigits(ingredient?.unit ?? '') }} net
           </span>
         </div>
         <button type="button" class="btn btn-secondary" (click)="close()">Close</button>
@@ -641,9 +642,10 @@ export class StockMovementHistoryComponent implements OnInit, OnDestroy {
     { value: MovementType.Return, label: 'Return', icon: '' }
   ];
 
+  readonly quantityDigits = stockQuantityDigits;
+
   get isPiece(): boolean {
-    const u = this.ingredient?.unit;
-    return u === 'pcs' || u === 'piece' || u === 'pieces';
+    return isWholeNumberUnit(this.ingredient?.unit ?? '');
   }
 
   get totalIncoming(): number {

@@ -8,6 +8,7 @@ import { Ingredient } from '../../../pos/models/ingredient.model';
 import { IngredientService } from '../../../pos/services/ingredient.service';
 import { StockMovementHistoryComponent } from './stock-movement-history.component';
 import { IngredientEditorDialogComponent } from './ingredient-editor-dialog.component';
+import { isWholeNumberUnit, stockQuantityDigits } from '../../../../shared/models/unit.utils';
 import { StockAdjustmentDialogComponent, StockAdjustmentResult } from './stock-adjustment-dialog.component';
 import { IngredientLotsDialogComponent } from './ingredient-lots-dialog.component';
 import { ProductRecipesComponent } from '../product-recipes/product-recipes.component';
@@ -178,8 +179,11 @@ export class InventoryComponent implements OnInit, OnDestroy {
     });
   }
 
+  isWholeNumberUnit = isWholeNumberUnit;
+  readonly quantityDigits = stockQuantityDigits;
+
   private saveIngredient(formValue: any, editingIngredient: Ingredient | null): void {
-    const isPiece = formValue.unit === 'pcs' || formValue.unit === 'piece' || formValue.unit === 'pieces';
+    const isPiece = isWholeNumberUnit(formValue.unit);
 
     if (editingIngredient) {
       const updateData: any = {

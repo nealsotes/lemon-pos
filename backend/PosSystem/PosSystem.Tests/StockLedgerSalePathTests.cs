@@ -138,6 +138,31 @@ public class StockLedgerSalePathTests : IDisposable
         _context);
 
     [Fact]
+    public async Task Sale_PartialCaseRecipeConsumption_PreservesFractionalBalanceAndUnit()
+    {
+        var dto = Edit(quantity: 2.75m);
+        dto.Unit = "case";
+        dto.LowStockThreshold = 0.5m;
+        var created = await _ingredientService.CreateIngredientAsync(dto);
+        StubProductSale(created.Id, quantityPerUnit: 0.25m);
+
+        await BuildSaleService().CreateTransactionAsync(Sale(quantity: 2));
+
+        _context.ChangeTracker.Clear();
+        var afterSale = (await _ingredientRepo.GetByIdAsync(created.Id))!;
+        Assert.Equal("case", afterSale.Unit);
+        Assert.Equal(2.25m, afterSale.Quantity);
+        Assert.Equal(0.5m, afterSale.LowStockThreshold);
+        var lot = Assert.Single(await _lotRepo.GetActiveByIngredientIdAsync(created.Id));
+        Assert.Equal(2.25m, lot.RemainingQuantity);
+        Assert.Equal(2.75m, lot.InitialQuantity);
+        var sale = Assert.Single(await _context.StockMovements
+            .Where(m => m.IngredientId == created.Id && m.MovementType == MovementType.Sale).ToListAsync());
+        Assert.Equal(-0.5m, sale.Quantity);
+        Assert.Equal(lot.Id, sale.LotId);
+    }
+
+    [Fact]
     public async Task EditShapedQuantity_BecomesSellableThroughRecipe()
     {
         // The old flow: quantity set directly on the row, no lots - any recipe sale

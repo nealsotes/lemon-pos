@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { Ingredient } from '../../../pos/models/ingredient.model';
+import { isWholeNumberUnit } from '../../../../shared/models/unit.utils';
 
 export interface IngredientEditorDialogData {
   ingredient: Ingredient | null;
@@ -347,11 +348,10 @@ export interface IngredientEditorDialogData {
 })
 export class IngredientEditorDialogComponent implements OnInit {
   ingredientForm: FormGroup;
-  units = ['kg', 'g', 'L', 'ml', 'pcs', 'pack', 'bottle', 'can'];
+  units = ['kg', 'g', 'L', 'ml', 'pcs', 'pack', 'bottle', 'can', 'case'];
 
   get isPieceUnit(): boolean {
-    const unit = this.ingredientForm.get('unit')?.value;
-    return unit === 'pcs' || unit === 'piece' || unit === 'pieces';
+    return isWholeNumberUnit(this.ingredientForm.get('unit')?.value);
   }
 
   get totalCost(): number {
@@ -398,7 +398,7 @@ export class IngredientEditorDialogComponent implements OnInit {
     this.ingredientForm.get('unit')?.valueChanges.subscribe(unit => {
       const quantityControl = this.ingredientForm.get('quantity');
       if (quantityControl) {
-        if (unit === 'pcs' || unit === 'piece' || unit === 'pieces') {
+        if (isWholeNumberUnit(unit)) {
           quantityControl.setValidators([
             Validators.required,
             Validators.min(0),
@@ -418,7 +418,7 @@ export class IngredientEditorDialogComponent implements OnInit {
 
       const thresholdControl = this.ingredientForm.get('lowStockThreshold');
       if (thresholdControl) {
-        if (unit === 'pcs' || unit === 'piece' || unit === 'pieces') {
+        if (isWholeNumberUnit(unit)) {
           thresholdControl.setValidators([
             Validators.required,
             Validators.min(0),
@@ -441,7 +441,7 @@ export class IngredientEditorDialogComponent implements OnInit {
   getUnitIcon(unit: string): string {
     const icons: Record<string, string> = {
       'kg': 'Kg', 'g': 'g', 'L': 'L', 'ml': 'ml',
-      'pcs': '#', 'pack': 'Pk', 'bottle': 'Bt', 'can': 'Cn'
+      'pcs': '#', 'pack': 'Pk', 'bottle': 'Bt', 'can': 'Cn', 'case': 'Cs'
     };
     return icons[unit] || unit.substring(0, 2);
   }

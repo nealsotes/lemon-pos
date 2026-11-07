@@ -4,6 +4,7 @@ import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/materia
 import { IngredientLotService } from '../../services/ingredient-lot.service';
 import { IngredientLot } from '../../models/ingredient-lot.model';
 import { Ingredient } from '../../../pos/models/ingredient.model';
+import { isWholeNumberUnit, stockQuantityDigits } from '../../../../shared/models/unit.utils';
 import { ToastService } from '../../../../shared/ui/toast/toast.service';
 import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/loading-spinner.component';
 
@@ -26,7 +27,7 @@ import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/l
           <div class="header-text">
             <h2>{{ ingredient?.name }}</h2>
             <span class="header-sub">
-              {{ ingredient?.quantity | number:(isPiece ? '1.0-0' : '1.2-2') }} {{ ingredient?.unit }} on hand
+              {{ ingredient?.quantity | number:quantityDigits(ingredient?.unit ?? '') }} {{ ingredient?.unit }} on hand
               <span class="header-dot">&middot;</span>
               {{ lots.length | number:'1.0-0' }} active lot{{ lots.length !== 1 ? 's' : '' }}
             </span>
@@ -63,8 +64,8 @@ import { LoadingSpinnerComponent } from '../../../../shared/ui/loading-spinner/l
                 </span>
               </div>
               <div class="lot-qty">
-                <span class="lot-remaining">{{ lot.remainingQuantity | number:(isPiece ? '1.0-0' : '1.2-2') }} {{ ingredient?.unit }}</span>
-                <span class="lot-initial">of {{ lot.initialQuantity | number:(isPiece ? '1.0-0' : '1.2-2') }}</span>
+                <span class="lot-remaining">{{ lot.remainingQuantity | number:quantityDigits(ingredient?.unit ?? '', true) }} {{ ingredient?.unit }}</span>
+                <span class="lot-initial">of {{ lot.initialQuantity | number:quantityDigits(ingredient?.unit ?? '', true) }}</span>
               </div>
               <div class="lot-cost">
                 <span class="lot-unit-cost">&#8369;{{ lot.unitCost | number:'1.2-2' }}</span>
@@ -220,9 +221,10 @@ export class IngredientLotsDialogComponent implements OnInit {
     this.loadLots();
   }
 
+  readonly quantityDigits = stockQuantityDigits;
+
   get isPiece(): boolean {
-    const u = this.ingredient?.unit;
-    return u === 'pcs' || u === 'piece' || u === 'pieces';
+    return isWholeNumberUnit(this.ingredient?.unit ?? '');
   }
 
   get weightedAvgCost(): number {
