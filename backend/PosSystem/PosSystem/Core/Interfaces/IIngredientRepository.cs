@@ -12,5 +12,6 @@ public interface IIngredientRepository
     Task<int> DeleteBulkAsync(IEnumerable<string> ids);
     Task<IEnumerable<Ingredient>> GetLowStockAsync();
     Task<IEnumerable<Ingredient>> GetAllIncludingInactiveAsync();
+    Task<IEnumerable<IngredientLedgerDesync>> GetLedgerDesyncsAsync();
 }
 

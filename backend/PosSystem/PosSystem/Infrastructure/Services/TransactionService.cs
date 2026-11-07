@@ -163,9 +163,20 @@ public class TransactionService : ITransactionService
                     }
                     catch (InvalidOperationException)
                     {
+                        // Stock-ledger desync fix (LPOS-SL-01): the old catch
+                        // reformulated the failure from the ingredient ROW, which on
+                        // a desynced legacy row contradicts the ledger ("Required:
+                        // 1.0000, Available: 3.00" while the ledger holds ~0). The
+                        // honest figure is the lot-side availability, computed with
+                        // the same rule the dedup sweep uses (active lots, remaining
+                        // > 0). One cashier-readable line; the raw lot-service text
+                        // is never leaked.
                         var ingredient = await _ingredientRepository.GetByIdAsync(ingredientId);
+                        var ledgerAvailable = (await _lotService.GetLotsAsync(ingredientId))
+                            .Where(l => l.RemainingQuantity > 0)
+                            .Sum(l => l.RemainingQuantity);
                         throw new InvalidOperationException(
-                            $"Insufficient ingredient: {ingredient?.Name ?? ingredientId}. Required: {required}, Available: {ingredient?.Quantity ?? 0}");
+                            $"Insufficient ingredient: {ingredient?.Name ?? ingredientId}. Required: {required}, Available: {ledgerAvailable} (stock ledger). The item row shows {ingredient?.Quantity ?? 0}; use Adjust Stock to reconcile or re-import with a stock entry.");
                     }
                 }
 

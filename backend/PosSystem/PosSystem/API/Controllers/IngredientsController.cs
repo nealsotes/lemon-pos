@@ -62,6 +62,16 @@ public class IngredientsController : ControllerBase
         return File(result.Content, result.ContentType, result.FileName);
     }
 
+    // Read-only stock-ledger desync diagnostic: items whose row quantity disagrees
+    // with the sum of their active FIFO lots (Owner/Admin only via the class
+    // attribute). Operators reconcile flagged items via Adjust Stock or a stock
+    // import; nothing auto-mutates legacy data.
+    [HttpGet("ledger-desyncs")]
+    public async Task<ActionResult<IEnumerable<IngredientLedgerDesync>>> GetLedgerDesyncs()
+    {
+        return Ok(await _ingredientService.GetLedgerDesyncsAsync());
+    }
+
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Ingredient>>> GetIngredients()
     {

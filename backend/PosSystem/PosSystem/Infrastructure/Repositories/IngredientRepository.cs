@@ -99,5 +99,40 @@ public class IngredientRepository : IIngredientRepository
             .OrderBy(i => i.Name)
             .ToListAsync();
     }
+
+    public async Task<IEnumerable<IngredientLedgerDesync>> GetLedgerDesyncsAsync()
+    {
+        // Read-only diagnostic for the stock-ledger desync fix: report active items
+        // whose row quantity disagrees with the sum of their active FIFO lots.
+        // Deliberately in-memory LINQ (item counts are small; InMemory and MySQL
+        // get identical semantics). Nothing here mutates legacy data - the operator
+        // reconciles flagged items via Adjust Stock or a stock import.
+        var ingredients = await _context.Ingredients
+            .Where(i => i.IsActive)
+            .ToListAsync();
+        var lotTotals = await _context.IngredientLots
+            .Where(l => l.IsActive && l.RemainingQuantity > 0)
+            .GroupBy(l => l.IngredientId)
+            .Select(g => new { IngredientId = g.Key, Total = g.Sum(l => l.RemainingQuantity) })
+            .ToDictionaryAsync(x => x.IngredientId, x => x.Total);
+
+        var desyncs = new List<IngredientLedgerDesync>();
+        foreach (var ingredient in ingredients)
+        {
+            lotTotals.TryGetValue(ingredient.Id, out var lotTotal);
+            if (ingredient.Quantity != lotTotal)
+            {
+                desyncs.Add(new IngredientLedgerDesync
+                {
+                    IngredientId = ingredient.Id,
+                    Name = ingredient.Name,
+                    RowQuantity = ingredient.Quantity,
+                    LotQuantity = lotTotal
+                });
+            }
+        }
+
+        return desyncs;
+    }
 }
 
