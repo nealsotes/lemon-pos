@@ -226,21 +226,31 @@ public class TransactionServiceSalePathTests
     }
 
     [Fact]
-    public async Task CreateTransactionAsync_LotServiceShortfall_SurfacesAggregateShortfall()
+    public async Task CreateTransactionAsync_LotServiceShortfall_SurfacesLedgerShortfall()
     {
         StubIngredientsFor("P1", saleQuantity: 2); // required = 1 L
         _ingredientRepository.Setup(r => r.GetByIdAsync("M1")).ReturnsAsync(MilkStock(2m));
         _lotService
             .Setup(l => l.DeductFifoAsync("M1", 1m, MovementType.Sale, "POS Sale", It.IsAny<string?>()))
             .ThrowsAsync(new InvalidOperationException("Insufficient stock for Milk. Required: 1, Available: 0.5"));
+        // The stale row says 2 while the ledger holds 0.5 - the honest catch reads
+        // the LOT-side availability, not the row.
+        _lotService.Setup(l => l.GetLotsAsync("M1")).ReturnsAsync(new[]
+        {
+            new IngredientLot { IngredientId = "M1", UnitCost = 10m, InitialQuantity = 0.5m, RemainingQuantity = 0.5m, ReceivedAt = DateTime.UtcNow, IsActive = true }
+        });
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
             () => BuildService().CreateTransactionAsync(Sale(quantity: 2)));
 
-        // The lot-service message is replaced with the aggregate shortfall, which is
-        // what the POS UI shows the cashier. (0.5 per unit x 2 sold = 1.0 required,
-        // interpolated from the decimal's natural scale.)
-        Assert.Contains("Insufficient ingredient: Milk. Required: 1.0, Available: 2", ex.Message);
+        // One cashier-readable line built from the LEDGER figure: the ledger holds
+        // 0.5 while the stale row claims 2 - both stated, plus the reconciliation
+        // hint. No raw lot-service text, and no line break (POS UI).
+        var message = ex.Message;
+        Assert.Contains("Insufficient ingredient: Milk. Required: 1.0, Available: 0.5 (stock ledger)", message);
+        Assert.Contains("The item row shows 2; use Adjust Stock to reconcile or re-import with a stock entry", message);
+        Assert.DoesNotContain('\n', message);
+        Assert.DoesNotContain("Insufficient stock for", message);
         _transactionStub.Verify(t => t.RollbackAsync(default), Times.Once);
         _transactionRepository.Verify(r => r.AddAsync(It.IsAny<Transaction>()), Times.Never);
     }
